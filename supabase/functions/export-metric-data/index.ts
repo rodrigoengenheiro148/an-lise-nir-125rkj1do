@@ -1,5 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import * as XLSX from 'npm:xlsx'
 import { corsHeaders } from '../_shared/cors.ts'
 
