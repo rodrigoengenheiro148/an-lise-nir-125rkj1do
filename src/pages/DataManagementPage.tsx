@@ -4,7 +4,7 @@ import { api } from '@/services/api'
 import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Database } from 'lucide-react'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
@@ -52,21 +52,25 @@ export default function DataManagementPage() {
   }, [search, companyFilter, records])
 
   return (
-    <div className="container mx-auto p-6 space-y-6 text-zinc-100 min-h-screen pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="container mx-auto p-6 space-y-8 text-zinc-100 min-h-screen pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800 pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-zinc-800 rounded-lg">
+              <Database className="h-6 w-6 text-zinc-400" />
+            </div>
             Gerenciamento de Dados
           </h1>
-          <p className="text-zinc-400">
-            Visualize, edite e remova registros de análise.
+          <p className="text-zinc-400 mt-2 max-w-2xl">
+            Central de controle para registros de análise laboratorial. Utilize
+            os filtros para localizar amostras ou adicione novos resultados.
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
           <ImportDialog onImportSuccess={fetchData} />
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 gap-2 flex-1 md:flex-none"
+            className="bg-blue-600 hover:bg-blue-700 gap-2 shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
           >
             <Plus className="h-4 w-4" />
             Nova Análise
@@ -74,17 +78,17 @@ export default function DataManagementPage() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+      <div className="flex flex-col lg:flex-row gap-4 bg-zinc-900/30 p-1 rounded-xl border border-zinc-800/50">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
           <Input
-            placeholder="Buscar por data ou material..."
+            placeholder="Buscar por data (AAAA-MM-DD) ou material..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-zinc-950 border-zinc-800"
+            className="pl-10 bg-zinc-950 border-zinc-800 focus:ring-zinc-700 h-10"
           />
         </div>
-        <div className="w-full md:w-[300px]">
+        <div className="w-full lg:w-[350px]">
           <CompanySelector
             selected={companyFilter}
             onSelect={setCompanyFilter}
@@ -93,16 +97,30 @@ export default function DataManagementPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-zinc-500 animate-pulse">
-          Carregando dados...
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-sm text-zinc-400 px-1">
+          <span>
+            Mostrando <strong>{filteredRecords.length}</strong> registros
+          </span>
+          {loading && (
+            <span className="flex items-center gap-2 animate-pulse text-blue-400">
+              Atualizando dados...
+            </span>
+          )}
         </div>
-      ) : (
-        <DataManagementTable
-          records={filteredRecords}
-          onDataChange={fetchData}
-        />
-      )}
+
+        {loading && records.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-zinc-500 space-y-4 bg-zinc-900/20 rounded-xl border border-zinc-800 border-dashed">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-600 border-t-zinc-300" />
+            <p>Carregando registros...</p>
+          </div>
+        ) : (
+          <DataManagementTable
+            records={filteredRecords}
+            onDataChange={fetchData}
+          />
+        )}
+      </div>
 
       <EditRecordDialog
         mode="add"
