@@ -9,7 +9,7 @@ export interface ParseResult {
 
 export interface HeaderMap {
   index: number
-  field: 'date' | 'material' | 'company' | string // string for metric keys like 'acidity_lab'
+  field: 'date' | 'material' | 'submaterial' | 'company' | string // string for metric keys like 'acidity_lab'
 }
 
 // Helper to normalize strings for comparison (remove accents, lowercase)
@@ -80,6 +80,15 @@ export const parseImportData = (
       headerMap.push({ index, field: 'material' })
       return
     }
+    if (
+      norm === 'submaterial' ||
+      norm === 'sub-material' ||
+      norm === 'sub material' ||
+      norm === 'tipo'
+    ) {
+      headerMap.push({ index, field: 'submaterial' })
+      return
+    }
     if (norm === 'empresa' || norm === 'company' || norm === 'cliente') {
       headerMap.push({ index, field: 'company' })
       return
@@ -132,6 +141,8 @@ export const parseImportData = (
           record.company = val
         } else if (map.field === 'material') {
           record.material = val
+        } else if (map.field === 'submaterial') {
+          record.submaterial = val
         } else {
           // Metric value
           const num = parseFloat(val.replace(',', '.'))

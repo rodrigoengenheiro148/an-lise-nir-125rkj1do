@@ -25,12 +25,7 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
-import {
-  Loader2,
-  FlaskConical,
-  Building2,
-  Package,
-} from 'lucide-react'
+import { Loader2, FlaskConical, Building2, Package, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface EditRecordDialogProps {
@@ -81,6 +76,7 @@ export const EditRecordDialog = ({
         setFormData({
           date: new Date().toISOString().split('T')[0],
           material: '',
+          submaterial: '',
         })
       }
     }
@@ -171,7 +167,7 @@ export const EditRecordDialog = ({
                 <div className="h-px bg-zinc-800 flex-1" />
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-zinc-300 flex items-center gap-2">
                     <Building2 className="h-3.5 w-3.5 text-zinc-500" />
@@ -215,6 +211,21 @@ export const EditRecordDialog = ({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-zinc-300 flex items-center gap-2">
+                    <Tag className="h-3.5 w-3.5 text-zinc-500" />
+                    Submaterial
+                  </Label>
+                  <Input
+                    value={formData.submaterial || ''}
+                    onChange={(e) =>
+                      handleChange('submaterial', e.target.value)
+                    }
+                    placeholder="Opcional (Ex: Tipo B)"
+                    className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20"
+                  />
                 </div>
               </div>
             </div>

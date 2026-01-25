@@ -59,6 +59,9 @@ export const DataManagementTable = ({
               <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
                 Material
               </TableHead>
+              <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
+                Submaterial
+              </TableHead>
               <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
                 Empresa
               </TableHead>
@@ -79,7 +82,7 @@ export const DataManagementTable = ({
               </TableHead>
             </TableRow>
             <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
-              <TableHead colSpan={3}></TableHead>
+              <TableHead colSpan={4}></TableHead>
               {METRICS.map((m) => {
                 if (m.key === 'acidity') {
                   return (
@@ -121,6 +124,9 @@ export const DataManagementTable = ({
               >
                 <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap">
                   {record.material || '-'}
+                </TableCell>
+                <TableCell className="text-zinc-400 text-xs whitespace-nowrap">
+                  {record.submaterial || '-'}
                 </TableCell>
                 <TableCell className="text-zinc-200 text-sm whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -201,7 +207,7 @@ export const DataManagementTable = ({
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={3 + METRICS.length * 3 + 1}
+                  colSpan={4 + METRICS.length * 3 + 1}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.

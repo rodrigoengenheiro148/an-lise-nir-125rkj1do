@@ -67,6 +67,7 @@ export interface AnalysisRecord {
   company_id?: string
   company_logo?: string
   material?: string
+  submaterial?: string
   date: string
 
   // Dynamic keys for metrics: *_lab, *_nir, *_anl

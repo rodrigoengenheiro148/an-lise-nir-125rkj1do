@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { AnalysisRecord, CompanyEntity, MetricKey } from '@/types/dashboard'
+import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
 
 const KEY_MAPPING: Record<string, string> = {
   acidity: 'acidity',
@@ -25,6 +25,7 @@ const transformRecordFromDB = (
     company_logo: company.logo_url || undefined,
     date: row.date,
     material: row.material,
+    submaterial: row.submaterial || undefined,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
@@ -44,6 +45,7 @@ const transformRecordToDB = (
     company_id: companyId,
     date: record.date,
     material: record.material,
+    submaterial: record.submaterial,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
@@ -132,6 +134,8 @@ export const api = {
     const dbUpdates: any = {}
     if (updates.date) dbUpdates.date = updates.date
     if (updates.material !== undefined) dbUpdates.material = updates.material
+    if (updates.submaterial !== undefined)
+      dbUpdates.submaterial = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
 
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
