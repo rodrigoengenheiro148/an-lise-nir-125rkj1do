@@ -1,19 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Company, AnalysisRecord, METRICS, MetricKey } from '@/types/dashboard'
+import { Company, AnalysisRecord, METRICS } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
-import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
-import { MetricHistogram } from '@/components/dashboard/MetricHistogram'
-import { ResidualChart } from '@/components/dashboard/ResidualChart'
+import { MetricCard } from '@/components/dashboard/MetricCard'
 import { Button } from '@/components/ui/button'
 import { Activity, TrendingUp, Cloud, Table as TableIcon } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Link } from 'react-router-dom'
 
 const Index = () => {
@@ -21,7 +12,6 @@ const Index = () => {
   const [allRecords, setAllRecords] = useState<AnalysisRecord[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [detailedMetric, setDetailedMetric] = useState<MetricKey>('protein')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,8 +42,10 @@ const Index = () => {
   useEffect(() => {
     if (selectedCompany) {
       const filtered = allRecords.filter((r) => r.company === selectedCompany)
+      // Sort by date descending for list/summary, but charts handle their own sorting if needed
+      // (MetricEvolutionChart reverses it for display)
       filtered.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       )
       setFilteredRecords(filtered)
     }
@@ -85,7 +77,7 @@ const Index = () => {
                 Dashboard Analítico
               </h1>
               <p className="text-xs text-zinc-400">
-                Visualização em Tempo Real
+                Monitoramento de Qualidade
               </p>
             </div>
           </div>
@@ -112,6 +104,7 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
+        {/* Key Indicators Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
@@ -129,7 +122,9 @@ const Index = () => {
               Última Análise
             </span>
             <span className="text-lg font-medium text-white">
-              {filteredRecords[0]?.date || '-'}
+              {filteredRecords[0]?.date
+                ? new Date(filteredRecords[0].date).toLocaleDateString('pt-BR')
+                : '-'}
             </span>
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
@@ -150,79 +145,25 @@ const Index = () => {
           </div>
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-zinc-200">
+        {/* Metrics Grid Layout */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
             <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-            Comparativo Geral: LAB vs ANL
+            Evolução por Parâmetro
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {/* Special placement for Acidity if desired, but mapping preserves order in constants */}
             {METRICS.map((metric) => (
-              <div key={metric.key} className="h-[300px]">
-                <MetricScatterChart
-                  title={metric.label}
-                  data={filteredRecords}
-                  metricKey={metric.key}
-                  color={metric.color}
-                  unit={metric.unit}
-                />
-              </div>
+              <MetricCard
+                key={metric.key}
+                title={metric.label}
+                metricKey={metric.key}
+                color={metric.color}
+                unit={metric.unit}
+                data={filteredRecords}
+              />
             ))}
-          </div>
-        </div>
-
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold flex items-center gap-2 text-white">
-                <span className="bg-blue-600 h-6 w-1 rounded-full block"></span>
-                Análise Estatística Detalhada
-              </h2>
-              <p className="text-zinc-400 text-sm mt-1">
-                Distribuição de frequência e análise de resíduos (LAB - ANL)
-              </p>
-            </div>
-            <div className="w-[240px] text-zinc-950">
-              <Select
-                value={detailedMetric}
-                onValueChange={(v) => setDetailedMetric(v as MetricKey)}
-              >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-100">
-                  <SelectValue placeholder="Selecione a métrica" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  {METRICS.map((m) => (
-                    <SelectItem
-                      key={m.key}
-                      value={m.key}
-                      className="focus:bg-zinc-800 focus:text-zinc-100"
-                    >
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MetricHistogram
-              data={filteredRecords}
-              metricKey={detailedMetric}
-            />
-            <ResidualChart data={filteredRecords} metricKey={detailedMetric} />
-            <div className="md:col-span-1">
-              <div className="h-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center items-center text-center">
-                <p className="text-zinc-400 mb-2">
-                  Resumo: {METRICS.find((m) => m.key === detailedMetric)?.label}
-                </p>
-                <div className="text-4xl font-bold text-white mb-1">
-                  {filteredRecords.length}
-                </div>
-                <span className="text-xs text-zinc-500 uppercase">
-                  Amostras Analisadas
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </main>
