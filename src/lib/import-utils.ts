@@ -72,7 +72,6 @@ export const parseImportData = (
   headers.forEach((h, index) => {
     const norm = normalize(h)
 
-    // Date parsing removed
     if (norm === 'material' || norm === 'produto' || norm === 'product') {
       headerMap.push({ index, field: 'material' })
       return

@@ -43,13 +43,7 @@ const Index = () => {
   useEffect(() => {
     if (selectedCompany) {
       const filtered = allRecords.filter((r) => r.company === selectedCompany)
-      // Sort by date descending (nulls last)
-      filtered.sort((a, b) => {
-        if (!a.date && !b.date) return 0
-        if (!a.date) return 1
-        if (!b.date) return -1
-        return new Date(b.date).getTime() - new Date(a.date).getTime()
-      })
+      // Records are already sorted by created_at desc from API
       setFilteredRecords(filtered)
     }
   }, [selectedCompany, allRecords])
@@ -122,11 +116,14 @@ const Index = () => {
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
-              Última Análise
+              Última Atividade
             </span>
             <span className="text-lg font-medium text-white">
-              {filteredRecords[0]?.date
-                ? new Date(filteredRecords[0].date).toLocaleDateString('pt-BR')
+              {filteredRecords[0]?.created_at
+                ? new Date(filteredRecords[0].created_at).toLocaleDateString(
+                    'pt-BR',
+                    { day: '2-digit', month: '2-digit', year: '2-digit' },
+                  )
                 : '-'}
             </span>
           </div>

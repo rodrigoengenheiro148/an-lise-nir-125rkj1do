@@ -78,7 +78,7 @@ export const EditRecordDialog = ({
         setFormData({
           material: '',
           submaterial: '',
-          date: null, // Always null
+          date: null,
         })
       }
     }

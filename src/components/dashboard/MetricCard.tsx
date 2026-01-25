@@ -22,7 +22,7 @@ export const MetricCard = ({
 }: MetricCardProps) => {
   const isAcidity = metricKey === 'acidity'
 
-  // Calculate latest values for header summary (First record in list, as list is sorted desc by default)
+  // Calculate stats based on created_at descending sort (default)
   const latestRecord = data.length > 0 ? data[0] : null
   const latestLab = latestRecord
     ? Number(latestRecord[`${metricKey}_lab`] || 0)

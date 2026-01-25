@@ -24,6 +24,7 @@ const transformRecordFromDB = (
     company_id: row.company_id,
     company_logo: company.logo_url || undefined,
     date: row.date,
+    created_at: row.created_at,
     material: row.material,
     submaterial: row.sub_material || row.submaterial || undefined,
   }
@@ -91,7 +92,7 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
-    // Fetches records ordered by creation date descending instead of the removed date field
+    // Fetches records ordered by creation date descending
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')

@@ -91,7 +91,7 @@ export const DataManagementTable = ({
               <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
                 Empresa
               </TableHead>
-              {/* Date Column Removed */}
+              {/* No Date Column */}
               {METRICS.map((m) => (
                 <TableHead
                   key={m.key}

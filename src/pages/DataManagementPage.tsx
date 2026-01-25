@@ -59,8 +59,8 @@ export default function DataManagementPage() {
       const lowerSearch = search.toLowerCase()
       res = res.filter(
         (r) =>
-          (r.date && r.date.includes(search)) ||
-          r.material?.toLowerCase().includes(lowerSearch),
+          r.material?.toLowerCase().includes(lowerSearch) ||
+          r.submaterial?.toLowerCase().includes(lowerSearch),
       )
     }
     if (companyFilter) {
@@ -103,7 +103,7 @@ export default function DataManagementPage() {
         <div className="flex-1 relative group">
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
           <Input
-            placeholder="Buscar por data (AAAA-MM-DD) ou material..."
+            placeholder="Buscar por material..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-zinc-950 border-zinc-800 focus:ring-zinc-700 h-10"

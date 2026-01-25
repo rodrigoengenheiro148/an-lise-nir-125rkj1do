@@ -30,8 +30,8 @@ export const MetricEvolutionChart = ({
         const lab = Number(item[`${metricKey}_lab`] || 0)
         const anl = Number(item[`${metricKey}_anl`] || 0)
 
-        // We filter out 0 values for better visualization in scatter
-        if (lab === 0 && anl === 0) return null
+        // Filter out cases where both are 0, or missing
+        if (!lab && !anl) return null
 
         return {
           id: item.id,
@@ -106,7 +106,7 @@ export const MetricEvolutionChart = ({
             if (active && payload && payload.length) {
               const d = payload[0].payload
               return (
-                <div className="rounded border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
+                <div className="rounded border border-zinc-700 bg-zinc-900 p-2 shadow-xl z-50">
                   <p className="mb-1 text-xs font-semibold text-zinc-300">
                     {d.company}
                   </p>

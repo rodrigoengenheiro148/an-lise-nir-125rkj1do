@@ -81,7 +81,8 @@ export interface AnalysisRecord {
   company_logo?: string
   material?: string
   submaterial?: string
-  date?: string | null
+  date?: string | null // Deprecated, kept for compatibility if needed but unused in UI
+  created_at?: string
 
   // Dynamic keys for metrics: *_lab, *_nir, *_anl
   [key: string]: string | number | undefined | null
