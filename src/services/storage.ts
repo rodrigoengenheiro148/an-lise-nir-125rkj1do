@@ -77,6 +77,8 @@ const generateMockData = (): AnalysisRecord[] => {
   return records
 }
 
+// Simulation of Cloud Persistence using LocalStorage
+// In a real scenario, this would be replaced by Supabase client calls
 export const storageService = {
   getRecords: (): AnalysisRecord[] => {
     try {
@@ -88,7 +90,7 @@ export const storageService = {
       }
       return JSON.parse(stored)
     } catch (e) {
-      console.error('Failed to load records', e)
+      console.error('Failed to load records from storage', e)
       return []
     }
   },
@@ -96,11 +98,14 @@ export const storageService = {
   saveRecords: (records: AnalysisRecord[]) => {
     try {
       const existing = storageService.getRecords()
+      // Simple merge or append strategy
       const newDataset = [...existing, ...records]
+
+      // Simulate saving to cloud
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newDataset))
       return newDataset
     } catch (e) {
-      console.error('Failed to save records', e)
+      console.error('Failed to save records to storage', e)
       return []
     }
   },

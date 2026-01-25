@@ -13,7 +13,7 @@ import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
 import { MetricHistogram } from '@/components/dashboard/MetricHistogram'
 import { ResidualChart } from '@/components/dashboard/ResidualChart'
 import { Button } from '@/components/ui/button'
-import { Save, Activity, Database, TrendingUp } from 'lucide-react'
+import { Save, Activity, Database, TrendingUp, Cloud } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -90,7 +90,7 @@ const Index = () => {
                 Análise NIR
               </h1>
               <p className="text-xs text-zinc-400">
-                Controle de Qualidade Espectral
+                Monitoramento Laboratorial e Espectral
               </p>
             </div>
           </div>
@@ -124,7 +124,7 @@ const Index = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
-              Total de Amostras
+              Amostras (Empresa)
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-white">
@@ -143,10 +143,10 @@ const Index = () => {
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
             <span className="text-xs text-zinc-500 uppercase font-mono flex items-center gap-2">
-              <Database className="h-3 w-3" /> Status do Banco
+              <Cloud className="h-3 w-3" /> Status Cloud
             </span>
             <span className="text-sm font-medium text-green-400 mt-1">
-              Sincronizado (Local)
+              Sincronizado (Simulated)
             </span>
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
@@ -163,7 +163,7 @@ const Index = () => {
         <div>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-zinc-200">
             <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-            Visão Geral: Lab vs NIR
+            Comparativo Geral: LAB vs ANL
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {METRICS.map((metric) => (
@@ -189,7 +189,7 @@ const Index = () => {
                 Análise Estatística Detalhada
               </h2>
               <p className="text-zinc-400 text-sm mt-1">
-                Distribuição de frequência e análise de resíduos
+                Distribuição de frequência e análise de resíduos (LAB - ANL)
               </p>
             </div>
             <div className="w-[240px] text-zinc-950">

@@ -68,7 +68,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
           const labVal = cols[colIdx]?.replace(',', '.') || '0'
           record[`${metric.key}_lab`] = parseFloat(labVal)
 
-          // Parse NIR
+          // Parse NIR (ANL)
           const nirVal = cols[colIdx + 1]?.replace(',', '.') || '0'
           record[`${metric.key}_nir`] = parseFloat(nirVal)
 
@@ -86,7 +86,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
       onImport(parsedRecords)
       setIsOpen(false)
       setDataInput('')
-      toast.success(`${parsedRecords.length} registros importados com sucesso!`)
+      toast.success(`${parsedRecords.length} registros importados e salvos!`)
     } catch (error) {
       console.error(error)
       toast.error('Erro ao processar os dados. Verifique o formato.')
@@ -94,7 +94,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
   }
 
   const templateHeaders =
-    'Empresa\tData\tAcidez_LAB\tAcidez_NIR\tUmidade_LAB\tUmidade_NIR\tFCO_LAB\tFCO_NIR\tProteína_LAB\tProteína_NIR\t...'
+    'Empresa\tData\tAcidez_LAB\tAcidez_ANL\tUmidade_LAB\tUmidade_ANL\t...'
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -109,10 +109,11 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
-          <DialogTitle>Importar Dados LAB vs NIR</DialogTitle>
+          <DialogTitle>Importar Dados LAB vs ANL</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Copie e cole os dados do Excel. O formato deve ser Empresa, Data,
-            seguido de pares LAB e NIR para cada métrica na ordem padrão.
+            Copie e cole os dados do Excel. O formato deve ser: Empresa, Data,
+            seguido de pares <strong>LAB</strong> e <strong>ANL (NIR)</strong>{' '}
+            para cada métrica na ordem padrão.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -121,7 +122,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
             <span className="font-mono">{templateHeaders}</span>
           </div>
           <Textarea
-            placeholder="Cole seus dados aqui..."
+            placeholder={`Exemplo:\nEmpresa A\t2023-10-01\t1.5\t1.4\t12.0\t11.9...`}
             className="h-[300px] font-mono text-xs bg-zinc-900 border-zinc-800 text-zinc-300 focus-visible:ring-zinc-700"
             value={dataInput}
             onChange={(e) => setDataInput(e.target.value)}
@@ -129,7 +130,8 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
           <div className="flex items-center gap-2 text-xs text-amber-500">
             <AlertCircle className="h-3 w-3" />
             <span>
-              Certifique-se de que os valores decimais estão corretos.
+              Certifique-se de que os valores decimais estão corretos e as
+              colunas seguem a ordem exata das métricas.
             </span>
           </div>
         </div>

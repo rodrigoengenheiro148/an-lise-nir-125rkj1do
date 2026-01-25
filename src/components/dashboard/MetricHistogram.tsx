@@ -15,8 +15,17 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle as DialogTitleComponent,
+} from '@/components/ui/dialog'
+import { Maximize2 } from 'lucide-react'
 import { AnalysisRecord, MetricKey, METRICS } from '@/types/dashboard'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 interface MetricHistogramProps {
   data: AnalysisRecord[]
@@ -24,18 +33,15 @@ interface MetricHistogramProps {
 }
 
 export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
+  const [isOpen, setIsOpen] = useState(false)
   const metricInfo = METRICS.find((m) => m.key === metricKey) || METRICS[0]
 
   const histogramData = useMemo(() => {
     if (data.length === 0) return []
 
-    // Combine both LAB and NIR values for distribution
-    const values = data.flatMap((d) => [
-      d[`${metricKey}_lab` as keyof AnalysisRecord] as number,
-      // d[`${metricKey}_nir` as keyof AnalysisRecord] as number // Usually histograms are for the reference or the population
-    ])
-    // Just using LAB for now to show population distribution, or could handle both.
-    // Let's stick to LAB (Reference) distribution as it represents the "Truth".
+    const values = data.map(
+      (d) => d[`${metricKey}_lab` as keyof AnalysisRecord] as number,
+    )
 
     const min = Math.min(...values)
     const max = Math.max(...values)
@@ -63,69 +69,93 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
     return bins
   }, [data, metricKey])
 
+  const ChartRender = ({ height = '100%' }: { height?: string | number }) => (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart
+        data={histogramData}
+        margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
+        <XAxis
+          dataKey="name"
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 10, fill: '#888' }}
+          interval={0}
+          angle={-45}
+          textAnchor="end"
+          height={60}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 12, fill: '#888' }}
+        />
+        <RechartsTooltip
+          cursor={{ fill: '#333', opacity: 0.4 }}
+          content={({ active, payload }) => {
+            if (active && payload && payload.length) {
+              const d = payload[0].payload
+              return (
+                <div className="bg-zinc-900 border border-zinc-700 p-2 rounded text-xs text-zinc-200">
+                  <p>Intervalo: {d.name}</p>
+                  <p>Contagem: {d.count}</p>
+                </div>
+              )
+            }
+            return null
+          }}
+        />
+        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+          {histogramData.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={metricInfo.color}
+              fillOpacity={0.8}
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
+
   return (
-    <Card className="col-span-full md:col-span-1 border-zinc-800 bg-zinc-950 text-zinc-100 shadow-md mt-6">
-      <CardHeader>
-        <CardTitle>Distribuição de Frequência (LAB)</CardTitle>
-        <CardDescription className="text-zinc-400">
-          Histograma de valores reais para {metricInfo.label}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={histogramData}
-              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="col-span-full md:col-span-1 border-zinc-800 bg-zinc-950 text-zinc-100 shadow-md mt-6">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+          <div>
+            <CardTitle>Distribuição de Frequência</CardTitle>
+            <CardDescription className="text-zinc-400">
+              Valores de Referência (LAB) - {metricInfo.label}
+            </CardDescription>
+          </div>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-zinc-500 hover:text-white"
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#333"
-              />
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fontSize: 10, fill: '#888' }}
-                interval={1}
-                angle={-45}
-                textAnchor="end"
-                height={50}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tick={{ fontSize: 12, fill: '#888' }}
-              />
-              <RechartsTooltip
-                cursor={{ fill: '#333', opacity: 0.4 }}
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const d = payload[0].payload
-                    return (
-                      <div className="bg-zinc-900 border border-zinc-700 p-2 rounded text-xs text-zinc-200">
-                        <p>Intervalo: {d.name}</p>
-                        <p>Contagem: {d.count}</p>
-                      </div>
-                    )
-                  }
-                  return null
-                }}
-              />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {histogramData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={metricInfo.color}
-                    fillOpacity={0.8}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[250px] w-full">
+            <ChartRender />
+          </div>
+        </CardContent>
+      </Card>
+
+      <DialogContent className="max-w-[80vw] h-[80vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
+        <DialogHeader>
+          <DialogTitleComponent>
+            Distribuição Detalhada - {metricInfo.label}
+          </DialogTitleComponent>
+        </DialogHeader>
+        <div className="flex-1 w-full min-h-0">
+          <ChartRender height="100%" />
         </div>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }

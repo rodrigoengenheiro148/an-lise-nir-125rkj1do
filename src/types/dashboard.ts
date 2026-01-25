@@ -35,21 +35,21 @@ export const METRICS: {
   color: string
 }[] = [
   { key: 'acidity', label: 'Acidez', unit: '%', color: '#0ea5e9' },
-  { key: 'moisture', label: 'Umidade', unit: '%', color: '#0ea5e9' },
-  { key: 'fco', label: 'FCO', unit: 'mg/kg', color: '#0ea5e9' },
-  { key: 'protein', label: 'Proteína', unit: '%', color: '#0ea5e9' },
-  { key: 'phosphorus', label: 'Fósforo', unit: '%', color: '#0ea5e9' },
-  { key: 'mineralMatter', label: 'Mat. Mineral', unit: '%', color: '#0ea5e9' },
-  { key: 'peroxide', label: 'Peróxido', unit: 'meq/kg', color: '#0ea5e9' },
-  { key: 'etherExtract', label: 'Ext. Etéreo', unit: '%', color: '#0ea5e9' },
+  { key: 'moisture', label: 'Umidade', unit: '%', color: '#3b82f6' },
+  { key: 'fco', label: 'FCO', unit: 'mg/kg', color: '#8b5cf6' },
+  { key: 'protein', label: 'Proteína', unit: '%', color: '#10b981' },
+  { key: 'phosphorus', label: 'Fósforo', unit: '%', color: '#f59e0b' },
+  { key: 'mineralMatter', label: 'Mat. Mineral', unit: '%', color: '#6366f1' },
+  { key: 'peroxide', label: 'Peróxido', unit: 'meq/kg', color: '#ef4444' },
+  { key: 'etherExtract', label: 'Ext. Etéreo', unit: '%', color: '#ec4899' },
   {
     key: 'proteinDigestibility',
     label: 'Dig. Proteica',
     unit: '%',
-    color: '#0ea5e9',
+    color: '#14b8a6',
   },
-  { key: 'calcium', label: 'Cálcio', unit: '%', color: '#0ea5e9' },
-  { key: 'sodium', label: 'Sódio', unit: '%', color: '#0ea5e9' },
+  { key: 'calcium', label: 'Cálcio', unit: '%', color: '#f97316' },
+  { key: 'sodium', label: 'Sódio', unit: '%', color: '#06b6d4' },
 ]
 
 export interface AnalysisRecord {
