@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { AnalysisRecord, METRICS } from '@/types/dashboard'
 import {
   Table,
@@ -75,26 +75,17 @@ export const DataManagementTable = ({
             <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
               <TableHead colSpan={3}></TableHead>
               {METRICS.slice(0, 3).map((m) => (
-                <>
-                  <TableHead
-                    key={`${m.key}-n`}
-                    className="text-zinc-500 text-center border-l border-zinc-800/50"
-                  >
+                <Fragment key={m.key}>
+                  <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50">
                     NIR
                   </TableHead>
-                  <TableHead
-                    key={`${m.key}-l`}
-                    className="text-zinc-500 text-center"
-                  >
+                  <TableHead className="text-zinc-500 text-center">
                     LAB
                   </TableHead>
-                  <TableHead
-                    key={`${m.key}-a`}
-                    className="text-zinc-500 text-center"
-                  >
+                  <TableHead className="text-zinc-500 text-center">
                     ANL
                   </TableHead>
-                </>
+                </Fragment>
               ))}
               <TableHead></TableHead>
             </TableRow>
@@ -130,26 +121,17 @@ export const DataManagementTable = ({
                   {record.date}
                 </TableCell>
                 {METRICS.slice(0, 3).map((m) => (
-                  <>
-                    <TableCell
-                      key={`${m.key}-n`}
-                      className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono"
-                    >
+                  <Fragment key={m.key}>
+                    <TableCell className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono">
                       {Number(record[`${m.key}_nir`] || 0).toFixed(2)}
                     </TableCell>
-                    <TableCell
-                      key={`${m.key}-l`}
-                      className="text-zinc-200 text-xs text-center font-mono font-medium"
-                    >
+                    <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium">
                       {Number(record[`${m.key}_lab`] || 0).toFixed(2)}
                     </TableCell>
-                    <TableCell
-                      key={`${m.key}-a`}
-                      className="text-blue-400 text-xs text-center font-mono"
-                    >
+                    <TableCell className="text-blue-400 text-xs text-center font-mono">
                       {Number(record[`${m.key}_anl`] || 0).toFixed(2)}
                     </TableCell>
-                  </>
+                  </Fragment>
                 ))}
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
