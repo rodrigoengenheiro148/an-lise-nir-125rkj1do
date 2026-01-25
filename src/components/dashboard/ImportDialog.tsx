@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,177 +10,327 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react'
-import { AnalysisRecord, COMPANIES, METRICS } from '@/types/dashboard'
+import {
+  Upload,
+  FileText,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  FileSpreadsheet,
+  Download,
+} from 'lucide-react'
+import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
 import { toast } from 'sonner'
+import { api } from '@/services/api'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { parseImportData, ParseResult } from '@/lib/import-utils'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 
 interface ImportDialogProps {
-  onImport: (records: AnalysisRecord[]) => void
+  onImportSuccess?: () => void
 }
 
-export const ImportDialog = ({ onImport }: ImportDialogProps) => {
+export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [dataInput, setDataInput] = useState('')
+  const [activeTab, setActiveTab] = useState('file')
+  const [companies, setCompanies] = useState<CompanyEntity[]>([])
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
 
-  const handleImport = () => {
-    if (!dataInput.trim()) {
-      toast.error('Por favor, insira os dados para importar.')
-      return
+  const [textInput, setTextInput] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+
+  const [parseResult, setParseResult] = useState<ParseResult | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getCompanies().then(setCompanies).catch(console.error)
+      setParseResult(null)
+      setTextInput('')
+      setFile(null)
+      setIsProcessing(false)
     }
+  }, [isOpen])
 
-    try {
-      const rows = dataInput.trim().split('\n')
-      const parsedRecords: AnalysisRecord[] = []
-      const now = new Date()
-
-      let startIdx = 0
-      const firstRow = rows[0].toLowerCase()
-      // Skip header if it looks like a header
-      if (firstRow.includes('empresa') || firstRow.includes('company')) {
-        startIdx = 1
-      }
-
-      const materialIdx = firstRow
-        .split(/[\t,;]+/)
-        .findIndex(
-          (h) => h.trim().includes('material') || h.trim().includes('produto'),
-        )
-
-      for (let i = startIdx; i < rows.length; i++) {
-        const row = rows[i]
-        if (!row.trim()) continue
-
-        const cols = row.split(/[\t,;]+/).map((s) => s.trim())
-
-        if (cols.length < 5) continue
-
-        const companyName = cols[0]
-        const dateStr = cols[1]
-
-        let material: string | undefined = undefined
-        // If material column was identified in header
-        if (materialIdx >= 0 && cols[materialIdx]) {
-          material = cols[materialIdx]
-        }
-        // Heuristic: if no header scan, but cols count > metrics * 3 + 2, maybe col 2 is material?
-        // Let's stick to standard format for now: Company | Date | Material (optional) | Metrics...
-        // If Material is not present in header, we assume standard layout: Company | Date | [Material?] | LAB | NIR | ANL...
-
-        // Let's rely on standard order if header parsing fails or is ambiguous.
-
-        const record: any = {
-          id: crypto.randomUUID(),
-          company: companyName,
-          date:
-            dateStr && dateStr.length > 5
-              ? dateStr
-              : now.toISOString().split('T')[0],
-          material,
-        }
-
-        // Start reading metrics after metadata
-        // If material was read from column 2, then metrics start at 3.
-        // If material was not found or is column 2, we need to be careful.
-        // Standard expected: Company | Date | Material | ...Metrics (LAB, NIR, ANL)...
-        let colIdx = 2
-        if (materialIdx === 2 || cols.length > METRICS.length * 3 + 2) {
-          if (!material) record.material = cols[2]
-          colIdx = 3
-        }
-
-        METRICS.forEach((metric) => {
-          // Parse LAB
-          const labVal = cols[colIdx]?.replace(',', '.') || '0'
-          record[`${metric.key}_lab`] = parseFloat(labVal)
-
-          // Parse NIR
-          const nirVal = cols[colIdx + 1]?.replace(',', '.') || '0'
-          record[`${metric.key}_nir`] = parseFloat(nirVal)
-
-          // Parse ANL
-          const anlVal = cols[colIdx + 2]?.replace(',', '.') || '0'
-          record[`${metric.key}_anl`] = parseFloat(anlVal)
-
-          colIdx += 3
-        })
-
-        parsedRecords.push(record as AnalysisRecord)
-      }
-
-      if (parsedRecords.length === 0) {
-        toast.warning('Nenhum registro válido encontrado.')
-        return
-      }
-
-      onImport(parsedRecords)
-      setIsOpen(false)
-      setDataInput('')
-      toast.success(`${parsedRecords.length} registros importados e salvos!`)
-    } catch (error) {
-      console.error(error)
-      toast.error('Erro ao processar os dados. Verifique o formato.')
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+      setParseResult(null) // Reset previous results
     }
   }
 
-  const templateHeaders =
-    'Empresa\tData\tMaterial\tAcidez_LAB\tAcidez_NIR\tAcidez_ANL\tUmidade_LAB\tUmidade_NIR\tUmidade_ANL...'
+  const processImport = async () => {
+    let content = ''
+
+    if (activeTab === 'file') {
+      if (!file) {
+        toast.error('Selecione um arquivo CSV.')
+        return
+      }
+      try {
+        content = await file.text()
+      } catch (e) {
+        toast.error('Erro ao ler arquivo.')
+        return
+      }
+    } else {
+      content = textInput
+      if (!content.trim()) {
+        toast.error('Cole os dados para importar.')
+        return
+      }
+    }
+
+    setIsProcessing(true)
+
+    // Find default company name if selected
+    const defaultCompany = companies.find(
+      (c) => c.id === selectedCompanyId,
+    )?.name
+
+    // Small delay to allow UI to update
+    setTimeout(() => {
+      const result = parseImportData(content, defaultCompany, companies)
+      setParseResult(result)
+      setIsProcessing(false)
+      if (result.validCount === 0 && result.errors.length > 0) {
+        toast.error('Nenhum registro válido encontrado. Verifique os erros.')
+      } else if (result.validCount > 0) {
+        toast.success(`${result.validCount} registros identificados.`)
+      }
+    }, 100)
+  }
+
+  const confirmImport = async () => {
+    if (!parseResult || parseResult.records.length === 0) return
+
+    setIsProcessing(true)
+    try {
+      await api.saveRecords(parseResult.records)
+      toast.success(
+        `${parseResult.records.length} registros importados com sucesso!`,
+      )
+      if (onImportSuccess) onImportSuccess()
+      setIsOpen(false)
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao salvar registros no banco de dados.')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="gap-2 bg-zinc-800 text-zinc-100 hover:bg-zinc-700 border-zinc-700"
-        >
+        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
           <Upload className="h-4 w-4" />
-          Importar Excel
+          Importar Dados
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] bg-zinc-950 border-zinc-800 text-zinc-100">
+      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Importar Dados (LAB, NIR, ANL)</DialogTitle>
+          <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Copie e cole os dados do Excel. O formato esperado é:
-            <br />
-            <strong>Empresa</strong>, <strong>Data</strong>,{' '}
-            <strong>Material</strong> (Opcional), seguido de trios{' '}
-            <strong>LAB</strong>, <strong>NIR</strong>, <strong>ANL</strong>{' '}
-            para cada métrica.
+            Carregue um arquivo CSV ou cole dados do Excel. Certifique-se de ter
+            cabeçalhos como "Data", "Material", "Proteína LAB", etc.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-900 p-2 rounded border border-zinc-800 overflow-x-auto whitespace-nowrap">
-            <FileSpreadsheet className="h-4 w-4 shrink-0" />
-            <span className="font-mono">{templateHeaders}</span>
+
+        {!parseResult ? (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Empresa Padrão (Opcional)</Label>
+              <Select
+                value={selectedCompanyId}
+                onValueChange={setSelectedCompanyId}
+              >
+                <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectValue placeholder="Selecione se os dados não tiverem coluna de empresa..." />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-zinc-500">
+                Se o arquivo contiver uma coluna "Empresa", ela terá prioridade.
+              </p>
+            </div>
+
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-900">
+                <TabsTrigger value="file">Arquivo CSV</TabsTrigger>
+                <TabsTrigger value="text">Colar Texto / Excel</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="file" className="space-y-4 pt-4">
+                <div
+                  className="border-2 border-dashed border-zinc-800 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-900/50 hover:border-zinc-700 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {file ? (
+                    <div className="flex flex-col items-center gap-2 text-emerald-500">
+                      <FileSpreadsheet className="h-10 w-10" />
+                      <span className="font-medium">{file.name}</span>
+                      <span className="text-xs text-zinc-500">
+                        Clique para alterar
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-zinc-500">
+                      <Upload className="h-10 w-10" />
+                      <span className="font-medium">
+                        Clique para selecionar CSV
+                      </span>
+                      <span className="text-xs">
+                        Suporta .csv (Separado por vírgula ou ponto-e-vírgula)
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+                <div className="text-xs text-amber-500/80 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  Para arquivos .xlsx (Excel), salve como CSV ou use a opção
+                  "Colar Texto".
+                </div>
+              </TabsContent>
+
+              <TabsContent value="text" className="space-y-4 pt-4">
+                <Textarea
+                  placeholder="Cole aqui as células copiadas do Excel..."
+                  className="min-h-[200px] bg-zinc-900 border-zinc-800 font-mono text-xs"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
-          <Textarea
-            placeholder={`Exemplo:\nEmpresa A\t2023-10-01\tSoja\t1.5\t1.4\t1.45\t12.0\t11.9\t12.1...`}
-            className="h-[300px] font-mono text-xs bg-zinc-900 border-zinc-800 text-zinc-300 focus-visible:ring-zinc-700"
-            value={dataInput}
-            onChange={(e) => setDataInput(e.target.value)}
-          />
-          <div className="flex items-center gap-2 text-xs text-amber-500">
-            <AlertCircle className="h-3 w-3" />
-            <span>
-              Certifique-se de que os valores decimais estão corretos e as
-              colunas seguem a ordem exata.
-            </span>
+        ) : (
+          <div className="flex-1 overflow-hidden py-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between bg-zinc-900 p-3 rounded-md border border-zinc-800">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-bold">{parseResult.validCount}</span>
+                  <span className="text-sm">Válidos</span>
+                </div>
+                {parseResult.invalidCount > 0 && (
+                  <div className="flex items-center gap-2 text-red-500">
+                    <XCircle className="h-5 w-5" />
+                    <span className="font-bold">
+                      {parseResult.invalidCount}
+                    </span>
+                    <span className="text-sm">Erros</span>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setParseResult(null)}
+                className="text-zinc-400"
+              >
+                Voltar
+              </Button>
+            </div>
+
+            <ScrollArea className="flex-1 border border-zinc-800 rounded-md bg-zinc-900/20">
+              <div className="p-4 space-y-4">
+                {parseResult.errors.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-red-400 sticky top-0 bg-zinc-950/90 py-1">
+                      Erros Encontrados:
+                    </h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {parseResult.errors.map((err, i) => (
+                        <li key={i} className="text-xs text-red-300 font-mono">
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {parseResult.records.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-emerald-400 sticky top-0 bg-zinc-950/90 py-1">
+                      Pré-visualização (Primeiros 50):
+                    </h4>
+                    <div className="grid gap-1">
+                      {parseResult.records.slice(0, 50).map((rec, i) => (
+                        <div
+                          key={i}
+                          className="grid grid-cols-[1fr_100px_1fr] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50"
+                        >
+                          <span className="truncate text-zinc-300 font-medium">
+                            {rec.company}
+                          </span>
+                          <span className="text-zinc-500 font-mono">
+                            {rec.date}
+                          </span>
+                          <span className="truncate text-zinc-400">
+                            {rec.material}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => setIsOpen(false)}
-            className="text-zinc-400 hover:text-zinc-100"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleImport}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Processar Dados
-          </Button>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          {!parseResult ? (
+            <>
+              <Button variant="ghost" onClick={() => setIsOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={processImport} disabled={isProcessing}>
+                {isProcessing ? 'Processando...' : 'Processar Dados'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => setIsOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmImport}
+                disabled={isProcessing || parseResult.records.length === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isProcessing ? 'Salvando...' : 'Confirmar Importação'}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

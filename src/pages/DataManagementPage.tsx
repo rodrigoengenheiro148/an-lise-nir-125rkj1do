@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Search, Plus } from 'lucide-react'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
+import { ImportDialog } from '@/components/dashboard/ImportDialog'
 
 export default function DataManagementPage() {
   const [records, setRecords] = useState<AnalysisRecord[]>([])
@@ -61,13 +62,16 @@ export default function DataManagementPage() {
             Visualize, edite e remova registros de análise.
           </p>
         </div>
-        <Button
-          onClick={() => setIsAddDialogOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Análise
-        </Button>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <ImportDialog onImportSuccess={fetchData} />
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 gap-2 flex-1 md:flex-none"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Análise
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
