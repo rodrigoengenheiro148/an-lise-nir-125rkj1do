@@ -25,7 +25,7 @@ const transformRecordFromDB = (
     company_logo: company.logo_url || undefined,
     date: row.date,
     material: row.material,
-    submaterial: row.submaterial || undefined,
+    submaterial: row.sub_material || row.submaterial || undefined,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
@@ -45,7 +45,7 @@ const transformRecordToDB = (
     company_id: companyId,
     date: record.date,
     material: record.material,
-    submaterial: record.submaterial,
+    sub_material: record.submaterial,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
@@ -104,6 +104,20 @@ export const api = {
     })
   },
 
+  getUniqueMaterials: async (): Promise<string[]> => {
+    const { data, error } = await supabase
+      .from('analysis_records')
+      .select('material')
+
+    if (error) throw error
+
+    // Deduplicate and sort
+    const unique = Array.from(
+      new Set(data?.map((d) => d.material).filter(Boolean) as string[]),
+    ).sort()
+    return unique
+  },
+
   saveRecords: async (records: AnalysisRecord[]) => {
     const companies = await api.getCompanies()
     const rowsToInsert = records
@@ -135,7 +149,7 @@ export const api = {
     if (updates.date) dbUpdates.date = updates.date
     if (updates.material !== undefined) dbUpdates.material = updates.material
     if (updates.submaterial !== undefined)
-      dbUpdates.submaterial = updates.submaterial
+      dbUpdates.sub_material = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
 
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {

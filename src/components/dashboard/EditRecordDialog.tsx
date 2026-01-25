@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   AnalysisRecord,
   METRICS,
   CompanyEntity,
   MATERIALS_OPTIONS,
+  STATIC_SUBMATERIALS,
 } from '@/types/dashboard'
 import {
   Dialog,
@@ -45,25 +46,30 @@ export const EditRecordDialog = ({
 }: EditRecordDialogProps) => {
   const [formData, setFormData] = useState<Partial<AnalysisRecord>>({})
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
+  const [uniqueMaterials, setUniqueMaterials] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Load companies when dialog opens
+  // Load data when dialog opens
   useEffect(() => {
     if (open) {
-      const loadCompanies = async () => {
+      const loadData = async () => {
         setLoading(true)
         try {
-          const data = await api.getCompanies()
-          setCompanies(data)
+          const [companiesData, materialsData] = await Promise.all([
+            api.getCompanies(),
+            api.getUniqueMaterials(),
+          ])
+          setCompanies(companiesData)
+          setUniqueMaterials(materialsData)
         } catch (e) {
           console.error(e)
-          toast.error('Erro ao carregar empresas.')
+          toast.error('Erro ao carregar dados.')
         } finally {
           setLoading(false)
         }
       }
-      loadCompanies()
+      loadData()
     }
   }, [open])
 
@@ -81,6 +87,12 @@ export const EditRecordDialog = ({
       }
     }
   }, [open, record, mode])
+
+  const submaterialOptions = useMemo(() => {
+    return Array.from(
+      new Set([...STATIC_SUBMATERIALS, ...uniqueMaterials]),
+    ).sort()
+  }, [uniqueMaterials])
 
   const handleChange = (key: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [key]: value }))
@@ -218,14 +230,21 @@ export const EditRecordDialog = ({
                     <Tag className="h-3.5 w-3.5 text-zinc-500" />
                     Submaterial
                   </Label>
-                  <Input
+                  <Select
                     value={formData.submaterial || ''}
-                    onChange={(e) =>
-                      handleChange('submaterial', e.target.value)
-                    }
-                    placeholder="Opcional (Ex: Tipo B)"
-                    className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20"
-                  />
+                    onValueChange={(val) => handleChange('submaterial', val)}
+                  >
+                    <SelectTrigger className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20">
+                      <SelectValue placeholder="Opcional (Ex: FCO)" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
+                      {submaterialOptions.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

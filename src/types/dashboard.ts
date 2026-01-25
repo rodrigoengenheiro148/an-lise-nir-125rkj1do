@@ -26,6 +26,8 @@ export const MATERIALS_OPTIONS = [
   'Farinha de Vísceras',
 ]
 
+export const STATIC_SUBMATERIALS = ['FCO', 'Sebo', 'Fósforo']
+
 export type MetricKey =
   | 'acidity'
   | 'moisture'
