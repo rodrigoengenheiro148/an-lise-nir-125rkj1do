@@ -37,6 +37,7 @@ export const STATIC_SUBMATERIALS = [
   'Ext. Etéreo',
   'Cálcio',
   'Dig. Proteica',
+  'Sódio',
 ]
 
 export type MetricKey =
@@ -50,6 +51,7 @@ export type MetricKey =
   | 'etherExtract'
   | 'proteinDigestibility'
   | 'calcium'
+  | 'sodium'
 
 export const METRICS: {
   key: MetricKey
@@ -72,6 +74,7 @@ export const METRICS: {
     color: '#14b8a6',
   },
   { key: 'calcium', label: 'Cálcio', unit: '%', color: '#f97316' },
+  { key: 'sodium', label: 'Sódio', unit: '%', color: '#eab308' },
 ]
 
 export interface AnalysisRecord {

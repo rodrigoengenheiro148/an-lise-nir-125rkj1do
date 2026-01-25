@@ -22,6 +22,7 @@ const METRIC_TO_TYPE: Record<string, AnalysisType> = {
   etherExtract: 'EXTRATO_ETEREO',
   proteinDigestibility: 'DIG_PROTEICA',
   calcium: 'CALCIO',
+  sodium: 'SODIO',
 }
 
 interface DashboardState {

@@ -9,6 +9,7 @@ export type AnalysisType =
   | 'DIG_PROTEICA'
   | 'CALCIO'
   | 'FCO'
+  | 'SODIO'
 
 export interface Sample {
   id: string
@@ -35,6 +36,7 @@ export const ANALYSIS_TYPES: AnalysisType[] = [
   'DIG_PROTEICA',
   'CALCIO',
   'FCO',
+  'SODIO',
 ]
 
 export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
@@ -48,6 +50,7 @@ export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
   DIG_PROTEICA: 'Dig. Proteica',
   CALCIO: 'Cálcio',
   FCO: 'FCO',
+  SODIO: 'Sódio',
 }
 
 export interface Stats {

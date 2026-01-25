@@ -12,6 +12,7 @@ const KEY_MAPPING: Record<string, string> = {
   etherExtract: 'ether_extract',
   proteinDigestibility: 'protein_digestibility',
   calcium: 'calcium',
+  sodium: 'sodium',
 }
 
 const transformRecordFromDB = (
