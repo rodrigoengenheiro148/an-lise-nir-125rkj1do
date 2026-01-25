@@ -29,9 +29,10 @@ const transformRecordFromDB = (
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
-    record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? 0
-    record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? 0
-    record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? 0
+    // Return undefined if null to handle missing values correctly
+    record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? undefined
+    record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? undefined
+    record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? undefined
   })
 
   return record

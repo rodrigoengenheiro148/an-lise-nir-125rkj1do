@@ -3,6 +3,7 @@ import { Company, AnalysisRecord, METRICS } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
+import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
 import { Button } from '@/components/ui/button'
 import { Activity, TrendingUp, Cloud, Table as TableIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -42,8 +43,7 @@ const Index = () => {
   useEffect(() => {
     if (selectedCompany) {
       const filtered = allRecords.filter((r) => r.company === selectedCompany)
-      // Sort by date descending for list/summary, but charts handle their own sorting if needed
-      // (MetricEvolutionChart reverses it for display)
+      // Sort by date descending for list/summary
       filtered.sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       )
@@ -153,7 +153,6 @@ const Index = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {/* Special placement for Acidity if desired, but mapping preserves order in constants */}
             {METRICS.map((metric) => (
               <MetricCard
                 key={metric.key}
@@ -165,6 +164,15 @@ const Index = () => {
               />
             ))}
           </div>
+        </div>
+
+        {/* Detailed Data Table with Residues */}
+        <div className="space-y-4 pt-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
+            <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
+            Detalhamento de Análises e Resíduos
+          </h2>
+          <DataManagementTable records={filteredRecords} readOnly={true} />
         </div>
       </main>
     </div>

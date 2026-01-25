@@ -9,24 +9,33 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Edit2, Trash2 } from 'lucide-react'
+import { Edit2, Trash2, Eye, EyeOff } from 'lucide-react'
 import { EditRecordDialog } from './EditRecordDialog'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
+import {
+  calculateResidue,
+  getResidueColor,
+  formatResidue,
+} from '@/lib/calculations'
+import { cn } from '@/lib/utils'
 
 interface DataManagementTableProps {
   records: AnalysisRecord[]
   onDataChange?: () => void
+  readOnly?: boolean
 }
 
 export const DataManagementTable = ({
   records,
   onDataChange,
+  readOnly = false,
 }: DataManagementTableProps) => {
   const [editingRecord, setEditingRecord] = useState<AnalysisRecord | null>(
     null,
   )
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [showResidues, setShowResidues] = useState(true)
 
   const handleDelete = async (id: string) => {
     if (
@@ -52,11 +61,30 @@ export const DataManagementTable = ({
 
   return (
     <>
+      <div className="flex justify-end mb-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowResidues(!showResidues)}
+          className={cn(
+            'text-xs gap-2',
+            showResidues ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-500',
+          )}
+        >
+          {showResidues ? (
+            <Eye className="h-3 w-3" />
+          ) : (
+            <EyeOff className="h-3 w-3" />
+          )}
+          {showResidues ? 'Ocultar Resíduos' : 'Mostrar Resíduos'}
+        </Button>
+      </div>
+
       <div className="rounded-md border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
+              <TableHead className="w-[120px] min-w-[120px] text-zinc-400 sticky left-0 bg-zinc-900/95 backdrop-blur z-20">
                 Material
               </TableHead>
               <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
@@ -71,49 +99,63 @@ export const DataManagementTable = ({
               {METRICS.map((m) => (
                 <TableHead
                   key={m.key}
-                  className="text-zinc-400 text-center border-l border-zinc-800/50 min-w-[200px]"
-                  colSpan={3}
+                  className="text-zinc-400 text-center border-l border-zinc-800/50"
+                  colSpan={showResidues ? 5 : 3}
+                  style={{ minWidth: showResidues ? '300px' : '180px' }}
                 >
-                  {m.label}
+                  <div className="flex items-center justify-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: m.color }}
+                    />
+                    {m.label} ({m.unit})
+                  </div>
                 </TableHead>
               ))}
-              <TableHead className="text-right text-zinc-400 w-[100px] min-w-[100px] sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800">
-                Ações
-              </TableHead>
+              {!readOnly && (
+                <TableHead className="text-right text-zinc-400 w-[100px] min-w-[100px] sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800">
+                  Ações
+                </TableHead>
+              )}
             </TableRow>
             <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
-              <TableHead colSpan={4}></TableHead>
-              {METRICS.map((m) => {
-                if (m.key === 'acidity') {
-                  return (
-                    <Fragment key={m.key}>
-                      <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50">
-                        LAB
+              <TableHead
+                className="sticky left-0 bg-zinc-900/95 backdrop-blur z-20"
+                colSpan={1}
+              ></TableHead>
+              <TableHead colSpan={3}></TableHead>
+              {METRICS.map((m) => (
+                <Fragment key={m.key}>
+                  <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50 bg-zinc-900/30">
+                    NIR
+                  </TableHead>
+                  <TableHead className="text-zinc-300 text-center bg-zinc-900/30 font-bold">
+                    LAB
+                  </TableHead>
+                  <TableHead className="text-blue-400/70 text-center bg-zinc-900/30">
+                    ANL
+                  </TableHead>
+                  {showResidues && (
+                    <>
+                      <TableHead
+                        className="text-zinc-500 text-center bg-zinc-900/20 border-l border-zinc-800/30"
+                        title="Resíduo: LAB - NIR"
+                      >
+                        R(L-N)
                       </TableHead>
-                      <TableHead className="text-zinc-500 text-center">
-                        ANL
+                      <TableHead
+                        className="text-zinc-500 text-center bg-zinc-900/20"
+                        title="Resíduo: ANL - NIR"
+                      >
+                        R(A-N)
                       </TableHead>
-                      <TableHead className="text-zinc-500 text-center">
-                        RESÍDUOS
-                      </TableHead>
-                    </Fragment>
-                  )
-                }
-                return (
-                  <Fragment key={m.key}>
-                    <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50">
-                      NIR
-                    </TableHead>
-                    <TableHead className="text-zinc-500 text-center">
-                      LAB
-                    </TableHead>
-                    <TableHead className="text-zinc-500 text-center">
-                      ANL
-                    </TableHead>
-                  </Fragment>
-                )
-              })}
-              <TableHead className="sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800"></TableHead>
+                    </>
+                  )}
+                </Fragment>
+              ))}
+              {!readOnly && (
+                <TableHead className="sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800"></TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -122,7 +164,7 @@ export const DataManagementTable = ({
                 key={record.id}
                 className="border-zinc-800 hover:bg-zinc-800/50"
               >
-                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap">
+                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap sticky left-0 bg-zinc-900/95 backdrop-blur z-10 border-r border-zinc-800/50">
                   {record.material || '-'}
                 </TableCell>
                 <TableCell className="text-zinc-400 text-xs whitespace-nowrap">
@@ -150,64 +192,81 @@ export const DataManagementTable = ({
                   {record.date}
                 </TableCell>
                 {METRICS.map((m) => {
-                  if (m.key === 'acidity') {
-                    const lab = Number(record[`${m.key}_lab`] || 0)
-                    const anl = Number(record[`${m.key}_anl`] || 0)
-                    const residue = lab - anl
-                    return (
-                      <Fragment key={m.key}>
-                        <TableCell className="text-zinc-200 text-xs text-center border-l border-zinc-800/50 font-mono font-medium">
-                          {lab.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-blue-400 text-xs text-center font-mono">
-                          {anl.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-zinc-400 text-xs text-center font-mono">
-                          {residue.toFixed(2)}
-                        </TableCell>
-                      </Fragment>
-                    )
-                  }
+                  const nir = record[`${m.key}_nir`]
+                  const lab = record[`${m.key}_lab`]
+                  const anl = record[`${m.key}_anl`]
+
+                  const resLabNir = calculateResidue(lab, nir)
+                  const resAnlNir = calculateResidue(anl, nir)
+
                   return (
                     <Fragment key={m.key}>
-                      <TableCell className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono">
-                        {Number(record[`${m.key}_nir`] || 0).toFixed(2)}
+                      <TableCell className="text-zinc-500 text-xs text-center border-l border-zinc-800/50 font-mono">
+                        {nir !== undefined && nir !== null
+                          ? Number(nir).toFixed(2)
+                          : '-'}
                       </TableCell>
-                      <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium">
-                        {Number(record[`${m.key}_lab`] || 0).toFixed(2)}
+                      <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium bg-zinc-900/20">
+                        {lab !== undefined && lab !== null
+                          ? Number(lab).toFixed(2)
+                          : '-'}
                       </TableCell>
                       <TableCell className="text-blue-400 text-xs text-center font-mono">
-                        {Number(record[`${m.key}_anl`] || 0).toFixed(2)}
+                        {anl !== undefined && anl !== null
+                          ? Number(anl).toFixed(2)
+                          : '-'}
                       </TableCell>
+                      {showResidues && (
+                        <>
+                          <TableCell
+                            className={cn(
+                              'text-xs text-center font-mono border-l border-zinc-800/30',
+                              getResidueColor(resLabNir),
+                            )}
+                          >
+                            {formatResidue(resLabNir)}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              'text-xs text-center font-mono',
+                              getResidueColor(resAnlNir),
+                            )}
+                          >
+                            {formatResidue(resAnlNir)}
+                          </TableCell>
+                        </>
+                      )}
                     </Fragment>
                   )
                 })}
-                <TableCell className="text-right sticky right-0 bg-zinc-950/90 backdrop-blur-sm z-10 border-l border-zinc-800 shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.5)]">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-zinc-400 hover:text-white"
-                      onClick={() => handleEdit(record)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-zinc-400 hover:text-red-500"
-                      onClick={() => handleDelete(record.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+                {!readOnly && (
+                  <TableCell className="text-right sticky right-0 bg-zinc-950/90 backdrop-blur-sm z-10 border-l border-zinc-800 shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.5)]">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-zinc-400 hover:text-white"
+                        onClick={() => handleEdit(record)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-zinc-400 hover:text-red-500"
+                        onClick={() => handleDelete(record.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4 + METRICS.length * 3 + 1}
+                  colSpan={4 + METRICS.length * (showResidues ? 5 : 3) + 1}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.
