@@ -24,14 +24,10 @@ export const calculateResidue = (
 
 export const getResidueColor = (val: number | null): string => {
   if (val === null) return 'text-zinc-500'
-  const abs = Math.abs(val)
-  // Thresholds for visual indicators
-  if (abs > 1.0) return 'text-red-400 font-bold'
-  if (abs > 0.5) return 'text-yellow-400'
-  return 'text-green-400'
+  return val >= 0 ? 'text-green-400' : 'text-red-400'
 }
 
 export const formatResidue = (val: number | null): string => {
   if (val === null) return '-'
-  return (val > 0 ? '+' : '') + val.toFixed(3)
+  return val.toFixed(3)
 }

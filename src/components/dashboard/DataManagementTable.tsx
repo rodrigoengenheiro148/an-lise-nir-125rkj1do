@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { AnalysisRecord, METRICS } from '@/types/dashboard'
 import {
   Table,
@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Edit2, Trash2 } from 'lucide-react'
 import { EditRecordDialog } from './EditRecordDialog'
 import { api } from '@/services/api'
@@ -34,14 +35,69 @@ interface DataManagementTableProps {
   records: AnalysisRecord[]
   onDataChange?: () => void
   readOnly?: boolean
-  targetMetric?: string
+  targetMetric?: string // Kept for compatibility but ignored in new layout
+}
+
+const EditableCell = ({
+  value,
+  onSave,
+  readOnly,
+  type = 'number',
+}: {
+  value: string | number | undefined | null
+  onSave: (val: string | number | null) => void
+  readOnly?: boolean
+  type?: string
+}) => {
+  const [localValue, setLocalValue] = useState<string>('')
+
+  useEffect(() => {
+    setLocalValue(value !== undefined && value !== null ? String(value) : '')
+  }, [value])
+
+  const handleBlur = () => {
+    if (readOnly) return
+    const currentNum =
+      value !== undefined && value !== null ? parseFloat(String(value)) : null
+    const newNum = localValue === '' ? null : parseFloat(localValue)
+
+    // Only save if changed
+    if (currentNum !== newNum) {
+      onSave(newNum)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+    }
+  }
+
+  if (readOnly) {
+    return (
+      <span className="text-xs font-mono">
+        {value !== undefined && value !== null ? Number(value).toFixed(2) : '-'}
+      </span>
+    )
+  }
+
+  return (
+    <Input
+      type={type}
+      step="0.01"
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className="h-7 w-full min-w-[60px] bg-transparent border-transparent hover:border-zinc-700 focus:border-blue-500 px-1 text-center text-xs font-mono"
+    />
+  )
 }
 
 export const DataManagementTable = ({
   records,
   onDataChange,
   readOnly = false,
-  targetMetric,
 }: DataManagementTableProps) => {
   const [editingRecord, setEditingRecord] = useState<AnalysisRecord | null>(
     null,
@@ -78,42 +134,55 @@ export const DataManagementTable = ({
     setIsDialogOpen(true)
   }
 
-  const displayedMetrics = useMemo(() => {
-    if (targetMetric && targetMetric !== 'all') {
-      return METRICS.filter((m) => m.key === targetMetric)
+  const handleCellUpdate = async (
+    recordId: string,
+    field: string,
+    newValue: string | number | null,
+  ) => {
+    try {
+      await api.updateRecord(recordId, { [field]: newValue })
+      if (onDataChange) onDataChange()
+      toast.success('Valor atualizado', { duration: 1000 })
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao salvar alteração')
     }
-    return METRICS
-  }, [targetMetric])
-
-  const showNir = !!(targetMetric && targetMetric !== 'all')
+  }
 
   return (
     <>
       <div className="rounded-md border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
-        <Table>
+        <Table className="border-collapse border-spacing-0">
           <TableHeader>
+            {/* Group Header Row */}
             <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="w-[120px] min-w-[120px] text-zinc-400 sticky left-0 bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]">
+              {/* Sticky Columns Group */}
+              <TableHead
+                rowSpan={2}
+                className="w-[150px] min-w-[150px] bg-zinc-900/95 backdrop-blur z-30 sticky left-0 border-r border-zinc-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]"
+              >
                 Material
               </TableHead>
               <TableHead
-                className={cn(
-                  'w-[120px] min-w-[120px] text-zinc-400',
-                  showNir &&
-                    'sticky left-[120px] bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]',
-                )}
+                rowSpan={2}
+                className="w-[150px] min-w-[150px] bg-zinc-900/95 backdrop-blur z-30 sticky left-[150px] border-r border-zinc-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]"
               >
                 Submaterial
               </TableHead>
-              <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
+              <TableHead
+                rowSpan={2}
+                className="w-[200px] min-w-[200px] bg-zinc-900/95 backdrop-blur z-30 sticky left-[300px] border-r border-zinc-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]"
+              >
                 Empresa
               </TableHead>
-              {displayedMetrics.map((m) => (
+
+              {/* Metric Groups */}
+              {METRICS.map((m) => (
                 <TableHead
                   key={m.key}
-                  className="text-zinc-400 text-center border-l border-zinc-800/50"
-                  colSpan={showNir ? 4 : 3}
-                  style={{ minWidth: showNir ? '320px' : '240px' }}
+                  colSpan={3}
+                  className="text-center border-l border-r border-zinc-800 bg-zinc-800/80 text-zinc-100 font-bold tracking-wider py-2"
+                  style={{ color: m.color }}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span
@@ -124,126 +193,109 @@ export const DataManagementTable = ({
                   </div>
                 </TableHead>
               ))}
+
               {!readOnly && (
-                <TableHead className="text-right text-zinc-400 w-[100px] min-w-[100px] sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800">
+                <TableHead
+                  rowSpan={2}
+                  className="w-[100px] min-w-[100px] bg-zinc-900/95 backdrop-blur z-20 sticky right-0 border-l border-zinc-800 text-center"
+                >
                   Ações
                 </TableHead>
               )}
             </TableRow>
-            <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
-              <TableHead
-                className="sticky left-0 bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]"
-                colSpan={1}
-              ></TableHead>
-              <TableHead
-                className={cn(
-                  showNir &&
-                    'sticky left-[120px] bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]',
-                )}
-                colSpan={1}
-              ></TableHead>
-              <TableHead colSpan={1}></TableHead>
-              {displayedMetrics.map((m) => (
+
+            {/* Sub-column Header Row */}
+            <TableRow className="border-zinc-800 hover:bg-transparent">
+              {METRICS.map((m) => (
                 <Fragment key={m.key}>
-                  {showNir && (
-                    <TableHead className="text-purple-400/70 text-center bg-zinc-900/30 border-l border-zinc-800/50">
-                      NIR
-                    </TableHead>
-                  )}
-                  <TableHead
-                    className={cn(
-                      'text-zinc-300 text-center bg-zinc-900/30 font-bold',
-                      !showNir && 'border-l border-zinc-800/50',
-                    )}
-                  >
+                  <TableHead className="text-center bg-zinc-900/40 text-[10px] font-bold text-zinc-400 border-l border-zinc-800/50 h-8 p-1 w-[80px]">
                     LAB
                   </TableHead>
-                  <TableHead className="text-blue-400/70 text-center bg-zinc-900/30">
+                  <TableHead className="text-center bg-zinc-900/40 text-[10px] font-bold text-blue-400 border-zinc-800/50 h-8 p-1 w-[80px]">
                     ANL
                   </TableHead>
-                  <TableHead
-                    className="text-zinc-500 text-center bg-zinc-900/20"
-                    title="Resíduo: LAB - ANL"
-                  >
-                    Resíduo
+                  <TableHead className="text-center bg-zinc-900/40 text-[10px] font-bold text-zinc-500 border-r border-zinc-800/50 h-8 p-1 w-[80px]">
+                    RESÍDUO
                   </TableHead>
                 </Fragment>
               ))}
-              {!readOnly && (
-                <TableHead className="sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800"></TableHead>
-              )}
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {records.map((record) => (
               <TableRow
                 key={record.id}
-                className="border-zinc-800 hover:bg-zinc-800/50"
+                className="border-zinc-800 hover:bg-zinc-800/30 transition-colors"
               >
-                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap sticky left-0 bg-zinc-900/95 backdrop-blur z-10 border-r border-zinc-800/50 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]">
+                {/* Sticky Identifiers */}
+                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap bg-zinc-900/95 backdrop-blur z-20 sticky left-0 border-r border-zinc-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
                   {record.material || '-'}
                 </TableCell>
-                <TableCell
-                  className={cn(
-                    'text-zinc-400 text-xs whitespace-nowrap',
-                    showNir &&
-                      'sticky left-[120px] bg-zinc-900/95 backdrop-blur z-10 border-r border-zinc-800/50 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]',
-                  )}
-                >
+                <TableCell className="text-zinc-400 text-xs whitespace-nowrap bg-zinc-900/95 backdrop-blur z-20 sticky left-[150px] border-r border-zinc-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
                   {record.submaterial || '-'}
                 </TableCell>
-                <TableCell className="text-zinc-200 text-sm whitespace-nowrap">
+                <TableCell className="text-zinc-200 text-sm whitespace-nowrap bg-zinc-900/95 backdrop-blur z-20 sticky left-[300px] border-r border-zinc-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center gap-2">
                     {record.company_logo ? (
                       <img
                         src={record.company_logo}
                         alt={record.company}
-                        className="h-6 w-6 rounded-sm object-contain bg-white/5 p-0.5"
+                        className="h-5 w-5 rounded-sm object-contain bg-white/5 p-0.5"
                       />
                     ) : (
-                      <div className="h-6 w-6 rounded-sm bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 font-bold">
-                        {record.company.substring(0, 2).toUpperCase()}
+                      <div className="h-5 w-5 rounded-sm bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-500 font-bold">
+                        {record.company?.substring(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <span className="truncate max-w-[120px]">
+                    <span
+                      className="truncate max-w-[150px]"
+                      title={record.company}
+                    >
                       {record.company}
                     </span>
                   </div>
                 </TableCell>
-                {displayedMetrics.map((m) => {
-                  const lab = record[`${m.key}_lab`]
-                  const anl = record[`${m.key}_anl`]
-                  const nir = record[`${m.key}_nir`]
 
-                  const residue = calculateResidue(lab, anl)
+                {/* Metric Columns */}
+                {METRICS.map((m) => {
+                  const labKey = `${m.key}_lab`
+                  const anlKey = `${m.key}_anl`
+                  const labVal = record[labKey]
+                  const anlVal = record[anlKey]
+                  // Per requirements: Residuo = ANL - LAB
+                  const residue = calculateResidue(anlVal, labVal)
 
                   return (
                     <Fragment key={m.key}>
-                      {showNir && (
-                        <TableCell className="text-purple-400 text-xs text-center font-mono border-l border-zinc-800/50">
-                          {nir !== undefined && nir !== null
-                            ? Number(nir).toFixed(2)
-                            : '-'}
-                        </TableCell>
-                      )}
+                      {/* LAB Column */}
+                      <TableCell className="p-1 border-l border-zinc-800/30 text-center">
+                        <EditableCell
+                          value={labVal}
+                          onSave={(val) =>
+                            handleCellUpdate(record.id, labKey, val)
+                          }
+                          readOnly={readOnly}
+                        />
+                      </TableCell>
+
+                      {/* ANL Column */}
+                      <TableCell className="p-1 border-zinc-800/30 text-center">
+                        <div className="text-blue-400">
+                          <EditableCell
+                            value={anlVal}
+                            onSave={(val) =>
+                              handleCellUpdate(record.id, anlKey, val)
+                            }
+                            readOnly={readOnly}
+                          />
+                        </div>
+                      </TableCell>
+
+                      {/* Residue Column */}
                       <TableCell
                         className={cn(
-                          'text-zinc-200 text-xs text-center font-mono font-medium bg-zinc-900/20',
-                          !showNir && 'border-l border-zinc-800/50',
-                        )}
-                      >
-                        {lab !== undefined && lab !== null
-                          ? Number(lab).toFixed(2)
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-blue-400 text-xs text-center font-mono">
-                        {anl !== undefined && anl !== null
-                          ? Number(anl).toFixed(2)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          'text-xs text-center font-mono',
+                          'p-1 border-r border-zinc-800/30 text-center text-xs font-mono font-medium',
                           getResidueColor(residue),
                         )}
                       >
@@ -252,24 +304,28 @@ export const DataManagementTable = ({
                     </Fragment>
                   )
                 })}
+
+                {/* Actions Column */}
                 {!readOnly && (
-                  <TableCell className="text-right sticky right-0 bg-zinc-950/90 backdrop-blur-sm z-10 border-l border-zinc-800 shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.5)]">
-                    <div className="flex justify-end gap-2">
+                  <TableCell className="text-right p-2 bg-zinc-900/95 backdrop-blur z-20 sticky right-0 border-l border-zinc-800">
+                    <div className="flex justify-center gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-zinc-400 hover:text-white"
+                        className="h-7 w-7 text-zinc-400 hover:text-white"
                         onClick={() => handleEdit(record)}
+                        title="Editar Detalhes"
                       >
-                        <Edit2 className="h-4 w-4" />
+                        <Edit2 className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-zinc-400 hover:text-red-500"
+                        className="h-7 w-7 text-zinc-400 hover:text-red-500"
                         onClick={() => confirmDelete(record.id)}
+                        title="Excluir"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -279,10 +335,10 @@ export const DataManagementTable = ({
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={3 + displayedMetrics.length * (showNir ? 4 : 3) + 1}
-                  className="h-24 text-center text-zinc-500"
+                  colSpan={3 + METRICS.length * 3 + (readOnly ? 0 : 1)}
+                  className="h-32 text-center text-zinc-500"
                 >
-                  Nenhum registro encontrado.
+                  Nenhum registro encontrado para os filtros selecionados.
                 </TableCell>
               </TableRow>
             )}

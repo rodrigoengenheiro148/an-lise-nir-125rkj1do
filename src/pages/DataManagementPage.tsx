@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { AnalysisRecord, STATIC_SUBMATERIALS, METRICS } from '@/types/dashboard'
+import { AnalysisRecord, STATIC_SUBMATERIALS } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
 import { Input } from '@/components/ui/input'
@@ -34,7 +34,7 @@ export default function DataManagementPage() {
   const [search, setSearch] = useState('')
   const [companyFilter, setCompanyFilter] = useState<string>('')
   const [submaterialFilter, setSubmaterialFilter] = useState<string>('')
-  const [targetMetric, setTargetMetric] = useState<string>('all')
+  // Removed targetMetric state as table is now comprehensive
   const [loading, setLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [uniqueMaterials, setUniqueMaterials] = useState<string[]>([])
@@ -50,6 +50,7 @@ export default function DataManagementPage() {
       setUniqueMaterials(materials)
     } catch (e) {
       console.error(e)
+      toast.error('Erro ao carregar dados.')
     } finally {
       setLoading(false)
     }
@@ -88,7 +89,10 @@ export default function DataManagementPage() {
   }, [search, companyFilter, submaterialFilter, records])
 
   const handleExport = () => {
-    const success = printElement('report-content', 'Relatório de Análises')
+    const success = printElement(
+      'report-content',
+      'Relatório de Análises Completo',
+    )
     if (!success) {
       toast.error('Erro ao gerar relatório. Tente novamente.')
     }
@@ -110,7 +114,7 @@ export default function DataManagementPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8 text-zinc-100 min-h-screen pb-20">
+    <div className="container mx-auto p-6 space-y-8 text-zinc-100 min-h-screen pb-20 max-w-[1920px]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800 pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
@@ -120,8 +124,9 @@ export default function DataManagementPage() {
             Gerenciamento de Dados
           </h1>
           <p className="text-zinc-400 mt-2 max-w-2xl">
-            Central de controle para registros de análise laboratorial. Utilize
-            os filtros para localizar amostras ou adicione novos resultados.
+            Visão unificada de todos os parâmetros analíticos. Edite valores
+            diretamente na tabela (LAB/ANL) ou utilize os filtros para localizar
+            registros.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -163,21 +168,7 @@ export default function DataManagementPage() {
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-          <div className="w-full sm:w-[200px]">
-            <Select value={targetMetric} onValueChange={setTargetMetric}>
-              <SelectTrigger className="w-full bg-background border-input">
-                <SelectValue placeholder="Métrica Alvo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as Métricas</SelectItem>
-                {METRICS.map((m) => (
-                  <SelectItem key={m.key} value={m.key}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Target metric selector removed as requested for unified view */}
           <div className="w-full sm:w-[200px]">
             <CompanySelector
               selected={companyFilter}
@@ -239,7 +230,6 @@ export default function DataManagementPage() {
           <DataManagementTable
             records={filteredRecords}
             onDataChange={fetchData}
-            targetMetric={targetMetric === 'all' ? undefined : targetMetric}
           />
         )}
       </div>

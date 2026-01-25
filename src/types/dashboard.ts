@@ -89,24 +89,11 @@ export const METRICS: {
     aliases: ['proteina', 'protein', 'pb', 'proteina bruta'],
   },
   {
-    key: 'phosphorus',
-    label: 'Fósforo',
+    key: 'sodium',
+    label: 'Sódio',
     unit: '%',
-    color: '#f59e0b',
-    aliases: ['fosforo', 'phosphorus'],
-  },
-  {
-    key: 'mineralMatter',
-    label: 'Mat. Mineral',
-    unit: '%',
-    color: '#6366f1',
-    aliases: [
-      'materia mineral',
-      'mat. mineral',
-      'cinzas',
-      'mineral matter',
-      'mm',
-    ],
+    color: '#eab308',
+    aliases: ['sodio', 'sodium'],
   },
   {
     key: 'peroxide',
@@ -148,11 +135,24 @@ export const METRICS: {
     aliases: ['calcio', 'calcium'],
   },
   {
-    key: 'sodium',
-    label: 'Sódio',
+    key: 'mineralMatter',
+    label: 'Mat. Mineral',
     unit: '%',
-    color: '#eab308',
-    aliases: ['sodio', 'sodium'],
+    color: '#6366f1',
+    aliases: [
+      'materia mineral',
+      'mat. mineral',
+      'cinzas',
+      'mineral matter',
+      'mm',
+    ],
+  },
+  {
+    key: 'phosphorus',
+    label: 'Fósforo',
+    unit: '%',
+    color: '#f59e0b',
+    aliases: ['fosforo', 'phosphorus'],
   },
 ]
 
