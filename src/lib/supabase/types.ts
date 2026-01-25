@@ -52,6 +52,8 @@ export type Database = {
           protein_digestibility_nir: number | null
           protein_lab: number | null
           protein_nir: number | null
+          sub_material: string | null
+          submaterial: string | null
           updated_at: string
         }
         Insert: {
@@ -90,6 +92,8 @@ export type Database = {
           protein_digestibility_nir?: number | null
           protein_lab?: number | null
           protein_nir?: number | null
+          sub_material?: string | null
+          submaterial?: string | null
           updated_at?: string
         }
         Update: {
@@ -128,6 +132,8 @@ export type Database = {
           protein_digestibility_nir?: number | null
           protein_lab?: number | null
           protein_nir?: number | null
+          sub_material?: string | null
+          submaterial?: string | null
           updated_at?: string
         }
         Relationships: [

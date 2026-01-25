@@ -46,7 +46,6 @@ export const EditRecordDialog = ({
 }: EditRecordDialogProps) => {
   const [formData, setFormData] = useState<Partial<AnalysisRecord>>({})
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
-  const [uniqueMaterials, setUniqueMaterials] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -56,12 +55,8 @@ export const EditRecordDialog = ({
       const loadData = async () => {
         setLoading(true)
         try {
-          const [companiesData, materialsData] = await Promise.all([
-            api.getCompanies(),
-            api.getUniqueMaterials(),
-          ])
+          const companiesData = await api.getCompanies()
           setCompanies(companiesData)
-          setUniqueMaterials(materialsData)
         } catch (e) {
           console.error(e)
           toast.error('Erro ao carregar dados.')
@@ -89,10 +84,8 @@ export const EditRecordDialog = ({
   }, [open, record, mode])
 
   const submaterialOptions = useMemo(() => {
-    return Array.from(
-      new Set([...STATIC_SUBMATERIALS, ...uniqueMaterials]),
-    ).sort()
-  }, [uniqueMaterials])
+    return STATIC_SUBMATERIALS.slice().sort()
+  }, [])
 
   const handleChange = (key: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [key]: value }))

@@ -26,7 +26,18 @@ export const MATERIALS_OPTIONS = [
   'Farinha de Vísceras',
 ]
 
-export const STATIC_SUBMATERIALS = ['FCO', 'Sebo', 'Fósforo']
+export const STATIC_SUBMATERIALS = [
+  'ACIDEZ',
+  'UMIDADE',
+  'FCO',
+  'PROTEINA',
+  'FOSFORO',
+  'MAT.MINERAL',
+  'PEROXIDO',
+  'EXT. ETERIO',
+  'CALCIO',
+  'DIG.PROTEICA',
+]
 
 export type MetricKey =
   | 'acidity'
