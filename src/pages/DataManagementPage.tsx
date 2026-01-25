@@ -4,7 +4,7 @@ import { api } from '@/services/api'
 import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Plus, Database, X } from 'lucide-react'
+import { Search, Plus, Database, X, Printer } from 'lucide-react'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { printElement } from '@/lib/export-utils'
+import { toast } from 'sonner'
 
 export default function DataManagementPage() {
   const [records, setRecords] = useState<AnalysisRecord[]>([])
@@ -72,6 +74,13 @@ export default function DataManagementPage() {
     setFilteredRecords(res)
   }, [search, companyFilter, submaterialFilter, records])
 
+  const handleExport = () => {
+    const success = printElement('report-content', 'Relatório de Análises')
+    if (!success) {
+      toast.error('Erro ao gerar relatório. Tente novamente.')
+    }
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-8 text-zinc-100 min-h-screen pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800 pb-6">
@@ -88,6 +97,14 @@ export default function DataManagementPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="gap-2 bg-zinc-900/50 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all"
+          >
+            <Printer className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
           <ImportDialog onImportSuccess={fetchData} />
           <Button
             onClick={() => setIsAddDialogOpen(true)}
@@ -153,7 +170,7 @@ export default function DataManagementPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div id="report-content" className="space-y-4">
         <div className="flex items-center justify-between text-sm text-zinc-400 px-1">
           <span>
             Mostrando <strong>{filteredRecords.length}</strong> registros
