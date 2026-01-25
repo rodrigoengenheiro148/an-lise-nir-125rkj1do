@@ -17,14 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Upload,
-  FileText,
-  CheckCircle2,
-  AlertTriangle,
-  Save,
-  RefreshCw,
-} from 'lucide-react'
+import { FileText, CheckCircle2, Save, RefreshCw, Loader2 } from 'lucide-react'
 import { AnalysisRecord, METRICS, MetricKey } from '@/types/dashboard'
 import { toast } from 'sonner'
 import { calculateStats } from '@/lib/stats'
@@ -32,13 +25,14 @@ import { MetricStatsCard } from '@/components/dashboard/MetricStatsCard'
 import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
 import { ResidualChart } from '@/components/dashboard/ResidualChart'
 import { MetricHistogram } from '@/components/dashboard/MetricHistogram'
-import { storageService } from '@/services/storage'
+import { api } from '@/services/api'
 
 const AnalysisPage = () => {
   const [dataInput, setDataInput] = useState('')
   const [parsedRecords, setParsedRecords] = useState<AnalysisRecord[]>([])
   const [activeTab, setActiveTab] = useState('input')
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>('protein')
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleParse = () => {
     if (!dataInput.trim()) {
@@ -50,9 +44,6 @@ const AnalysisPage = () => {
       const rows = dataInput.trim().split('\n')
       const records: AnalysisRecord[] = []
       const now = new Date()
-
-      // Simple header detection or assume standard format
-      // Format assumption: Company | Date | ... (Metric LAB | Metric NIR) pairs
 
       const headerRow = rows[0].toLowerCase()
       let startIdx = 0
@@ -80,7 +71,6 @@ const AnalysisPage = () => {
           date,
         }
 
-        // Try to map metrics sequentially
         let colIdx = 2
         METRICS.forEach((metric) => {
           const lab = parseFloat(cols[colIdx]?.replace(',', '.') || '0')
@@ -108,14 +98,21 @@ const AnalysisPage = () => {
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (parsedRecords.length === 0) return
-    storageService.saveRecords(parsedRecords)
-    toast.success('Dados salvos no banco de dados com sucesso!')
-    // Optionally clear or redirect
-    setDataInput('')
-    setParsedRecords([])
-    setActiveTab('input')
+    setIsSaving(true)
+    try {
+      await api.saveRecords(parsedRecords)
+      toast.success('Dados salvos no banco de dados com sucesso!')
+      setDataInput('')
+      setParsedRecords([])
+      setActiveTab('input')
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao salvar dados. Verifique se as empresas existem.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const statsSummary = useMemo(() => {
@@ -149,10 +146,15 @@ const AnalysisPage = () => {
         {parsedRecords.length > 0 && (
           <Button
             onClick={handleSave}
+            disabled={isSaving}
             className="bg-green-600 hover:bg-green-700 text-white gap-2"
           >
-            <Save className="h-4 w-4" />
-            Salvar Dados
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Salvar Dados na Nuvem
           </Button>
         )}
       </div>
@@ -212,7 +214,6 @@ const AnalysisPage = () => {
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-8 animate-fade-in">
-          {/* Stats Grid */}
           <div>
             <h2 className="text-lg font-semibold mb-4 text-zinc-200">
               Resumo Estatístico Global
@@ -229,7 +230,6 @@ const AnalysisPage = () => {
             </div>
           </div>
 
-          {/* Detailed Visual Analysis */}
           <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -237,11 +237,10 @@ const AnalysisPage = () => {
                   Detalhamento Gráfico
                 </h2>
                 <p className="text-zinc-400 text-sm">
-                  Selecione uma métrica para visualizar os gráficos de
-                  dispersão, resíduos e histograma.
+                  Selecione uma métrica para visualizar os gráficos.
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-2">
                 {METRICS.slice(0, 5).map((m) => (
                   <Button
                     key={m.key}
@@ -253,7 +252,6 @@ const AnalysisPage = () => {
                     {m.label}
                   </Button>
                 ))}
-                {/* ... simple pager for metrics could go here */}
               </div>
             </div>
 
@@ -287,7 +285,6 @@ const AnalysisPage = () => {
             </div>
           </div>
 
-          {/* Raw Data Preview */}
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-sm">
@@ -349,13 +346,13 @@ const AnalysisPage = () => {
                             key={`${m.key}-l`}
                             className="text-zinc-400 font-mono"
                           >
-                            {row[`${m.key}_lab`]}
+                            {Number(row[`${m.key}_lab`]).toFixed(2)}
                           </TableCell>
                           <TableCell
                             key={`${m.key}-n`}
                             className="text-blue-400 font-mono"
                           >
-                            {row[`${m.key}_nir`]}
+                            {Number(row[`${m.key}_nir`]).toFixed(2)}
                           </TableCell>
                         </>
                       ))}
@@ -363,11 +360,6 @@ const AnalysisPage = () => {
                   ))}
                 </TableBody>
               </Table>
-              {parsedRecords.length > 5 && (
-                <div className="text-center text-xs text-zinc-500 mt-2">
-                  ... e mais {parsedRecords.length - 5} registros
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

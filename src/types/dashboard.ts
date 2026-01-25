@@ -1,5 +1,12 @@
 export type Company = string
 
+export interface CompanyEntity {
+  id: string
+  name: string
+  logo_url?: string
+  created_at: string
+}
+
 export const DEFAULT_COMPANIES: string[] = [
   'Brasmix',
   'Mar Reciclagem',
@@ -47,7 +54,8 @@ export const METRICS: {
 export interface AnalysisRecord {
   id: string
   company: Company
+  company_id?: string
   date: string
 
-  [key: string]: string | number
+  [key: string]: string | number | undefined
 }
