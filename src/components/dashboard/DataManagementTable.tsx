@@ -56,38 +56,61 @@ export const DataManagementTable = ({
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="w-[120px] text-zinc-400">
+              <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
                 Material
               </TableHead>
-              <TableHead className="w-[180px] text-zinc-400">Empresa</TableHead>
-              <TableHead className="w-[100px] text-zinc-400">Data</TableHead>
-              {METRICS.slice(0, 3).map((m) => (
+              <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
+                Empresa
+              </TableHead>
+              <TableHead className="w-[100px] min-w-[100px] text-zinc-400">
+                Data
+              </TableHead>
+              {METRICS.map((m) => (
                 <TableHead
                   key={m.key}
-                  className="text-zinc-400 text-center border-l border-zinc-800/50"
+                  className="text-zinc-400 text-center border-l border-zinc-800/50 min-w-[200px]"
                   colSpan={3}
                 >
                   {m.label}
                 </TableHead>
               ))}
-              <TableHead className="text-right text-zinc-400">Ações</TableHead>
+              <TableHead className="text-right text-zinc-400 w-[100px] min-w-[100px] sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800">
+                Ações
+              </TableHead>
             </TableRow>
             <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
               <TableHead colSpan={3}></TableHead>
-              {METRICS.slice(0, 3).map((m) => (
-                <Fragment key={m.key}>
-                  <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50">
-                    NIR
-                  </TableHead>
-                  <TableHead className="text-zinc-500 text-center">
-                    LAB
-                  </TableHead>
-                  <TableHead className="text-zinc-500 text-center">
-                    ANL
-                  </TableHead>
-                </Fragment>
-              ))}
-              <TableHead></TableHead>
+              {METRICS.map((m) => {
+                if (m.key === 'acidity') {
+                  return (
+                    <Fragment key={m.key}>
+                      <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50">
+                        LAB
+                      </TableHead>
+                      <TableHead className="text-zinc-500 text-center">
+                        ANL
+                      </TableHead>
+                      <TableHead className="text-zinc-500 text-center">
+                        RESÍDUOS
+                      </TableHead>
+                    </Fragment>
+                  )
+                }
+                return (
+                  <Fragment key={m.key}>
+                    <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50">
+                      NIR
+                    </TableHead>
+                    <TableHead className="text-zinc-500 text-center">
+                      LAB
+                    </TableHead>
+                    <TableHead className="text-zinc-500 text-center">
+                      ANL
+                    </TableHead>
+                  </Fragment>
+                )
+              })}
+              <TableHead className="sticky right-0 bg-zinc-900/90 backdrop-blur-sm z-10 border-l border-zinc-800"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,10 +119,10 @@ export const DataManagementTable = ({
                 key={record.id}
                 className="border-zinc-800 hover:bg-zinc-800/50"
               >
-                <TableCell className="text-zinc-300 text-xs font-medium">
+                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap">
                   {record.material || '-'}
                 </TableCell>
-                <TableCell className="text-zinc-200 text-sm">
+                <TableCell className="text-zinc-200 text-sm whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     {record.company_logo ? (
                       <img
@@ -120,20 +143,40 @@ export const DataManagementTable = ({
                 <TableCell className="text-zinc-400 text-xs font-mono whitespace-nowrap">
                   {record.date}
                 </TableCell>
-                {METRICS.slice(0, 3).map((m) => (
-                  <Fragment key={m.key}>
-                    <TableCell className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono">
-                      {Number(record[`${m.key}_nir`] || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium">
-                      {Number(record[`${m.key}_lab`] || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-blue-400 text-xs text-center font-mono">
-                      {Number(record[`${m.key}_anl`] || 0).toFixed(2)}
-                    </TableCell>
-                  </Fragment>
-                ))}
-                <TableCell className="text-right">
+                {METRICS.map((m) => {
+                  if (m.key === 'acidity') {
+                    const lab = Number(record[`${m.key}_lab`] || 0)
+                    const anl = Number(record[`${m.key}_anl`] || 0)
+                    const residue = lab - anl
+                    return (
+                      <Fragment key={m.key}>
+                        <TableCell className="text-zinc-200 text-xs text-center border-l border-zinc-800/50 font-mono font-medium">
+                          {lab.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-blue-400 text-xs text-center font-mono">
+                          {anl.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-zinc-400 text-xs text-center font-mono">
+                          {residue.toFixed(2)}
+                        </TableCell>
+                      </Fragment>
+                    )
+                  }
+                  return (
+                    <Fragment key={m.key}>
+                      <TableCell className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono">
+                        {Number(record[`${m.key}_nir`] || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium">
+                        {Number(record[`${m.key}_lab`] || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-blue-400 text-xs text-center font-mono">
+                        {Number(record[`${m.key}_anl`] || 0).toFixed(2)}
+                      </TableCell>
+                    </Fragment>
+                  )
+                })}
+                <TableCell className="text-right sticky right-0 bg-zinc-950/90 backdrop-blur-sm z-10 border-l border-zinc-800 shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.5)]">
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="ghost"
@@ -158,7 +201,7 @@ export const DataManagementTable = ({
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={13}
+                  colSpan={3 + METRICS.length * 3 + 1}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.

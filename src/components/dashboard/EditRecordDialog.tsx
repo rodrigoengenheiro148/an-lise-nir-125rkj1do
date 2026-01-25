@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -101,7 +100,7 @@ export const EditRecordDialog = ({
         await api.updateRecord(record.id, formData)
         toast.success('Registro atualizado com sucesso!')
       } else if (mode === 'add' && formData.company_id) {
-        await api.createRecord(formData as AnalysisRecord) // company_id is checked above
+        await api.createRecord(formData as AnalysisRecord)
         toast.success('Registro criado com sucesso!')
       }
       onSuccess()
@@ -114,6 +113,12 @@ export const EditRecordDialog = ({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const calculateResidue = () => {
+    const lab = Number(formData.acidity_lab || 0)
+    const anl = Number(formData.acidity_anl || 0)
+    return (lab - anl).toFixed(2)
   }
 
   return (
@@ -142,9 +147,7 @@ export const EditRecordDialog = ({
                 <Select
                   value={formData.company_id}
                   onValueChange={(val) => handleChange('company_id', val)}
-                  disabled={
-                    loading || (mode === 'edit' && !!record?.company_id)
-                  } // Can disable edit if desired, but user story says update existing data. Usually company doesn't change, but let's allow it if needed or lock it.
+                  disabled={loading}
                 >
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
                     <SelectValue placeholder="Selecione..." />
@@ -205,51 +208,115 @@ export const EditRecordDialog = ({
                       </h4>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                          NIR
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${metric.key}_nir`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(`${metric.key}_nir`, e.target.value)
-                          }
-                          className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                          LAB
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${metric.key}_lab`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(`${metric.key}_lab`, e.target.value)
-                          }
-                          className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
-                          ANL
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${metric.key}_anl`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(`${metric.key}_anl`, e.target.value)
-                          }
-                          className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm text-blue-400"
-                        />
-                      </div>
+                      {metric.key === 'acidity' ? (
+                        <>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                              LAB
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_lab`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_lab`,
+                                  e.target.value,
+                                )
+                              }
+                              className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                              ANL
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_anl`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_anl`,
+                                  e.target.value,
+                                )
+                              }
+                              className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm text-blue-400"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                              Resíduos
+                            </Label>
+                            <Input
+                              type="text"
+                              readOnly
+                              disabled
+                              value={calculateResidue()}
+                              className="h-8 bg-zinc-900/50 border-zinc-800 font-mono text-sm text-zinc-400 cursor-not-allowed"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                              NIR
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_nir`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_nir`,
+                                  e.target.value,
+                                )
+                              }
+                              className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                              LAB
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_lab`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_lab`,
+                                  e.target.value,
+                                )
+                              }
+                              className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                              ANL
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_anl`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_anl`,
+                                  e.target.value,
+                                )
+                              }
+                              className="h-8 bg-zinc-950 border-zinc-700 font-mono text-sm text-blue-400"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
