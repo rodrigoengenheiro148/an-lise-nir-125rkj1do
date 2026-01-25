@@ -5,13 +5,29 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react'
-import { Company, Sample, ANALYSIS_TYPES, AnalysisType } from '@/lib/types'
-import { COMPANIES, INITIAL_SAMPLES } from '@/lib/mockData'
+import { Company, Sample, AnalysisType } from '@/lib/types'
+import { AnalysisRecord, METRICS } from '@/types/dashboard'
 import { toast } from '@/hooks/use-toast'
+import { supabase } from '@/lib/supabase/client'
+
+// Mapping from metric key (DB column prefix) to AnalysisType enum
+const METRIC_TO_TYPE: Record<string, AnalysisType> = {
+  acidity: 'ACIDEZ',
+  moisture: 'UMIDADE',
+  fco: 'FCO',
+  protein: 'PROTEINA',
+  phosphorus: 'FOSFORO',
+  mineralMatter: 'MATERIA_MINERAL',
+  peroxide: 'PEROXIDO',
+  etherExtract: 'EXTRATO_ETEREO',
+  proteinDigestibility: 'DIG_PROTEICA',
+  calcium: 'CALCIO',
+}
 
 interface DashboardState {
   companies: Company[]
   samples: Sample[]
+  analysisRecords: AnalysisRecord[]
   selectedCompanyId: string
   selectedDateRange: { from: Date | undefined; to: Date | undefined }
   setSelectedCompanyId: (id: string) => void
@@ -27,11 +43,10 @@ interface DashboardState {
 const DashboardContext = createContext<DashboardState | undefined>(undefined)
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
-  const [companies] = useState<Company[]>(COMPANIES)
+  const [companies, setCompanies] = useState<Company[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(
-    COMPANIES[0].id,
-  )
+  const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedDateRange, setDateRange] = useState<{
     from: Date | undefined
     to: Date | undefined
@@ -41,55 +56,99 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  // Load initial data (Simulating Cloud Fetch)
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true)
-      try {
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+  const fetchCompanies = async () => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('name')
 
-        const stored = localStorage.getItem('subpass_lab_data')
-        if (stored) {
-          setSamples(JSON.parse(stored))
-        } else {
-          setSamples(INITIAL_SAMPLES)
-          localStorage.setItem(
-            'subpass_lab_data',
-            JSON.stringify(INITIAL_SAMPLES),
-          )
-        }
-      } catch (error) {
-        console.error('Failed to load data', error)
-        toast({
-          title: 'Erro ao carregar dados',
-          description: 'Não foi possível conectar ao servidor.',
-          variant: 'destructive',
-        })
-      } finally {
-        setIsLoading(false)
-      }
+    if (error) {
+      console.error('Error fetching companies:', error)
+      return []
     }
+    return data.map((c) => ({ id: c.id, name: c.name }))
+  }
+
+  const fetchAnalysisRecords = async () => {
+    const { data, error } = await supabase
+      .from('analysis_records')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching analysis records:', error)
+      return []
+    }
+    return data as unknown as AnalysisRecord[]
+  }
+
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      const [fetchedCompanies, fetchedRecords] = await Promise.all([
+        fetchCompanies(),
+        fetchAnalysisRecords(),
+      ])
+
+      setCompanies(fetchedCompanies)
+      setAnalysisRecords(fetchedRecords)
+
+      if (fetchedCompanies.length > 0 && !selectedCompanyId) {
+        setSelectedCompanyId(fetchedCompanies[0].id)
+      }
+
+      // Convert AnalysisRecords to Samples for backward compatibility
+      const newSamples: Sample[] = []
+      fetchedRecords.forEach((record) => {
+        METRICS.forEach((metric) => {
+          const labVal = record[`${metric.key}_lab`]
+          const nirVal = record[`${metric.key}_nir`]
+
+          if (
+            labVal !== undefined &&
+            labVal !== null &&
+            nirVal !== undefined &&
+            nirVal !== null
+          ) {
+            newSamples.push({
+              id: `${record.id}-${metric.key}`,
+              companyId: record.company_id || '',
+              date: record.created_at || new Date().toISOString(),
+              analysisType: METRIC_TO_TYPE[metric.key],
+              labValue: Number(labVal),
+              nirValue: Number(nirVal),
+            })
+          }
+        })
+      })
+      setSamples(newSamples)
+    } catch (error) {
+      console.error('Failed to load data', error)
+      toast({
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível conectar ao servidor.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
 
-  const addSamples = (newSamples: Sample[]) => {
-    setIsLoading(true)
-    setTimeout(() => {
-      const updatedSamples = [...samples, ...newSamples]
-      setSamples(updatedSamples)
-      localStorage.setItem('subpass_lab_data', JSON.stringify(updatedSamples))
-      setIsLoading(false)
-      toast({
-        title: 'Dados Salvos',
-        description: `${newSamples.length} amostras sincronizadas com sucesso.`,
-      })
-    }, 1000)
+  const refreshData = () => {
+    loadData()
   }
 
-  const refreshData = () => {
-    setIsLoading(true)
-    setTimeout(() => setIsLoading(false), 800)
+  const addSamples = (newSamples: Sample[]) => {
+    // This function is kept for interface compatibility but would ideally post to Supabase
+    // For now, we'll just log it or show a toast that this might not persist properly without backend endpoint
+    toast({
+      title: 'Funcionalidade em atualização',
+      description: 'Por favor, utilize a importação direta via banco de dados.',
+    })
   }
 
   return React.createElement(
@@ -98,6 +157,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       value: {
         companies,
         samples,
+        analysisRecords,
         selectedCompanyId,
         selectedDateRange,
         setSelectedCompanyId,

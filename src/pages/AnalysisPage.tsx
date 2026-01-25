@@ -1,12 +1,16 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, BarChart3 } from 'lucide-react'
+import { ArrowLeft, BarChart3, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
+import useDashboardStore from '@/stores/useDashboardStore'
+import { METRICS } from '@/types/dashboard'
 
 export default function AnalysisPage() {
+  const { analysisRecords, isLoading } = useDashboardStore()
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-[1600px] mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/">
             <Button
@@ -17,21 +21,30 @@ export default function AnalysisPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2 font-display">
             <BarChart3 className="h-6 w-6 text-blue-500" />
-            Análise Avançada
+            Análise Avançada de Métricas (NIR vs LAB)
           </h1>
         </div>
 
-        <Card className="bg-zinc-900/50 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-zinc-200">Em Desenvolvimento</CardTitle>
-          </CardHeader>
-          <CardContent className="text-zinc-400">
-            Esta funcionalidade estará disponível em breve. Utilize o Dashboard
-            para visualizar as métricas atuais.
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <div className="flex h-[50vh] items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {METRICS.map((metric) => (
+              <MetricScatterChart
+                key={metric.key}
+                title={metric.label.toUpperCase()}
+                data={analysisRecords}
+                metricKey={metric.key}
+                color={metric.color}
+                unit={metric.unit}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

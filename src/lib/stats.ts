@@ -8,6 +8,7 @@ export interface StatsResult {
   bias: number
   sep: number
   slope: number
+  intercept: number
   n: number
   min: number
   max: number
@@ -21,6 +22,7 @@ export function calculateStats(data: Point[]): StatsResult {
       bias: 0,
       sep: 0,
       slope: 0,
+      intercept: 0,
       n: 0,
       min: 0,
       max: 0,
@@ -54,19 +56,17 @@ export function calculateStats(data: Point[]): StatsResult {
     denomX += diffX * diffX
     denomY += diffY * diffY
 
-    // Bias is mean(y - x) (pred - ref) or (y - x)
-    // Assuming y is prediction (ANL/NIR) and x is reference (LAB)
+    // Bias is mean(y - x) (pred - ref)
     sumDiff += p.y - p.x
   }
 
   const slope = denomX !== 0 ? numerator / denomX : 0
+  const intercept = meanY - slope * meanX
   const r2 =
     denomX * denomY !== 0 ? Math.pow(numerator, 2) / (denomX * denomY) : 0
   const bias = sumDiff / n
 
   // SEP (Standard Error of Prediction)
-  // SEP = sqrt( sum((res - mean_res)^2) / (n-1) )
-  // where res = y - x
   let sumSqRes = 0
   for (const p of data) {
     const res = p.y - p.x - bias
@@ -79,6 +79,7 @@ export function calculateStats(data: Point[]): StatsResult {
     bias,
     sep,
     slope,
+    intercept,
     n,
     min,
     max,
