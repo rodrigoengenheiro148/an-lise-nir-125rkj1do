@@ -46,7 +46,7 @@ const transformRecordToDB = (
 ) => {
   const dbRow: any = {
     company_id: companyId,
-    date: null, // Always null as date is removed from usage
+    date: record.date || null, // Allow date to be saved
     material: record.material,
     sub_material: record.submaterial,
   }
@@ -157,6 +157,7 @@ export const api = {
     if (updates.submaterial !== undefined)
       dbUpdates.sub_material = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
+    if (updates.date !== undefined) dbUpdates.date = updates.date
 
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
       const types = ['lab', 'nir', 'anl']

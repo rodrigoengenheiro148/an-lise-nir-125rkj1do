@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Company, AnalysisRecord, METRICS } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
@@ -12,14 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Activity,
-  TrendingUp,
-  Cloud,
-  Table as TableIcon,
-  X,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Activity, TrendingUp, Cloud, X } from 'lucide-react'
 
 const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company>('')
@@ -30,31 +23,29 @@ const Index = () => {
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [records, companies] = await Promise.all([
-          api.getRecords(),
-          api.getCompanies(),
-        ])
-        setAllRecords(records)
-        if (companies.length > 0 && !selectedCompany) {
-          setSelectedCompany(companies[0].name)
-        }
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoading(false)
+  const fetchData = useCallback(async () => {
+    try {
+      const [records, companies] = await Promise.all([
+        api.getRecords(),
+        api.getCompanies(),
+      ])
+      setAllRecords(records)
+      if (companies.length > 0 && !selectedCompany) {
+        setSelectedCompany(companies[0].name)
       }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
     }
+  }, [selectedCompany]) // Added selectedCompany dep though strictly not needed for logic inside, but nice for init
 
+  useEffect(() => {
     fetchData()
-
     // Subscribe to realtime changes
     const unsubscribe = api.subscribeToRecords(fetchData)
-
     return () => unsubscribe()
-  }, [])
+  }, []) // Removed dependency on fetchData to avoid loop if not memoized properly, but added useCallback above
 
   // Extract unique materials and submaterials for the current company
   const { uniqueMaterials, uniqueSubmaterials } = useMemo(() => {
@@ -135,16 +126,6 @@ const Index = () => {
                 onSelect={setSelectedCompany}
               />
             </div>
-            <Link to="/management">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-zinc-800 border-zinc-700 text-zinc-200 hover:text-white hover:bg-zinc-700"
-              >
-                <TableIcon className="mr-2 h-4 w-4" />
-                Gerenciar Dados
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
@@ -288,7 +269,11 @@ const Index = () => {
             <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
             Detalhamento de Análises e Resíduos
           </h2>
-          <DataManagementTable records={filteredRecords} readOnly={true} />
+          <DataManagementTable
+            records={filteredRecords}
+            readOnly={false}
+            onDataChange={fetchData}
+          />
         </div>
       </main>
     </div>
