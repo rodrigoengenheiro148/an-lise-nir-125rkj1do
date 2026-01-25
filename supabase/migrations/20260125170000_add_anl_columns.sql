@@ -1,0 +1,10 @@
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS acidity_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS moisture_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS fco_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS protein_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS phosphorus_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS mineral_matter_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS peroxide_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS ether_extract_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS protein_digestibility_anl numeric DEFAULT NULL;
+ALTER TABLE analysis_records ADD COLUMN IF NOT EXISTS calcium_anl numeric DEFAULT NULL;

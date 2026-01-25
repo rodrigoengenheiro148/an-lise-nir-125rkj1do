@@ -15,12 +15,17 @@ export const MetricStatsCard = ({
   return (
     <Card className="bg-zinc-900/50 border-zinc-800 text-zinc-100 overflow-hidden">
       <CardHeader className="py-3 px-4 border-b border-zinc-800 bg-zinc-900/80">
-        <CardTitle className="text-sm font-bold flex items-center gap-2">
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-          {title}
+        <CardTitle className="text-sm font-bold flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            {title}
+          </div>
+          <span className="text-[10px] text-zinc-500 font-normal">
+            LAB vs ANL
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 grid grid-cols-2 gap-4 text-xs">

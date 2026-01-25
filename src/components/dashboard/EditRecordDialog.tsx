@@ -55,7 +55,7 @@ export const EditRecordDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             Editar Registro - {record.company} ({record.date})
@@ -73,7 +73,7 @@ export const EditRecordDialog = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {METRICS.map((metric) => (
                 <div
                   key={metric.key}
@@ -82,7 +82,19 @@ export const EditRecordDialog = ({
                   <h4 className="font-semibold text-sm text-blue-400 border-b border-zinc-800 pb-2 mb-2">
                     {metric.label} ({metric.unit})
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-zinc-500">NIR</Label>
+                      <Input
+                        value={String(formData[`${metric.key}_nir`] ?? '')}
+                        onChange={(e) =>
+                          handleChange(`${metric.key}_nir`, e.target.value)
+                        }
+                        className="h-8 bg-zinc-950 border-zinc-700 font-mono"
+                        type="number"
+                        step="0.01"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label className="text-xs text-zinc-500">LAB</Label>
                       <Input
@@ -90,19 +102,19 @@ export const EditRecordDialog = ({
                         onChange={(e) =>
                           handleChange(`${metric.key}_lab`, e.target.value)
                         }
-                        className="h-8 bg-zinc-950 border-zinc-700"
+                        className="h-8 bg-zinc-950 border-zinc-700 font-mono"
                         type="number"
                         step="0.01"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-zinc-500">ANL (NIR)</Label>
+                      <Label className="text-xs text-zinc-500">ANL</Label>
                       <Input
-                        value={String(formData[`${metric.key}_nir`] ?? '')}
+                        value={String(formData[`${metric.key}_anl`] ?? '')}
                         onChange={(e) =>
-                          handleChange(`${metric.key}_nir`, e.target.value)
+                          handleChange(`${metric.key}_anl`, e.target.value)
                         }
-                        className="h-8 bg-zinc-950 border-zinc-700"
+                        className="h-8 bg-zinc-950 border-zinc-700 font-mono"
                         type="number"
                         step="0.01"
                       />

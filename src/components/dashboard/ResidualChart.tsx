@@ -37,16 +37,18 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
   const metricInfo = METRICS.find((m) => m.key === metricKey) || METRICS[0]
 
   const chartData = useMemo(() => {
-    return data.map((item) => {
-      const lab = item[`${metricKey}_lab` as keyof AnalysisRecord] as number
-      const nir = item[`${metricKey}_nir` as keyof AnalysisRecord] as number
-      return {
-        x: lab,
-        residual: lab - nir,
-        company: item.company,
-        date: item.date,
-      }
-    })
+    return data
+      .map((item) => {
+        const lab = Number(item[`${metricKey}_lab`] || 0)
+        const anl = Number(item[`${metricKey}_anl`] || 0)
+        return {
+          x: lab,
+          residual: lab - anl, // Specific request: LAB - ANL
+          company: item.company,
+          date: item.date,
+        }
+      })
+      .filter((d) => d.x > 0)
   }, [data, metricKey])
 
   const ChartRender = ({ height = '100%' }: { height?: string | number }) => (
@@ -97,7 +99,7 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
                     <span className="font-mono text-right">
                       {d.x.toFixed(2)}
                     </span>
-                    <span className="text-zinc-400">Diff:</span>
+                    <span className="text-zinc-400">Diff (L-A):</span>
                     <span
                       className={`font-mono text-right ${d.residual > 0 ? 'text-green-400' : 'text-red-400'}`}
                     >
@@ -128,7 +130,7 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
           <div>
             <CardTitle>Análise de Resíduos (LAB - ANL)</CardTitle>
             <CardDescription className="text-zinc-400">
-              Distribuição dos erros de predição para {metricInfo.label}
+              Distribuição dos erros de predição ANL para {metricInfo.label}
             </CardDescription>
           </div>
           <DialogTrigger asChild>
@@ -151,7 +153,7 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
       <DialogContent className="max-w-[80vw] h-[80vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
           <DialogTitleComponent>
-            Resíduos Detalhados - {metricInfo.label}
+            Resíduos Detalhados (LAB - ANL) - {metricInfo.label}
           </DialogTitleComponent>
         </DialogHeader>
         <div className="flex-1 w-full min-h-0">

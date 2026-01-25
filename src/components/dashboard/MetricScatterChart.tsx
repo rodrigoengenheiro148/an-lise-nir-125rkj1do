@@ -4,12 +4,11 @@ import {
   XAxis,
   YAxis,
   ResponsiveContainer,
-  ScatterChart,
   Scatter,
-  Line,
   ComposedChart,
   Tooltip as RechartsTooltip,
-  ReferenceLine,
+  Line,
+  Legend,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,7 +21,7 @@ import {
 } from '@/components/ui/dialog'
 import { Maximize2 } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
-import { calculateStats, generateRegressionPoints } from '@/lib/stats'
+import { calculateStats } from '@/lib/stats'
 
 interface MetricScatterChartProps {
   title: string
@@ -42,25 +41,28 @@ export const MetricScatterChart = ({
   const [isOpen, setIsOpen] = useState(false)
 
   const chartData = useMemo(() => {
-    return data.map((item) => ({
-      x: item[`${metricKey}_lab` as keyof AnalysisRecord] as number,
-      y: item[`${metricKey}_nir` as keyof AnalysisRecord] as number,
-      date: item.date,
-      company: item.company,
-      material: item.material,
-    }))
+    return data
+      .map((item) => ({
+        lab: Number(item[`${metricKey}_lab`] || 0),
+        nir: Number(item[`${metricKey}_nir`] || 0),
+        anl: Number(item[`${metricKey}_anl`] || 0),
+        date: item.date,
+        company: item.company,
+        material: item.material,
+      }))
+      .filter((d) => d.lab > 0) // Filter out zero labs for cleaner scatter
   }, [data, metricKey])
 
-  const stats = useMemo(() => calculateStats(chartData), [chartData])
-  const regressionLine = useMemo(
-    () => generateRegressionPoints(chartData, stats.slope, stats.intercept),
-    [chartData, stats],
-  )
+  // Calculate Stats for LAB vs ANL (Primary validation)
+  const stats = useMemo(() => {
+    const points = chartData.map((d) => ({ x: d.lab, y: d.anl }))
+    return calculateStats(points)
+  }, [chartData])
 
   const identityLine = useMemo(() => {
     if (chartData.length === 0) return []
     const min = Math.min(stats.min, 0)
-    const max = stats.max * 1.1 // Add some padding
+    const max = stats.max * 1.1
     return [
       { x: min, y: min },
       { x: max, y: max },
@@ -73,12 +75,12 @@ export const MetricScatterChart = ({
         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis
           type="number"
-          dataKey="x"
+          dataKey="lab"
           name="LAB"
           unit={unit}
           tick={{ fill: '#666', fontSize: 10 }}
           label={{
-            value: 'LAB',
+            value: 'Referência (LAB)',
             position: 'bottom',
             fill: '#666',
             fontSize: 10,
@@ -87,12 +89,11 @@ export const MetricScatterChart = ({
         />
         <YAxis
           type="number"
-          dataKey="y"
-          name="ANL"
+          name="Valor"
           unit={unit}
           tick={{ fill: '#666', fontSize: 10 }}
           label={{
-            value: 'ANL (NIR)',
+            value: 'Predição (NIR / ANL)',
             angle: -90,
             position: 'insideLeft',
             fill: '#666',
@@ -112,14 +113,18 @@ export const MetricScatterChart = ({
                     <p className="text-zinc-400 mb-1 italic">{d.material}</p>
                   )}
                   <p>{d.date}</p>
-                  <div className="grid grid-cols-2 gap-x-2 mt-1">
+                  <div className="grid grid-cols-2 gap-x-2 mt-1 border-t border-zinc-800 pt-1">
                     <span className="text-zinc-400">LAB:</span>
-                    <span className="text-right font-mono">
-                      {Number(d.x).toFixed(2)}
+                    <span className="text-right font-mono font-bold">
+                      {Number(d.lab).toFixed(2)}
                     </span>
-                    <span className="text-zinc-400">ANL:</span>
+                    <span className="text-zinc-500">NIR:</span>
                     <span className="text-right font-mono">
-                      {Number(d.y).toFixed(2)}
+                      {Number(d.nir).toFixed(2)}
+                    </span>
+                    <span className="text-blue-400">ANL:</span>
+                    <span className="text-right font-mono text-blue-400">
+                      {Number(d.anl).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -128,6 +133,8 @@ export const MetricScatterChart = ({
             return null
           }}
         />
+        <Legend verticalAlign="top" height={36} iconType="circle" />
+
         {/* Identity Line (y=x) */}
         <Line
           data={identityLine}
@@ -138,26 +145,29 @@ export const MetricScatterChart = ({
           dot={false}
           activeDot={false}
           type="monotone"
-          name="Identity (y=x)"
+          name="Ideal (y=x)"
+          legendType="none"
         />
-        {/* Regression Line */}
-        <Line
-          data={regressionLine}
-          dataKey="y"
-          stroke="#ffffff"
-          strokeWidth={2}
-          strokeOpacity={0.5}
-          dot={false}
-          activeDot={false}
-          type="monotone"
-          name="Regression"
-        />
+
+        {/* Series 1: NIR vs LAB */}
         <Scatter
-          name="Samples"
+          name="NIR"
           data={chartData}
+          dataKey="nir"
+          fill="#71717a"
+          shape="circle"
+          fillOpacity={0.5}
+        />
+
+        {/* Series 2: ANL vs LAB */}
+        <Scatter
+          name="ANL"
+          data={chartData}
+          dataKey="anl"
           fill={color}
           shape="circle"
-          className="glow-point opacity-80"
+          fillOpacity={0.8}
+          className="glow-point"
         />
       </ComposedChart>
     </ResponsiveContainer>
@@ -170,13 +180,9 @@ export const MetricScatterChart = ({
           <div>
             <CardTitle className="text-sm font-bold text-zinc-100 uppercase tracking-wide">
               {title}
-              <span className="ml-1 text-xs font-normal text-zinc-500 normal-case">
-                LAB vs ANL ({unit})
-              </span>
             </CardTitle>
             <div className="flex gap-4 text-[10px] text-zinc-400 font-mono mt-1">
-              <span>R²: {stats.r2.toFixed(3)}</span>
-              <span>SEP: {stats.sep.toFixed(3)}</span>
+              <span>Comparativo Tríplice (LAB vs NIR & ANL)</span>
             </div>
           </div>
           <DialogTrigger asChild>
@@ -197,11 +203,7 @@ export const MetricScatterChart = ({
       <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
           <DialogTitleComponent className="flex gap-4 items-baseline">
-            <span>{title} - Detalhes</span>
-            <span className="text-sm font-normal text-zinc-400 font-mono">
-              R²: {stats.r2.toFixed(4)} | SEP: {stats.sep.toFixed(4)} | Bias:{' '}
-              {stats.bias.toFixed(4)} | Slope: {stats.slope.toFixed(4)}
-            </span>
+            <span>{title} - Comparação Detalhada</span>
           </DialogTitleComponent>
         </DialogHeader>
         <div className="flex-1 w-full min-h-0">

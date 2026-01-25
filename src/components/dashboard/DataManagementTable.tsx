@@ -47,25 +47,51 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
 
   return (
     <>
-      <div className="rounded-md border border-zinc-800 bg-zinc-900/50">
+      <div className="rounded-md border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="w-[150px] text-zinc-400">Empresa</TableHead>
               <TableHead className="w-[120px] text-zinc-400">
                 Material
               </TableHead>
-              <TableHead className="w-[120px] text-zinc-400">Data</TableHead>
+              <TableHead className="w-[150px] text-zinc-400">Empresa</TableHead>
+              <TableHead className="w-[100px] text-zinc-400">Data</TableHead>
               {METRICS.slice(0, 3).map((m) => (
                 <TableHead
                   key={m.key}
-                  className="text-zinc-400 text-center"
-                  colSpan={2}
+                  className="text-zinc-400 text-center border-l border-zinc-800/50"
+                  colSpan={3}
                 >
                   {m.label}
                 </TableHead>
               ))}
               <TableHead className="text-right text-zinc-400">Ações</TableHead>
+            </TableRow>
+            <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
+              <TableHead colSpan={3}></TableHead>
+              {METRICS.slice(0, 3).map((m) => (
+                <>
+                  <TableHead
+                    key={`${m.key}-n`}
+                    className="text-zinc-500 text-center border-l border-zinc-800/50"
+                  >
+                    NIR
+                  </TableHead>
+                  <TableHead
+                    key={`${m.key}-l`}
+                    className="text-zinc-500 text-center"
+                  >
+                    LAB
+                  </TableHead>
+                  <TableHead
+                    key={`${m.key}-a`}
+                    className="text-zinc-500 text-center"
+                  >
+                    ANL
+                  </TableHead>
+                </>
+              ))}
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,28 +100,34 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
                 key={record.id}
                 className="border-zinc-800 hover:bg-zinc-800/50"
               >
-                <TableCell className="font-medium text-zinc-200">
-                  {record.company}
-                </TableCell>
-                <TableCell className="text-zinc-300 text-sm">
+                <TableCell className="text-zinc-300 text-xs">
                   {record.material || '-'}
                 </TableCell>
-                <TableCell className="text-zinc-400 text-xs font-mono">
+                <TableCell className="font-medium text-zinc-200 text-sm">
+                  {record.company}
+                </TableCell>
+                <TableCell className="text-zinc-400 text-xs font-mono whitespace-nowrap">
                   {record.date}
                 </TableCell>
                 {METRICS.slice(0, 3).map((m) => (
                   <>
                     <TableCell
+                      key={`${m.key}-n`}
+                      className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono"
+                    >
+                      {Number(record[`${m.key}_nir`]).toFixed(2)}
+                    </TableCell>
+                    <TableCell
                       key={`${m.key}-l`}
-                      className="text-zinc-500 text-xs border-l border-zinc-800/50 text-right"
+                      className="text-zinc-200 text-xs text-center font-mono font-medium"
                     >
                       {Number(record[`${m.key}_lab`]).toFixed(2)}
                     </TableCell>
                     <TableCell
-                      key={`${m.key}-n`}
-                      className="text-blue-400 text-xs text-right"
+                      key={`${m.key}-a`}
+                      className="text-blue-400 text-xs text-center font-mono"
                     >
-                      {Number(record[`${m.key}_nir`]).toFixed(2)}
+                      {Number(record[`${m.key}_anl`]).toFixed(2)}
                     </TableCell>
                   </>
                 ))}
@@ -124,7 +156,7 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={13}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.

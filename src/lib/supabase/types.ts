@@ -29,6 +29,7 @@ export type Database = {
           fco_lab: number | null
           fco_nir: number | null
           id: string
+          material: string | null
           mineral_matter_lab: number | null
           mineral_matter_nir: number | null
           moisture_lab: number | null
@@ -56,6 +57,7 @@ export type Database = {
           fco_lab?: number | null
           fco_nir?: number | null
           id?: string
+          material?: string | null
           mineral_matter_lab?: number | null
           mineral_matter_nir?: number | null
           moisture_lab?: number | null
@@ -83,6 +85,7 @@ export type Database = {
           fco_lab?: number | null
           fco_nir?: number | null
           id?: string
+          material?: string | null
           mineral_matter_lab?: number | null
           mineral_matter_nir?: number | null
           moisture_lab?: number | null

@@ -46,20 +46,17 @@ const AnalysisPage = () => {
       const now = new Date()
 
       const headerRow = rows[0].toLowerCase()
-      const headers = headerRow.split(/[\t,;]+/).map((s) => s.trim())
-
+      // Heuristic to detect start index and material column
       let startIdx = 0
       if (headerRow.includes('empresa') || headerRow.includes('company')) {
         startIdx = 1
       }
 
-      // Try to find material column index
-      const materialIdx = headers.findIndex(
-        (h) =>
-          h.includes('material') ||
-          h.includes('produto') ||
-          h.includes('amostra'),
-      )
+      const materialIdx = headerRow
+        .split(/[\t,;]+/)
+        .findIndex(
+          (h) => h.trim().includes('material') || h.trim().includes('produto'),
+        )
 
       for (let i = startIdx; i < rows.length; i++) {
         const row = rows[i]
@@ -69,14 +66,12 @@ const AnalysisPage = () => {
         if (cols.length < 3) continue
 
         const company = cols[0] || 'Unknown'
-        // If date is not found at expected position, use today
         const dateRaw = cols[1]
         const date =
           dateRaw && dateRaw.length > 5
             ? dateRaw
             : now.toISOString().split('T')[0]
 
-        // Extract Material if column exists
         let material: string | undefined = undefined
         if (materialIdx >= 0 && cols[materialIdx]) {
           material = cols[materialIdx]
@@ -90,36 +85,25 @@ const AnalysisPage = () => {
         }
 
         let colIdx = 2
-        // Adjust column index if material is taking up space before metrics
-        // Heuristic: If materialIdx is 2 (after Date), metrics start at 3?
-        // This parser is brittle for varying columns, but let's assume standard format:
-        // Company | Date | [Material?] | Metrics...
-        // For now, let's keep the existing logic for metrics but be aware of shifts
-        // If the user pastes "Material" as column 3, we need to skip it for metrics parsing if we blindly increment
-        // But the previous logic was: colIdx = 2.
-
-        // Better heuristic: Find where metrics start.
-        // Or assume user follows: Company | Date | Metric1 L | Metric1 N | ...
-        // If Material is present, it might be: Company | Material | Date | ... or Company | Date | Material | ...
-
-        // Let's assume the user pastes Company | Date | ...metrics... and maybe Material is somewhere else or appended.
-        // If materialIdx is defined, we took it.
-        // We need to ensure we don't treat Material as a number for metrics.
+        // Adjust for material column if it's in the way of standard metrics (cols 2+)
+        if (
+          materialIdx === 2 ||
+          (!material && cols.length > METRICS.length * 3 + 2)
+        ) {
+          if (!material) record.material = cols[2]
+          colIdx = 3
+        }
 
         METRICS.forEach((metric) => {
-          // Skip material column if we encounter it
-          if (colIdx === materialIdx) colIdx++
-
-          const labStr = cols[colIdx]?.replace(',', '.') || '0'
-          const nirStr = cols[colIdx + 1]?.replace(',', '.') || '0'
-
-          const lab = parseFloat(labStr)
-          const nir = parseFloat(nirStr)
+          const lab = parseFloat(cols[colIdx]?.replace(',', '.') || '0')
+          const nir = parseFloat(cols[colIdx + 1]?.replace(',', '.') || '0')
+          const anl = parseFloat(cols[colIdx + 2]?.replace(',', '.') || '0')
 
           record[`${metric.key}_lab`] = isNaN(lab) ? 0 : lab
           record[`${metric.key}_nir`] = isNaN(nir) ? 0 : nir
+          record[`${metric.key}_anl`] = isNaN(anl) ? 0 : anl
 
-          colIdx += 2
+          colIdx += 3
         })
 
         records.push(record)
@@ -157,10 +141,11 @@ const AnalysisPage = () => {
 
   const statsSummary = useMemo(() => {
     return METRICS.map((metric) => {
+      // Stats for LAB vs ANL (Primary validation)
       const points = parsedRecords
         .map((r) => ({
-          x: Number(r[`${metric.key}_lab`]),
-          y: Number(r[`${metric.key}_nir`]),
+          x: Number(r[`${metric.key}_lab`] || 0),
+          y: Number(r[`${metric.key}_anl`] || 0),
         }))
         .filter((p) => p.x > 0 && p.y > 0)
 
@@ -179,8 +164,8 @@ const AnalysisPage = () => {
             Importação e Análise Estatística
           </h1>
           <p className="text-zinc-400">
-            Cole dados do Excel para gerar relatórios detalhados de performance
-            (LAB vs ANL).
+            Cole dados do Excel para gerar relatórios detalhados (LAB, NIR,
+            ANL).
           </p>
         </div>
         {parsedRecords.length > 0 && (
@@ -225,20 +210,17 @@ const AnalysisPage = () => {
             <CardHeader>
               <CardTitle>Área de Transferência</CardTitle>
               <CardDescription className="text-zinc-400">
-                Copie as células do Excel e cole abaixo. A ordem esperada das
-                colunas é:
+                Copie as células do Excel e cole abaixo. A ordem esperada é:
                 <br />
                 <code className="bg-zinc-800 px-1 rounded text-xs">
-                  Empresa | Data |{' '}
-                  {METRICS.map((m) => `${m.label} LAB | ${m.label} ANL`).join(
-                    ' | ',
-                  )}
+                  Empresa | Data | [Material] |{' '}
+                  {METRICS.slice(0, 2)
+                    .map(
+                      (m) => `${m.label} LAB | ${m.label} NIR | ${m.label} ANL`,
+                    )
+                    .join(' | ')}{' '}
+                  ...
                 </code>
-                <br />
-                <span className="text-xs text-zinc-500 mt-1 block">
-                  Opcional: Você pode incluir uma coluna "Material" ou "Produto"
-                  no cabeçalho.
-                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -261,7 +243,7 @@ const AnalysisPage = () => {
         <TabsContent value="analysis" className="space-y-8 animate-fade-in">
           <div>
             <h2 className="text-lg font-semibold mb-4 text-zinc-200">
-              Resumo Estatístico Global
+              Performance: LAB vs ANL
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {statsSummary.map(({ metric, stats }) => (
@@ -303,7 +285,7 @@ const AnalysisPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1 h-[350px]">
                 <MetricScatterChart
-                  title={`Dispersão: ${METRICS.find((m) => m.key === selectedMetric)?.label}`}
+                  title={`Dispersão Tríplice: ${METRICS.find((m) => m.key === selectedMetric)?.label}`}
                   data={parsedRecords}
                   metricKey={selectedMetric}
                   color={
@@ -346,14 +328,14 @@ const AnalysisPage = () => {
                     {METRICS.slice(0, 5).map((m) => (
                       <TableHead
                         key={m.key}
-                        className="text-zinc-400 text-center"
-                        colSpan={2}
+                        className="text-zinc-400 text-center border-l border-zinc-800"
+                        colSpan={3}
                       >
                         {m.label}
                       </TableHead>
                     ))}
                   </TableRow>
-                  <TableRow className="border-zinc-800 hover:bg-transparent">
+                  <TableRow className="border-zinc-800 hover:bg-transparent text-xs">
                     <TableHead></TableHead>
                     <TableHead></TableHead>
                     <TableHead></TableHead>
@@ -361,13 +343,19 @@ const AnalysisPage = () => {
                       <>
                         <TableHead
                           key={`${m.key}-lab`}
-                          className="text-zinc-500 text-xs"
+                          className="text-zinc-500 border-l border-zinc-800"
                         >
                           LAB
                         </TableHead>
                         <TableHead
                           key={`${m.key}-nir`}
-                          className="text-zinc-500 text-xs"
+                          className="text-zinc-500"
+                        >
+                          NIR
+                        </TableHead>
+                        <TableHead
+                          key={`${m.key}-anl`}
+                          className="text-zinc-500"
                         >
                           ANL
                         </TableHead>
@@ -376,33 +364,39 @@ const AnalysisPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsedRecords.slice(0, 5).map((row, i) => (
+                  {parsedRecords.slice(0, 10).map((row, i) => (
                     <TableRow
                       key={i}
-                      className="border-zinc-800 hover:bg-zinc-800/50"
+                      className="border-zinc-800 hover:bg-zinc-800/50 text-xs"
                     >
                       <TableCell className="font-medium text-zinc-300">
                         {row.company}
                       </TableCell>
-                      <TableCell className="text-zinc-400">
+                      <TableCell className="text-zinc-400 whitespace-nowrap">
                         {row.date}
                       </TableCell>
-                      <TableCell className="text-zinc-400 text-xs">
+                      <TableCell className="text-zinc-400">
                         {row.material || '-'}
                       </TableCell>
                       {METRICS.slice(0, 5).map((m) => (
                         <>
                           <TableCell
                             key={`${m.key}-l`}
-                            className="text-zinc-400 font-mono"
+                            className="text-zinc-400 font-mono border-l border-zinc-800"
                           >
                             {Number(row[`${m.key}_lab`]).toFixed(2)}
                           </TableCell>
                           <TableCell
                             key={`${m.key}-n`}
-                            className="text-blue-400 font-mono"
+                            className="text-zinc-500 font-mono"
                           >
                             {Number(row[`${m.key}_nir`]).toFixed(2)}
+                          </TableCell>
+                          <TableCell
+                            key={`${m.key}-a`}
+                            className="text-blue-400 font-mono"
+                          >
+                            {Number(row[`${m.key}_anl`]).toFixed(2)}
                           </TableCell>
                         </>
                       ))}

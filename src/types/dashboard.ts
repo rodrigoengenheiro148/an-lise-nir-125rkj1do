@@ -58,5 +58,6 @@ export interface AnalysisRecord {
   material?: string
   date: string
 
+  // Dynamic keys for metrics: *_lab, *_nir, *_anl
   [key: string]: string | number | undefined
 }

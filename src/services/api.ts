@@ -14,16 +14,6 @@ const KEY_MAPPING: Record<string, string> = {
   calcium: 'calcium',
 }
 
-const REVERSE_MAPPING: Record<string, string> = Object.entries(
-  KEY_MAPPING,
-).reduce(
-  (acc, [k, v]) => {
-    acc[v] = k
-    return acc
-  },
-  {} as Record<string, string>,
-)
-
 const transformRecordFromDB = (
   row: any,
   companyName: string,
@@ -39,6 +29,7 @@ const transformRecordFromDB = (
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
     record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? 0
     record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? 0
+    record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? 0
   })
 
   return record
@@ -54,6 +45,7 @@ const transformRecordToDB = (record: AnalysisRecord, companyId: string) => {
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
     dbRow[`${dbPrefix}_lab`] = parseFloat(String(record[`${appKey}_lab`] || 0))
     dbRow[`${dbPrefix}_nir`] = parseFloat(String(record[`${appKey}_nir`] || 0))
+    dbRow[`${dbPrefix}_anl`] = parseFloat(String(record[`${appKey}_anl`] || 0))
   })
 
   return dbRow
@@ -111,15 +103,25 @@ export const api = {
   },
 
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
-    // We only support updating values for now, assuming company/date changes are rare/different
     const dbUpdates: any = {}
     if (updates.date) dbUpdates.date = updates.date
     if (updates.material !== undefined) dbUpdates.material = updates.material
 
     Object.keys(updates).forEach((key) => {
-      if (key.endsWith('_lab') || key.endsWith('_nir')) {
-        const metricKey = key.replace('_lab', '').replace('_nir', '')
-        const type = key.endsWith('_lab') ? 'lab' : 'nir'
+      if (
+        key.endsWith('_lab') ||
+        key.endsWith('_nir') ||
+        key.endsWith('_anl')
+      ) {
+        const metricKey = key
+          .replace('_lab', '')
+          .replace('_nir', '')
+          .replace('_anl', '')
+        const type = key.endsWith('_lab')
+          ? 'lab'
+          : key.endsWith('_nir')
+            ? 'nir'
+            : 'anl'
         const dbPrefix = KEY_MAPPING[metricKey]
         if (dbPrefix) {
           dbUpdates[`${dbPrefix}_${type}`] = parseFloat(String(updates[key]))

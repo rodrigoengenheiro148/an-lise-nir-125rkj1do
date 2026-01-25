@@ -39,9 +39,12 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
   const histogramData = useMemo(() => {
     if (data.length === 0) return []
 
-    const values = data.map(
-      (d) => d[`${metricKey}_lab` as keyof AnalysisRecord] as number,
-    )
+    // Filtered to use only LAB data as requested
+    const values = data
+      .map((d) => Number(d[`${metricKey}_lab`] || 0))
+      .filter((v) => v > 0) // Exclude zeros
+
+    if (values.length === 0) return []
 
     const min = Math.min(...values)
     const max = Math.max(...values)
@@ -149,7 +152,7 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
       <DialogContent className="max-w-[80vw] h-[80vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
           <DialogTitleComponent>
-            Distribuição Detalhada - {metricInfo.label}
+            Distribuição Detalhada (LAB) - {metricInfo.label}
           </DialogTitleComponent>
         </DialogHeader>
         <div className="flex-1 w-full min-h-0">

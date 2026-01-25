@@ -33,46 +33,75 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
       const parsedRecords: AnalysisRecord[] = []
       const now = new Date()
 
-      // Skip header if present
       let startIdx = 0
       const firstRow = rows[0].toLowerCase()
+      // Skip header if it looks like a header
       if (firstRow.includes('empresa') || firstRow.includes('company')) {
         startIdx = 1
       }
 
+      const materialIdx = firstRow
+        .split(/[\t,;]+/)
+        .findIndex(
+          (h) => h.trim().includes('material') || h.trim().includes('produto'),
+        )
+
       for (let i = startIdx; i < rows.length; i++) {
         const row = rows[i]
+        if (!row.trim()) continue
+
         const cols = row.split(/[\t,;]+/).map((s) => s.trim())
 
         if (cols.length < 5) continue
 
         const companyName = cols[0]
-        const isValidCompany = COMPANIES.includes(companyName as any)
         const dateStr = cols[1]
 
-        // Format: Company, Date, Acidity_LAB, Acidity_NIR, Moisture_LAB, Moisture_NIR...
+        let material: string | undefined = undefined
+        // If material column was identified in header
+        if (materialIdx >= 0 && cols[materialIdx]) {
+          material = cols[materialIdx]
+        }
+        // Heuristic: if no header scan, but cols count > metrics * 3 + 2, maybe col 2 is material?
+        // Let's stick to standard format for now: Company | Date | Material (optional) | Metrics...
+        // If Material is not present in header, we assume standard layout: Company | Date | [Material?] | LAB | NIR | ANL...
+
+        // Let's rely on standard order if header parsing fails or is ambiguous.
+
         const record: any = {
           id: crypto.randomUUID(),
-          company: isValidCompany ? (companyName as any) : COMPANIES[0],
+          company: companyName,
           date:
             dateStr && dateStr.length > 5
               ? dateStr
               : now.toISOString().split('T')[0],
+          material,
         }
 
-        // Parse pairs dynamically based on METRICS order
-        // Current template order matches METRICS array
+        // Start reading metrics after metadata
+        // If material was read from column 2, then metrics start at 3.
+        // If material was not found or is column 2, we need to be careful.
+        // Standard expected: Company | Date | Material | ...Metrics (LAB, NIR, ANL)...
         let colIdx = 2
+        if (materialIdx === 2 || cols.length > METRICS.length * 3 + 2) {
+          if (!material) record.material = cols[2]
+          colIdx = 3
+        }
+
         METRICS.forEach((metric) => {
           // Parse LAB
           const labVal = cols[colIdx]?.replace(',', '.') || '0'
           record[`${metric.key}_lab`] = parseFloat(labVal)
 
-          // Parse NIR (ANL)
+          // Parse NIR
           const nirVal = cols[colIdx + 1]?.replace(',', '.') || '0'
           record[`${metric.key}_nir`] = parseFloat(nirVal)
 
-          colIdx += 2
+          // Parse ANL
+          const anlVal = cols[colIdx + 2]?.replace(',', '.') || '0'
+          record[`${metric.key}_anl`] = parseFloat(anlVal)
+
+          colIdx += 3
         })
 
         parsedRecords.push(record as AnalysisRecord)
@@ -94,7 +123,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
   }
 
   const templateHeaders =
-    'Empresa\tData\tAcidez_LAB\tAcidez_ANL\tUmidade_LAB\tUmidade_ANL\t...'
+    'Empresa\tData\tMaterial\tAcidez_LAB\tAcidez_NIR\tAcidez_ANL\tUmidade_LAB\tUmidade_NIR\tUmidade_ANL...'
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -109,11 +138,14 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
-          <DialogTitle>Importar Dados LAB vs ANL</DialogTitle>
+          <DialogTitle>Importar Dados (LAB, NIR, ANL)</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Copie e cole os dados do Excel. O formato deve ser: Empresa, Data,
-            seguido de pares <strong>LAB</strong> e <strong>ANL (NIR)</strong>{' '}
-            para cada métrica na ordem padrão.
+            Copie e cole os dados do Excel. O formato esperado é:
+            <br />
+            <strong>Empresa</strong>, <strong>Data</strong>,{' '}
+            <strong>Material</strong> (Opcional), seguido de trios{' '}
+            <strong>LAB</strong>, <strong>NIR</strong>, <strong>ANL</strong>{' '}
+            para cada métrica.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -122,7 +154,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
             <span className="font-mono">{templateHeaders}</span>
           </div>
           <Textarea
-            placeholder={`Exemplo:\nEmpresa A\t2023-10-01\t1.5\t1.4\t12.0\t11.9...`}
+            placeholder={`Exemplo:\nEmpresa A\t2023-10-01\tSoja\t1.5\t1.4\t1.45\t12.0\t11.9\t12.1...`}
             className="h-[300px] font-mono text-xs bg-zinc-900 border-zinc-800 text-zinc-300 focus-visible:ring-zinc-700"
             value={dataInput}
             onChange={(e) => setDataInput(e.target.value)}
@@ -131,7 +163,7 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
             <AlertCircle className="h-3 w-3" />
             <span>
               Certifique-se de que os valores decimais estão corretos e as
-              colunas seguem a ordem exata das métricas.
+              colunas seguem a ordem exata.
             </span>
           </div>
         </div>
