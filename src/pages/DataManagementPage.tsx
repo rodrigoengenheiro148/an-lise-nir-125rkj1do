@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { AnalysisRecord, STATIC_SUBMATERIALS } from '@/types/dashboard'
+import { AnalysisRecord, STATIC_SUBMATERIALS, METRICS } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,7 @@ export default function DataManagementPage() {
   const [search, setSearch] = useState('')
   const [companyFilter, setCompanyFilter] = useState<string>('')
   const [submaterialFilter, setSubmaterialFilter] = useState<string>('')
+  const [targetMetric, setTargetMetric] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [uniqueMaterials, setUniqueMaterials] = useState<string[]>([])
@@ -162,24 +163,36 @@ export default function DataManagementPage() {
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-          <div className="w-full sm:w-[250px]">
+          <div className="w-full sm:w-[200px]">
+            <Select value={targetMetric} onValueChange={setTargetMetric}>
+              <SelectTrigger className="w-full bg-background border-input">
+                <SelectValue placeholder="Métrica Alvo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Métricas</SelectItem>
+                {METRICS.map((m) => (
+                  <SelectItem key={m.key} value={m.key}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full sm:w-[200px]">
             <CompanySelector
               selected={companyFilter}
               onSelect={setCompanyFilter}
-              placeholder="Filtrar por Empresa"
+              placeholder="Filtrar Empresa"
             />
           </div>
-          <div className="w-full sm:w-[250px] flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground hidden lg:inline whitespace-nowrap">
-              Submaterial:
-            </span>
+          <div className="w-full sm:w-[200px] flex items-center gap-2">
             <div className="relative w-full">
               <Select
                 value={submaterialFilter}
                 onValueChange={setSubmaterialFilter}
               >
                 <SelectTrigger className="w-full bg-background border-input">
-                  <SelectValue placeholder="Filtrar por Submaterial" />
+                  <SelectValue placeholder="Filtrar Submaterial" />
                 </SelectTrigger>
                 <SelectContent>
                   {filterOptions.map((opt) => (
@@ -226,6 +239,7 @@ export default function DataManagementPage() {
           <DataManagementTable
             records={filteredRecords}
             onDataChange={fetchData}
+            targetMetric={targetMetric === 'all' ? undefined : targetMetric}
           />
         )}
       </div>

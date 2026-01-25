@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { AnalysisRecord, METRICS } from '@/types/dashboard'
 import {
   Table,
@@ -34,12 +34,14 @@ interface DataManagementTableProps {
   records: AnalysisRecord[]
   onDataChange?: () => void
   readOnly?: boolean
+  targetMetric?: string
 }
 
 export const DataManagementTable = ({
   records,
   onDataChange,
   readOnly = false,
+  targetMetric,
 }: DataManagementTableProps) => {
   const [editingRecord, setEditingRecord] = useState<AnalysisRecord | null>(
     null,
@@ -76,28 +78,42 @@ export const DataManagementTable = ({
     setIsDialogOpen(true)
   }
 
+  const displayedMetrics = useMemo(() => {
+    if (targetMetric && targetMetric !== 'all') {
+      return METRICS.filter((m) => m.key === targetMetric)
+    }
+    return METRICS
+  }, [targetMetric])
+
+  const showNir = !!(targetMetric && targetMetric !== 'all')
+
   return (
     <>
       <div className="rounded-md border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="w-[120px] min-w-[120px] text-zinc-400 sticky left-0 bg-zinc-900/95 backdrop-blur z-20">
+              <TableHead className="w-[120px] min-w-[120px] text-zinc-400 sticky left-0 bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]">
                 Material
               </TableHead>
-              <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
+              <TableHead
+                className={cn(
+                  'w-[120px] min-w-[120px] text-zinc-400',
+                  showNir &&
+                    'sticky left-[120px] bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]',
+                )}
+              >
                 Submaterial
               </TableHead>
               <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
                 Empresa
               </TableHead>
-              {/* No Date Column */}
-              {METRICS.map((m) => (
+              {displayedMetrics.map((m) => (
                 <TableHead
                   key={m.key}
                   className="text-zinc-400 text-center border-l border-zinc-800/50"
-                  colSpan={3}
-                  style={{ minWidth: '240px' }}
+                  colSpan={showNir ? 4 : 3}
+                  style={{ minWidth: showNir ? '320px' : '240px' }}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span
@@ -116,13 +132,30 @@ export const DataManagementTable = ({
             </TableRow>
             <TableRow className="border-zinc-800 hover:bg-transparent text-[10px] uppercase tracking-wider">
               <TableHead
-                className="sticky left-0 bg-zinc-900/95 backdrop-blur z-20"
+                className="sticky left-0 bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]"
                 colSpan={1}
               ></TableHead>
-              <TableHead colSpan={2}></TableHead>
-              {METRICS.map((m) => (
+              <TableHead
+                className={cn(
+                  showNir &&
+                    'sticky left-[120px] bg-zinc-900/95 backdrop-blur z-20 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]',
+                )}
+                colSpan={1}
+              ></TableHead>
+              <TableHead colSpan={1}></TableHead>
+              {displayedMetrics.map((m) => (
                 <Fragment key={m.key}>
-                  <TableHead className="text-zinc-300 text-center bg-zinc-900/30 font-bold border-l border-zinc-800/50">
+                  {showNir && (
+                    <TableHead className="text-purple-400/70 text-center bg-zinc-900/30 border-l border-zinc-800/50">
+                      NIR
+                    </TableHead>
+                  )}
+                  <TableHead
+                    className={cn(
+                      'text-zinc-300 text-center bg-zinc-900/30 font-bold',
+                      !showNir && 'border-l border-zinc-800/50',
+                    )}
+                  >
                     LAB
                   </TableHead>
                   <TableHead className="text-blue-400/70 text-center bg-zinc-900/30">
@@ -147,10 +180,16 @@ export const DataManagementTable = ({
                 key={record.id}
                 className="border-zinc-800 hover:bg-zinc-800/50"
               >
-                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap sticky left-0 bg-zinc-900/95 backdrop-blur z-10 border-r border-zinc-800/50">
+                <TableCell className="text-zinc-300 text-xs font-medium whitespace-nowrap sticky left-0 bg-zinc-900/95 backdrop-blur z-10 border-r border-zinc-800/50 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]">
                   {record.material || '-'}
                 </TableCell>
-                <TableCell className="text-zinc-400 text-xs whitespace-nowrap">
+                <TableCell
+                  className={cn(
+                    'text-zinc-400 text-xs whitespace-nowrap',
+                    showNir &&
+                      'sticky left-[120px] bg-zinc-900/95 backdrop-blur z-10 border-r border-zinc-800/50 shadow-[2px_0_10px_-2px_rgba(0,0,0,0.5)]',
+                  )}
+                >
                   {record.submaterial || '-'}
                 </TableCell>
                 <TableCell className="text-zinc-200 text-sm whitespace-nowrap">
@@ -171,15 +210,28 @@ export const DataManagementTable = ({
                     </span>
                   </div>
                 </TableCell>
-                {METRICS.map((m) => {
+                {displayedMetrics.map((m) => {
                   const lab = record[`${m.key}_lab`]
                   const anl = record[`${m.key}_anl`]
+                  const nir = record[`${m.key}_nir`]
 
                   const residue = calculateResidue(lab, anl)
 
                   return (
                     <Fragment key={m.key}>
-                      <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium bg-zinc-900/20 border-l border-zinc-800/50">
+                      {showNir && (
+                        <TableCell className="text-purple-400 text-xs text-center font-mono border-l border-zinc-800/50">
+                          {nir !== undefined && nir !== null
+                            ? Number(nir).toFixed(2)
+                            : '-'}
+                        </TableCell>
+                      )}
+                      <TableCell
+                        className={cn(
+                          'text-zinc-200 text-xs text-center font-mono font-medium bg-zinc-900/20',
+                          !showNir && 'border-l border-zinc-800/50',
+                        )}
+                      >
                         {lab !== undefined && lab !== null
                           ? Number(lab).toFixed(2)
                           : '-'}
@@ -227,7 +279,7 @@ export const DataManagementTable = ({
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={3 + METRICS.length * 3 + 1}
+                  colSpan={3 + displayedMetrics.length * (showNir ? 4 : 3) + 1}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.
