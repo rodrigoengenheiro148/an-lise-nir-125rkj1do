@@ -15,7 +15,119 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_records: {
+        Row: {
+          acidity_lab: number | null
+          acidity_nir: number | null
+          calcium_lab: number | null
+          calcium_nir: number | null
+          company_id: string
+          created_at: string
+          date: string
+          ether_extract_lab: number | null
+          ether_extract_nir: number | null
+          fco_lab: number | null
+          fco_nir: number | null
+          id: string
+          mineral_matter_lab: number | null
+          mineral_matter_nir: number | null
+          moisture_lab: number | null
+          moisture_nir: number | null
+          peroxide_lab: number | null
+          peroxide_nir: number | null
+          phosphorus_lab: number | null
+          phosphorus_nir: number | null
+          protein_digestibility_lab: number | null
+          protein_digestibility_nir: number | null
+          protein_lab: number | null
+          protein_nir: number | null
+          updated_at: string
+        }
+        Insert: {
+          acidity_lab?: number | null
+          acidity_nir?: number | null
+          calcium_lab?: number | null
+          calcium_nir?: number | null
+          company_id: string
+          created_at?: string
+          date: string
+          ether_extract_lab?: number | null
+          ether_extract_nir?: number | null
+          fco_lab?: number | null
+          fco_nir?: number | null
+          id?: string
+          mineral_matter_lab?: number | null
+          mineral_matter_nir?: number | null
+          moisture_lab?: number | null
+          moisture_nir?: number | null
+          peroxide_lab?: number | null
+          peroxide_nir?: number | null
+          phosphorus_lab?: number | null
+          phosphorus_nir?: number | null
+          protein_digestibility_lab?: number | null
+          protein_digestibility_nir?: number | null
+          protein_lab?: number | null
+          protein_nir?: number | null
+          updated_at?: string
+        }
+        Update: {
+          acidity_lab?: number | null
+          acidity_nir?: number | null
+          calcium_lab?: number | null
+          calcium_nir?: number | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          ether_extract_lab?: number | null
+          ether_extract_nir?: number | null
+          fco_lab?: number | null
+          fco_nir?: number | null
+          id?: string
+          mineral_matter_lab?: number | null
+          mineral_matter_nir?: number | null
+          moisture_lab?: number | null
+          moisture_nir?: number | null
+          peroxide_lab?: number | null
+          peroxide_nir?: number | null
+          phosphorus_lab?: number | null
+          phosphorus_nir?: number | null
+          protein_digestibility_lab?: number | null
+          protein_digestibility_nir?: number | null
+          protein_lab?: number | null
+          protein_nir?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'analysis_records_company_id_fkey'
+            columns: ['company_id']
+            isOneToOne: false
+            referencedRelation: 'companies'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
