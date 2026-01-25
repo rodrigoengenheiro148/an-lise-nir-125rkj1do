@@ -3,7 +3,6 @@ import {
   AnalysisRecord,
   METRICS,
   CompanyEntity,
-  MetricKey,
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 import {
@@ -55,10 +54,6 @@ export const EditRecordDialog = ({
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // New state for "Analysis Type" selector
-  const [selectedMetricKey, setSelectedMetricKey] =
-    useState<MetricKey>('protein')
-
   // Load companies when dialog opens
   useEffect(() => {
     if (open) {
@@ -89,8 +84,6 @@ export const EditRecordDialog = ({
           material: '',
         })
       }
-      // Reset to default metric on open
-      setSelectedMetricKey('protein')
     }
   }, [open, record, mode])
 
@@ -133,19 +126,19 @@ export const EditRecordDialog = ({
     }
   }
 
-  const calculateResidue = () => {
-    const lab = Number(formData.acidity_lab || 0)
-    const anl = Number(formData.acidity_anl || 0)
+  const calculateResidue = (
+    labVal: string | number | undefined,
+    anlVal: string | number | undefined,
+  ) => {
+    const lab = Number(labVal || 0)
+    const anl = Number(anlVal || 0)
     return (lab - anl).toFixed(2)
   }
 
-  const selectedMetric =
-    METRICS.find((m) => m.key === selectedMetricKey) || METRICS[0]
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
-        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50">
+      <DialogContent className="max-w-5xl bg-zinc-950 border-zinc-800 text-zinc-100 h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex-none">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               {mode === 'edit' ? (
@@ -164,13 +157,13 @@ export const EditRecordDialog = ({
             <DialogDescription className="text-zinc-400">
               {mode === 'edit'
                 ? 'Modifique os dados da amostra e os resultados analíticos.'
-                : 'Cadastre uma nova amostra e insira os resultados por tipo de análise.'}
+                : 'Cadastre uma nova amostra e insira os resultados das análises.'}
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <ScrollArea className="flex-1 p-6">
-          <div className="grid gap-8">
+        <ScrollArea className="flex-1 w-full">
+          <div className="p-6 space-y-8">
             {/* Context Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
@@ -178,7 +171,7 @@ export const EditRecordDialog = ({
                 <div className="h-px bg-zinc-800 flex-1" />
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-zinc-300 flex items-center gap-2">
                     <Building2 className="h-3.5 w-3.5 text-zinc-500" />
@@ -215,7 +208,7 @@ export const EditRecordDialog = ({
                   />
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2 md:col-span-2 lg:col-span-1">
                   <Label className="text-zinc-300 flex items-center gap-2">
                     <Package className="h-3.5 w-3.5 text-zinc-500" />
                     Material <span className="text-red-500">*</span>
@@ -246,170 +239,146 @@ export const EditRecordDialog = ({
                 <div className="h-px bg-zinc-800 flex-1" />
               </h3>
 
-              <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-5 space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-zinc-300">Tipo de Análise</Label>
-                  <Select
-                    value={selectedMetricKey}
-                    onValueChange={(val) =>
-                      setSelectedMetricKey(val as MetricKey)
-                    }
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {METRICS.map((metric) => (
+                  <div
+                    key={metric.key}
+                    className="bg-zinc-900/30 rounded-xl border border-zinc-800/50 p-4 hover:bg-zinc-900/50 hover:border-zinc-700 transition-all duration-200"
                   >
-                    <SelectTrigger className="bg-zinc-950 border-zinc-700 h-11">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]"
-                          style={{
-                            color: selectedMetric.color,
-                            backgroundColor: selectedMetric.color,
-                          }}
-                        />
-                        <span className="font-medium">
-                          {selectedMetric.label}
-                        </span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
-                      {METRICS.map((m) => (
-                        <SelectItem key={m.key} value={m.key}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: m.color }}
+                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-zinc-800/50">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor]"
+                        style={{
+                          color: metric.color,
+                          backgroundColor: metric.color,
+                        }}
+                      />
+                      <span className="font-semibold text-sm text-zinc-200">
+                        {metric.label}
+                      </span>
+                      <span className="text-xs text-zinc-500 ml-auto font-mono">
+                        {metric.unit}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {metric.key === 'acidity' ? (
+                        <>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                              LAB
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_lab`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_lab`,
+                                  e.target.value,
+                                )
+                              }
+                              className="bg-zinc-950 border-zinc-800 font-mono text-zinc-100 h-8 text-xs focus:border-zinc-600"
                             />
-                            {m.label}
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2 duration-300 key={selectedMetricKey}">
-                  {selectedMetricKey === 'acidity' ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                          LAB ({selectedMetric.unit})
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${selectedMetricKey}_lab`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              `${selectedMetricKey}_lab`,
-                              e.target.value,
-                            )
-                          }
-                          className="bg-zinc-950 border-zinc-700 font-mono text-zinc-100 focus:border-zinc-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-blue-500/70 uppercase tracking-wider">
-                          ANL ({selectedMetric.unit})
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${selectedMetricKey}_anl`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              `${selectedMetricKey}_anl`,
-                              e.target.value,
-                            )
-                          }
-                          className="bg-zinc-950 border-zinc-700 font-mono text-blue-400 focus:border-blue-500/50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                          Resíduos
-                        </Label>
-                        <Input
-                          readOnly
-                          disabled
-                          value={calculateResidue()}
-                          className="bg-zinc-900/50 border-zinc-800 font-mono text-zinc-400"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                          NIR ({selectedMetric.unit})
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${selectedMetricKey}_nir`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              `${selectedMetricKey}_nir`,
-                              e.target.value,
-                            )
-                          }
-                          className="bg-zinc-950 border-zinc-700 font-mono text-zinc-100 focus:border-zinc-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                          LAB ({selectedMetric.unit})
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${selectedMetricKey}_lab`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              `${selectedMetricKey}_lab`,
-                              e.target.value,
-                            )
-                          }
-                          className="bg-zinc-950 border-zinc-700 font-mono text-zinc-100 focus:border-zinc-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-blue-500/70 uppercase tracking-wider">
-                          ANL ({selectedMetric.unit})
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${selectedMetricKey}_anl`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(
-                              `${selectedMetricKey}_anl`,
-                              e.target.value,
-                            )
-                          }
-                          className="bg-zinc-950 border-zinc-700 font-mono text-blue-400 focus:border-blue-500/50"
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="text-xs text-zinc-500 bg-zinc-950/50 p-3 rounded border border-zinc-800/50 flex items-start gap-2">
-                  <div className="mt-0.5 min-w-1 w-1 h-1 rounded-full bg-blue-500" />
-                  <p>
-                    Os valores inseridos são salvos automaticamente no
-                    formulário. Você pode alternar entre tipos de análise para
-                    preencher múltiplos resultados antes de salvar.
-                  </p>
-                </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-blue-500/70 uppercase tracking-wider">
+                              ANL
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_anl`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_anl`,
+                                  e.target.value,
+                                )
+                              }
+                              className="bg-zinc-950 border-zinc-800 font-mono text-blue-400 h-8 text-xs focus:border-blue-900"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">
+                              Resíduo
+                            </Label>
+                            <div className="flex items-center justify-center h-8 bg-zinc-900/50 border border-zinc-800/50 rounded-md font-mono text-xs text-zinc-500">
+                              {calculateResidue(
+                                formData[`${metric.key}_lab`],
+                                formData[`${metric.key}_anl`],
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                              NIR
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_nir`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_nir`,
+                                  e.target.value,
+                                )
+                              }
+                              className="bg-zinc-950 border-zinc-800 font-mono text-zinc-400 h-8 text-xs focus:border-zinc-600"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
+                              LAB
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_lab`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_lab`,
+                                  e.target.value,
+                                )
+                              }
+                              className="bg-zinc-950 border-zinc-800 font-mono text-zinc-100 h-8 text-xs focus:border-zinc-600"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] font-bold text-blue-500/70 uppercase tracking-wider">
+                              ANL
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={formData[`${metric.key}_anl`] ?? ''}
+                              onChange={(e) =>
+                                handleChange(
+                                  `${metric.key}_anl`,
+                                  e.target.value,
+                                )
+                              }
+                              className="bg-zinc-950 border-zinc-800 font-mono text-blue-400 h-8 text-xs focus:border-blue-900"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </ScrollArea>
 
-        <div className="p-6 border-t border-zinc-800 bg-zinc-950 flex justify-end gap-3 z-10">
+        <div className="p-6 border-t border-zinc-800 bg-zinc-950 flex justify-end gap-3 z-10 flex-none shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.5)]">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
@@ -432,7 +401,7 @@ export const EditRecordDialog = ({
             ) : (
               <>
                 <FlaskConical className="h-4 w-4" />
-                {mode === 'add' ? 'Cadastrar' : 'Salvar Alterações'}
+                {mode === 'add' ? 'Cadastrar Análise' : 'Salvar Alterações'}
               </>
             )}
           </Button>
