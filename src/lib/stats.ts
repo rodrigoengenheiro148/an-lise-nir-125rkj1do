@@ -1,7 +1,22 @@
-import { Sample, Stats } from './types'
+// Statistical utility functions
 
-export function calculateStats(samples: Sample[]): Stats {
-  const n = samples.length
+export interface SimplePoint {
+  x: number
+  y: number
+}
+
+export interface StatsResult {
+  r2: number
+  r: number
+  slope: number
+  intercept: number
+  bias: number
+  sep: number
+  n: number
+}
+
+export function calculateStats(points: SimplePoint[]): StatsResult {
+  const n = points.length
   if (n < 2) {
     return { r2: 0, r: 0, slope: 0, intercept: 0, sep: 0, bias: 0, n }
   }
@@ -12,32 +27,25 @@ export function calculateStats(samples: Sample[]): Stats {
   let sumX2 = 0
   let sumY2 = 0
   let sumDiff = 0
-  let sumSqDiff = 0
 
-  for (const s of samples) {
-    const x = s.labValue
-    const y = s.nirValue
-    sumX += x
-    sumY += y
-    sumXY += x * y
-    sumX2 += x * x
-    sumY2 += y * y
-    const diff = y - x
-    sumDiff += diff
-    sumSqDiff += diff * diff
+  for (const p of points) {
+    sumX += p.x
+    sumY += p.y
+    sumXY += p.x * p.y
+    sumX2 += p.x * p.x
+    sumY2 += p.y * p.y
+    sumDiff += p.y - p.x // NIR - LAB
   }
 
   const meanX = sumX / n
   const meanY = sumY / n
 
-  // Slope (m) and Intercept (b) for y = mx + b
   const numerator = n * sumXY - sumX * sumY
   const denominator = n * sumX2 - sumX * sumX
 
   const slope = denominator !== 0 ? numerator / denominator : 0
   const intercept = meanY - slope * meanX
 
-  // Correlation Coefficient (r)
   const rNumerator = numerator
   const rDenominator = Math.sqrt(
     (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY),
@@ -45,46 +53,35 @@ export function calculateStats(samples: Sample[]): Stats {
   const r = rDenominator !== 0 ? rNumerator / rDenominator : 0
   const r2 = r * r
 
-  // Bias (Average Difference)
   const bias = sumDiff / n
 
-  // SEP (Standard Error of Prediction) - using simplified version often used in NIR: RMSEP adjusted for bias or simple RMSEP
-  // Classic SEP = sqrt( sum((diff - bias)^2) / (n - 1) )
   let sumSqDiffMinusBias = 0
-  for (const s of samples) {
-    const diff = s.nirValue - s.labValue
+  for (const p of points) {
+    const diff = p.y - p.x
     sumSqDiffMinusBias += Math.pow(diff - bias, 2)
   }
   const sep = Math.sqrt(sumSqDiffMinusBias / (n - 1))
 
-  return {
-    r2,
-    r,
-    slope,
-    intercept,
-    sep,
-    bias,
-    n,
-  }
+  return { r2, r, slope, intercept, bias, sep, n }
 }
 
 export function generateRegressionPoints(
-  samples: Sample[],
+  points: SimplePoint[],
   slope: number,
   intercept: number,
 ) {
-  if (samples.length === 0) return []
-  const xValues = samples.map((s) => s.labValue)
+  if (points.length === 0) return []
+  const xValues = points.map((p) => p.x)
   const minX = Math.min(...xValues)
   const maxX = Math.max(...xValues)
 
-  // Extend line slightly beyond points
-  const padding = (maxX - minX) * 0.1
-  const x1 = Math.max(0, minX - padding)
-  const x2 = maxX + padding
+  // Add 5% padding
+  const padding = (maxX - minX) * 0.05
+  const start = Math.max(0, minX - padding)
+  const end = maxX + padding
 
   return [
-    { x: x1, y: slope * x1 + intercept },
-    { x: x2, y: slope * x2 + intercept },
+    { x: start, y: slope * start + intercept },
+    { x: end, y: slope * end + intercept },
   ]
 }

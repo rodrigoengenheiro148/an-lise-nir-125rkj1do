@@ -26,6 +26,7 @@ export type MetricKey =
   | 'etherExtract'
   | 'proteinDigestibility'
   | 'calcium'
+  | 'sodium'
 
 export const METRICS: {
   key: MetricKey
@@ -33,65 +34,60 @@ export const METRICS: {
   unit: string
   color: string
 }[] = [
-  { key: 'acidity', label: 'Acidez', unit: '%', color: 'hsl(var(--chart-1))' },
-  {
-    key: 'moisture',
-    label: 'Umidade',
-    unit: '%',
-    color: 'hsl(var(--chart-2))',
-  },
-  { key: 'fco', label: 'FCO', unit: 'mg/kg', color: 'hsl(var(--chart-3))' },
-  {
-    key: 'protein',
-    label: 'Proteína',
-    unit: '%',
-    color: 'hsl(var(--chart-4))',
-  },
-  {
-    key: 'phosphorus',
-    label: 'Fósforo',
-    unit: '%',
-    color: 'hsl(var(--chart-5))',
-  },
-  {
-    key: 'mineralMatter',
-    label: 'Mat. Mineral',
-    unit: '%',
-    color: 'hsl(var(--chart-1))',
-  },
-  {
-    key: 'peroxide',
-    label: 'Peróxido',
-    unit: 'meq/kg',
-    color: 'hsl(var(--chart-2))',
-  },
-  {
-    key: 'etherExtract',
-    label: 'Ext. Etéreo',
-    unit: '%',
-    color: 'hsl(var(--chart-3))',
-  },
+  { key: 'acidity', label: 'Acidez', unit: '%', color: '#0ea5e9' },
+  { key: 'moisture', label: 'Umidade', unit: '%', color: '#0ea5e9' },
+  { key: 'fco', label: 'FCO', unit: 'mg/kg', color: '#0ea5e9' },
+  { key: 'protein', label: 'Proteína', unit: '%', color: '#0ea5e9' },
+  { key: 'phosphorus', label: 'Fósforo', unit: '%', color: '#0ea5e9' },
+  { key: 'mineralMatter', label: 'Mat. Mineral', unit: '%', color: '#0ea5e9' },
+  { key: 'peroxide', label: 'Peróxido', unit: 'meq/kg', color: '#0ea5e9' },
+  { key: 'etherExtract', label: 'Ext. Etéreo', unit: '%', color: '#0ea5e9' },
   {
     key: 'proteinDigestibility',
     label: 'Dig. Proteica',
     unit: '%',
-    color: 'hsl(var(--chart-4))',
+    color: '#0ea5e9',
   },
-  { key: 'calcium', label: 'Cálcio', unit: '%', color: 'hsl(var(--chart-5))' },
+  { key: 'calcium', label: 'Cálcio', unit: '%', color: '#0ea5e9' },
+  { key: 'sodium', label: 'Sódio', unit: '%', color: '#0ea5e9' },
 ]
 
 export interface AnalysisRecord {
   id: string
   company: Company
   date: string
-  acidity: number
-  moisture: number
-  fco: number
-  protein: number
-  phosphorus: number
-  mineralMatter: number
-  peroxide: number
-  etherExtract: number
-  proteinDigestibility: number
-  calcium: number
+
+  // Lab and NIR values for each metric
+  acidity_lab: number
+  acidity_nir: number
+
+  moisture_lab: number
+  moisture_nir: number
+
+  fco_lab: number
+  fco_nir: number
+
+  protein_lab: number
+  protein_nir: number
+
+  phosphorus_lab: number
+  phosphorus_nir: number
+
+  mineralMatter_lab: number
+  mineralMatter_nir: number
+
+  peroxide_lab: number
+  peroxide_nir: number
+
+  etherExtract_lab: number
+  etherExtract_nir: number
+
+  proteinDigestibility_lab: number
+  proteinDigestibility_nir: number
+
+  calcium_lab: number
+  calcium_nir: number
+
+  sodium_lab: number
+  sodium_nir: number
 }

@@ -33,49 +33,49 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
       const parsedRecords: AnalysisRecord[] = []
       const now = new Date()
 
-      // Simple parsing assuming order or trying to match headers could be complex
-      // For this user story, we'll implement a flexible parser that assumes tab or comma separation
-      // And we expect the user to follow a rough template or we map by index if headers are missing
-      // Let's assume headers are present in first row for better UX, or we default to a standard order
-
-      // Heuristic: Check if first row looks like header
+      // Skip header if present
       let startIdx = 0
       const firstRow = rows[0].toLowerCase()
-      if (firstRow.includes('acidez') || firstRow.includes('acidity')) {
-        startIdx = 1 // Skip header
+      if (firstRow.includes('empresa') || firstRow.includes('company')) {
+        startIdx = 1
       }
 
       for (let i = startIdx; i < rows.length; i++) {
         const row = rows[i]
-        // Split by tab (Excel copy paste) or comma (CSV) or semicolon
         const cols = row.split(/[\t,;]+/).map((s) => s.trim())
 
-        if (cols.length < 3) continue // Skip malformed rows
-
-        // Attempt to parse fields.
-        // Expected format: Company, Date, Acidity, Moisture, FCO, Protein, Phos, MinMat, Perox, Ether, DigProt, Calc
-        // Fallback: If date is missing, use today. If company is invalid, use Default.
+        if (cols.length < 5) continue
 
         const companyName = cols[0]
         const isValidCompany = COMPANIES.includes(companyName as any)
+        const dateStr = cols[1]
 
-        // This is a basic parser. In a real app we'd have a column mapper UI.
-        const record: AnalysisRecord = {
+        // Format: Company, Date, Acidity_LAB, Acidity_NIR, Moisture_LAB, Moisture_NIR...
+        const record: any = {
           id: crypto.randomUUID(),
           company: isValidCompany ? (companyName as any) : COMPANIES[0],
-          date: cols[1] || now.toISOString().split('T')[0],
-          acidity: parseFloat(cols[2]?.replace(',', '.') || '0'),
-          moisture: parseFloat(cols[3]?.replace(',', '.') || '0'),
-          fco: parseFloat(cols[4]?.replace(',', '.') || '0'),
-          protein: parseFloat(cols[5]?.replace(',', '.') || '0'),
-          phosphorus: parseFloat(cols[6]?.replace(',', '.') || '0'),
-          mineralMatter: parseFloat(cols[7]?.replace(',', '.') || '0'),
-          peroxide: parseFloat(cols[8]?.replace(',', '.') || '0'),
-          etherExtract: parseFloat(cols[9]?.replace(',', '.') || '0'),
-          proteinDigestibility: parseFloat(cols[10]?.replace(',', '.') || '0'),
-          calcium: parseFloat(cols[11]?.replace(',', '.') || '0'),
+          date:
+            dateStr && dateStr.length > 5
+              ? dateStr
+              : now.toISOString().split('T')[0],
         }
-        parsedRecords.push(record)
+
+        // Parse pairs dynamically based on METRICS order
+        // Current template order matches METRICS array
+        let colIdx = 2
+        METRICS.forEach((metric) => {
+          // Parse LAB
+          const labVal = cols[colIdx]?.replace(',', '.') || '0'
+          record[`${metric.key}_lab`] = parseFloat(labVal)
+
+          // Parse NIR
+          const nirVal = cols[colIdx + 1]?.replace(',', '.') || '0'
+          record[`${metric.key}_nir`] = parseFloat(nirVal)
+
+          colIdx += 2
+        })
+
+        parsedRecords.push(record as AnalysisRecord)
       }
 
       if (parsedRecords.length === 0) {
@@ -93,50 +93,60 @@ export const ImportDialog = ({ onImport }: ImportDialogProps) => {
     }
   }
 
-  const template =
-    'Empresa\tData\tAcidez\tUmidade\tFCO\tProteína\tFósforo\tMat. Mineral\tPeróxido\tExt. Etéreo\tDig. Prot\tCálcio\nAgroCorp Alpha\t2023-01-01\t1.2\t12.5\t25.0\t35.0\t0.8\t5.0\t2.1\t8.5\t85.0\t1.5'
+  const templateHeaders =
+    'Empresa\tData\tAcidez_LAB\tAcidez_NIR\tUmidade_LAB\tUmidade_NIR\tFCO_LAB\tFCO_NIR\tProteína_LAB\tProteína_NIR\t...'
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button
+          variant="outline"
+          className="gap-2 bg-zinc-800 text-zinc-100 hover:bg-zinc-700 border-zinc-700"
+        >
           <Upload className="h-4 w-4" />
           Importar Excel
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[800px] bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
-          <DialogTitle>Importar Dados</DialogTitle>
-          <DialogDescription>
-            Copie e cole os dados do Excel aqui. Certifique-se de que a ordem
-            das colunas corresponda ao padrão.
+          <DialogTitle>Importar Dados LAB vs NIR</DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            Copie e cole os dados do Excel. O formato deve ser Empresa, Data,
+            seguido de pares LAB e NIR para cada métrica na ordem padrão.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded">
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>
-              Ordem esperada: Empresa, Data, Acidez, Umidade, FCO, Proteína,
-              Fósforo, Mat. Mineral, Peróxido, Ext. Etéreo, Dig. Proteica,
-              Cálcio
-            </span>
+          <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-900 p-2 rounded border border-zinc-800 overflow-x-auto whitespace-nowrap">
+            <FileSpreadsheet className="h-4 w-4 shrink-0" />
+            <span className="font-mono">{templateHeaders}</span>
           </div>
           <Textarea
-            placeholder={`Cole seus dados aqui...\nExemplo:\n${template}`}
-            className="h-[200px] font-mono text-xs"
+            placeholder="Cole seus dados aqui..."
+            className="h-[300px] font-mono text-xs bg-zinc-900 border-zinc-800 text-zinc-300 focus-visible:ring-zinc-700"
             value={dataInput}
             onChange={(e) => setDataInput(e.target.value)}
           />
-          <div className="flex items-center gap-2 text-xs text-amber-600">
+          <div className="flex items-center gap-2 text-xs text-amber-500">
             <AlertCircle className="h-3 w-3" />
-            <span>Valores decimais podem usar ponto ou vírgula.</span>
+            <span>
+              Certifique-se de que os valores decimais estão corretos.
+            </span>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => setIsOpen(false)}>
+          <Button
+            variant="ghost"
+            onClick={() => setIsOpen(false)}
+            className="text-zinc-400 hover:text-zinc-100"
+          >
             Cancelar
           </Button>
-          <Button onClick={handleImport}>Processar Dados</Button>
+          <Button
+            onClick={handleImport}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Processar Dados
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
