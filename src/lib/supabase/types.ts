@@ -52,6 +52,9 @@ export type Database = {
           protein_digestibility_nir: number | null
           protein_lab: number | null
           protein_nir: number | null
+          sodium_anl: number | null
+          sodium_lab: number | null
+          sodium_nir: number | null
           sub_material: string | null
           submaterial: string | null
           updated_at: string
@@ -92,6 +95,9 @@ export type Database = {
           protein_digestibility_nir?: number | null
           protein_lab?: number | null
           protein_nir?: number | null
+          sodium_anl?: number | null
+          sodium_lab?: number | null
+          sodium_nir?: number | null
           sub_material?: string | null
           submaterial?: string | null
           updated_at?: string
@@ -132,6 +138,9 @@ export type Database = {
           protein_digestibility_nir?: number | null
           protein_lab?: number | null
           protein_nir?: number | null
+          sodium_anl?: number | null
+          sodium_lab?: number | null
+          sodium_nir?: number | null
           sub_material?: string | null
           submaterial?: string | null
           updated_at?: string

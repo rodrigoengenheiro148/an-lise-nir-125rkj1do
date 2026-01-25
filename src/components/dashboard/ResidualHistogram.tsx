@@ -47,7 +47,6 @@ export const ResidualHistogram = ({
     if (data.length === 0) return []
 
     // Calculate Residuals: LAB - ANL
-    // Filter out records where either LAB or ANL is missing or zero (assuming 0 might be invalid, or at least consistent with other charts)
     const residuals = data
       .map((d) => {
         const lab = Number(d[`${metricKey}_lab`])
@@ -66,7 +65,7 @@ export const ResidualHistogram = ({
     // Avoid division by zero if all residuals are same
     const step = range === 0 ? 1 : range / binCount
 
-    // Create bins centered around 0 if possible, or just standard min-max
+    // Create bins
     const bins = Array.from({ length: binCount }, (_, i) => {
       const start = min + i * step
       const end = start + step
@@ -151,7 +150,7 @@ export const ResidualHistogram = ({
                   : entry.mid > 0
                     ? '#10b981'
                     : metricInfo.color
-              } // Red for negative, Green for positive, or just metric color
+              }
               fillOpacity={0.8}
             />
           ))}

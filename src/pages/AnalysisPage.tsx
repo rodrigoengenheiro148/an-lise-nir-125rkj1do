@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, BarChart3, Loader2, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
+import { MetricDistributionHistogram } from '@/components/dashboard/MetricDistributionHistogram'
 import { ResidualHistogram } from '@/components/dashboard/ResidualHistogram'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS } from '@/types/dashboard'
-import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import {
   Select,
   SelectContent,
@@ -40,6 +40,8 @@ export default function AnalysisPage() {
       return matchCompany && matchMaterial
     })
   }, [analysisRecords, selectedCompanyId, selectedMaterial, companies])
+
+  const isResidueAnalysis = selectedMaterial === 'Resíduo'
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 pb-20">
@@ -120,30 +122,47 @@ export default function AnalysisPage() {
             className="space-y-6"
           >
             <TabsList className="bg-zinc-900 border border-zinc-800">
-              <TabsTrigger value="scatter">Dispersão (NIR vs LAB)</TabsTrigger>
+              <TabsTrigger value="scatter">
+                {isResidueAnalysis
+                  ? 'Distribuição (LAB vs ANL)'
+                  : 'Dispersão (NIR vs LAB)'}
+              </TabsTrigger>
               <TabsTrigger value="residual">Histograma de Resíduos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="scatter" className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-zinc-200">
-                  Correlação NIR vs LAB
+                  {isResidueAnalysis
+                    ? 'Distribuição de Frequência'
+                    : 'Correlação NIR vs LAB'}
                 </h2>
                 <span className="text-xs text-zinc-500">
                   {filteredRecords.length} amostras filtradas
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {METRICS.map((metric) => (
-                  <MetricScatterChart
-                    key={metric.key}
-                    title={metric.label.toUpperCase()}
-                    data={filteredRecords}
-                    metricKey={metric.key}
-                    color={metric.color}
-                    unit={metric.unit}
-                  />
-                ))}
+                {METRICS.map((metric) =>
+                  isResidueAnalysis ? (
+                    <MetricDistributionHistogram
+                      key={metric.key}
+                      title={metric.label}
+                      data={filteredRecords}
+                      metricKey={metric.key}
+                      color={metric.color}
+                      unit={metric.unit}
+                    />
+                  ) : (
+                    <MetricScatterChart
+                      key={metric.key}
+                      title={metric.label.toUpperCase()}
+                      data={filteredRecords}
+                      metricKey={metric.key}
+                      color={metric.color}
+                      unit={metric.unit}
+                    />
+                  ),
+                )}
               </div>
             </TabsContent>
 
