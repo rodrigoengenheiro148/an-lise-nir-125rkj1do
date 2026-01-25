@@ -16,8 +16,9 @@ import {
   XCircle,
   FileSpreadsheet,
   AlertTriangle,
+  ArrowRight,
 } from 'lucide-react'
-import { CompanyEntity } from '@/types/dashboard'
+import { CompanyEntity, METRICS } from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
 import {
@@ -41,6 +42,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
   const [activeTab, setActiveTab] = useState('file')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedMetric, setSelectedMetric] = useState<string>('')
 
   const [textInput, setTextInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -57,6 +59,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
       setTextInput('')
       setFile(null)
       setIsProcessing(false)
+      setSelectedMetric('') // Reset metric selection
     }
   }, [isOpen])
 
@@ -68,6 +71,11 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
   }
 
   const processImport = async () => {
+    if (!selectedMetric) {
+      toast.error('Selecione uma métrica alvo.')
+      return
+    }
+
     let content = ''
 
     if (activeTab === 'file') {
@@ -96,13 +104,24 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
     )?.name
 
     setTimeout(() => {
-      const result = parseImportData(content, defaultCompany, companies)
+      const result = parseImportData(
+        content,
+        defaultCompany,
+        companies,
+        selectedMetric,
+      )
       setParseResult(result)
       setIsProcessing(false)
       if (result.validCount === 0 && result.errors.length > 0) {
         toast.error('Nenhum registro válido encontrado. Verifique os erros.')
       } else if (result.validCount > 0) {
-        toast.success(`${result.validCount} registros identificados.`)
+        const metricName =
+          selectedMetric === 'auto'
+            ? 'Automaticamente'
+            : METRICS.find((m) => m.key === selectedMetric)?.label
+        toast.success(
+          `${result.validCount} registros identificados. (Métrica: ${metricName})`,
+        )
       }
     }, 100)
   }
@@ -138,33 +157,56 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Carregue um arquivo CSV ou cole dados do Excel. A data foi removida,
-            os registros serão agrupados por período.
+            Carregue um arquivo CSV ou cole dados do Excel. Selecione a métrica
+            alvo para mapear os dados corretamente.
           </DialogDescription>
         </DialogHeader>
 
         {!parseResult ? (
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Empresa Padrão (Opcional)</Label>
-              <Select
-                value={selectedCompanyId}
-                onValueChange={setSelectedCompanyId}
-              >
-                <SelectTrigger className="bg-zinc-900 border-zinc-700">
-                  <SelectValue placeholder="Selecione se os dados não tiverem coluna de empresa..." />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Métrica Alvo (Obrigatório)</Label>
+                <Select
+                  value={selectedMetric}
+                  onValueChange={setSelectedMetric}
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                    <SelectValue placeholder="Selecione a Métrica..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
+                    <SelectItem value="auto">
+                      <span className="font-bold">
+                        Automático (Detectar cabeçalhos)
+                      </span>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-zinc-500">
-                Se o arquivo contiver uma coluna "Empresa", ela terá prioridade.
-              </p>
+                    {METRICS.map((m) => (
+                      <SelectItem key={m.key} value={m.key}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Empresa Padrão (Opcional)</Label>
+                <Select
+                  value={selectedCompanyId}
+                  onValueChange={setSelectedCompanyId}
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                    <SelectValue placeholder="Selecione caso faltem dados..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Tabs
@@ -276,7 +318,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                       {parseResult.records.slice(0, 50).map((rec, i) => (
                         <div
                           key={i}
-                          className="grid grid-cols-[1fr_1fr] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50"
+                          className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50 items-center"
                         >
                           <span className="truncate text-zinc-300 font-medium">
                             {rec.company}
@@ -284,6 +326,14 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                           <span className="truncate text-zinc-400">
                             {rec.material}
                           </span>
+                          {/* Preview mapped value for selected metric */}
+                          {selectedMetric && selectedMetric !== 'auto' && (
+                            <span className="text-zinc-500 font-mono">
+                              {rec[`${selectedMetric}_lab`] !== undefined
+                                ? `LAB: ${rec[`${selectedMetric}_lab`]}`
+                                : ''}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -300,7 +350,15 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
               <Button variant="ghost" onClick={() => setIsOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={processImport} disabled={isProcessing}>
+              <Button
+                onClick={processImport}
+                disabled={isProcessing || !selectedMetric}
+                title={
+                  !selectedMetric
+                    ? 'Selecione uma métrica alvo para continuar'
+                    : ''
+                }
+              >
                 {isProcessing ? 'Processando...' : 'Processar Dados'}
               </Button>
             </>

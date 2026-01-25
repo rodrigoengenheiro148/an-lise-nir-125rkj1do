@@ -26,6 +26,7 @@ export const parseImportData = (
   content: string,
   defaultCompany?: string,
   existingCompanies: { name: string; id: string }[] = [],
+  targetMetric?: string, // The key of the selected metric (e.g., 'moisture') or 'auto'
 ): ParseResult => {
   const rows = content
     .split(/\r?\n/)
@@ -90,7 +91,36 @@ export const parseImportData = (
       return
     }
 
-    // Check for metrics
+    // Logic when a specific metric is targeted
+    if (targetMetric && targetMetric !== 'auto') {
+      // Check for suffixes to map to specific types (lab, nir, anl)
+      for (const suffix of METRIC_SUFFIXES) {
+        if (norm.includes(suffix)) {
+          headerMap.push({ index, field: `${targetMetric}_${suffix}` })
+          return
+        }
+      }
+
+      // Check for generic value headers or the metric name itself, default to LAB
+      const metricObj = METRICS.find((m) => m.key === targetMetric)
+      const metricLabel = metricObj ? normalize(metricObj.label) : ''
+
+      if (
+        norm === 'valor' ||
+        norm === 'resultado' ||
+        norm === 'value' ||
+        norm === 'result' ||
+        norm === targetMetric.toLowerCase() ||
+        (metricLabel && norm.includes(metricLabel))
+      ) {
+        headerMap.push({ index, field: `${targetMetric}_lab` })
+        return
+      }
+
+      return
+    }
+
+    // Auto-detection logic (existing behavior)
     // Format expected: "Acidez LAB", "Moisture (NIR)", "Protein_ANL"
     for (const metric of METRICS) {
       const metricName = normalize(metric.label)
@@ -131,7 +161,9 @@ export const parseImportData = (
           record.submaterial = val
         } else {
           // Metric value
-          const num = parseFloat(val.replace(',', '.'))
+          // Handle various number formats (commas, spaces)
+          const cleanVal = val.replace(/\s/g, '').replace(',', '.')
+          const num = parseFloat(cleanVal)
           if (!isNaN(num)) {
             record[map.field] = num
           }
