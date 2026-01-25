@@ -46,6 +46,7 @@ export const EditRecordDialog = ({
   mode = 'edit',
 }: EditRecordDialogProps) => {
   const [formData, setFormData] = useState<Partial<AnalysisRecord>>({})
+  const [initialData, setInitialData] = useState<Partial<AnalysisRecord>>({})
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -74,12 +75,15 @@ export const EditRecordDialog = ({
     if (open) {
       if (mode === 'edit' && record) {
         setFormData({ ...record })
+        setInitialData({ ...record })
       } else if (mode === 'add') {
-        setFormData({
+        const initial = {
           material: '',
           submaterial: '',
           date: null,
-        })
+        }
+        setFormData(initial)
+        setInitialData(initial)
       }
     }
   }, [open, record, mode])
@@ -107,8 +111,39 @@ export const EditRecordDialog = ({
     setSubmitting(true)
     try {
       if (mode === 'edit' && record) {
-        await api.updateRecord(record.id, formData)
-        toast.success('Registro atualizado com sucesso!')
+        // Only send changed fields to prevent overwriting other columns if data is partial
+        const updates: Partial<AnalysisRecord> = {}
+        let hasChanges = false
+
+        // Always check key fields
+        if (formData.material !== initialData.material)
+          updates.material = formData.material
+        if (formData.submaterial !== initialData.submaterial)
+          updates.submaterial = formData.submaterial
+        if (formData.company_id !== initialData.company_id)
+          updates.company_id = formData.company_id
+
+        // Check all metrics
+        METRICS.forEach((m) => {
+          const keyLab = `${m.key}_lab`
+          const keyAnl = `${m.key}_anl`
+          const keyNir = `${m.key}_nir`
+
+          if (formData[keyLab] !== initialData[keyLab])
+            updates[keyLab] = formData[keyLab]
+          if (formData[keyAnl] !== initialData[keyAnl])
+            updates[keyAnl] = formData[keyAnl]
+          if (formData[keyNir] !== initialData[keyNir])
+            updates[keyNir] = formData[keyNir]
+        })
+
+        // If there are changes, update.
+        if (Object.keys(updates).length > 0) {
+          await api.updateRecord(record.id, updates)
+          toast.success('Registro atualizado com sucesso!')
+        } else {
+          toast.info('Nenhuma alteração detectada.')
+        }
       } else if (mode === 'add' && formData.company_id) {
         await api.createRecord(formData as AnalysisRecord)
         toast.success('Registro criado com sucesso!')

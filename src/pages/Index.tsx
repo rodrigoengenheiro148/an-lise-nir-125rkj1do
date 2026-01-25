@@ -61,8 +61,6 @@ const Index = () => {
     const mats = new Set<string>()
     const subMats = new Set<string>()
 
-    // Base unique options on all records for consistency, or filtered by company?
-    // Usually better to filter options by selected company to avoid dead selections
     const scope = selectedCompany
       ? allRecords.filter((r) => r.company === selectedCompany)
       : allRecords
@@ -167,7 +165,7 @@ const Index = () => {
               <SelectTrigger className="bg-zinc-950 border-zinc-800 text-zinc-200 h-9">
                 <SelectValue placeholder="Material" />
               </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200">
+              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 max-h-[300px]">
                 {uniqueMaterials.map((m) => (
                   <SelectItem key={m} value={m}>
                     {m}

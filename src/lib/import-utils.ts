@@ -198,12 +198,10 @@ export const parseImportData = (
     let rowErrorPrefix = `Linha ${i + 1}: `
 
     if (useStrictMetricMapping && targetMetric) {
-      // Strict mapping: 1st number = LAB, 2nd number = ANL
-      const numbers: number[] = []
-      let foundMaterial = ''
-
+      // Robust strict mapping logic to prevent shifting
       let currentCols = cols
-      // Heuristic: if single column and has spaces, maybe it was space-separated?
+
+      // Handle space-separated single column issue if applicable
       if (
         currentCols.length === 1 &&
         separator === ',' &&
@@ -212,28 +210,91 @@ export const parseImportData = (
         currentCols = currentCols[0].split(/\s+/)
       }
 
-      currentCols.forEach((col) => {
-        if (!col) return
+      // Identify column types
+      const colTypes = currentCols.map((col) => {
+        if (!col || col.trim() === '') return 'empty'
         const cleanVal = col.replace(/\s/g, '').replace(',', '.')
-        if (cleanVal === '') return
-
         const num = parseFloat(cleanVal)
-        if (!isNaN(num)) {
-          numbers.push(num)
-        } else if (!foundMaterial) {
-          // Take first non-numeric as material
-          foundMaterial = col
-        }
+        return !isNaN(num) ? 'number' : 'string'
       })
 
-      if (numbers.length >= 2) {
-        record[`${targetMetric}_lab`] = numbers[0]
-        record[`${targetMetric}_anl`] = numbers[1]
+      const numbers: number[] = []
+      let foundMaterial = ''
+
+      // Heuristic for column mapping based on structure
+      // Expected patterns:
+      // 1. [String, Number, Number] -> Material, Lab, Anl
+      // 2. [Number, Number] -> Lab, Anl
+      // 3. [Number, Number, Number] -> ID, Lab, Anl (Take last two)
+      // 4. [String, String, Number, Number] -> Material, Submaterial, Lab, Anl
+
+      const numericValues = currentCols
+        .map((col) => {
+          const cleanVal = col.replace(/\s/g, '').replace(',', '.')
+          return parseFloat(cleanVal)
+        })
+        .filter((n) => !isNaN(n))
+
+      if (numericValues.length >= 2) {
+        // If we have at least 2 numbers, assume the LAST two are Lab and Anl (or Lab and Nir depending on request, but standard is Lab/Anl)
+        // However, if we only have 2 numbers total, they are Lab and Anl.
+        // If we have 3 numbers (e.g. ID, Lab, Anl), take last 2.
+
+        // Take the first available numbers for measurement to align with typical left-to-right reading if explicit structure isn't clear
+        // But the "ID" issue requires us to be careful.
+
+        // Let's refine:
+        // If col[0] is string -> Material.
+        // If col[0] is number and col[1] is number and col[2] is number -> likely ID, Lab, Anl.
+        // If col[0] is number and col[1] is number and total cols is 2 -> Lab, Anl.
+
+        if (numericValues.length === 2) {
+          record[`${targetMetric}_lab`] = numericValues[0]
+          record[`${targetMetric}_anl`] = numericValues[1]
+          // Find material in string columns
+          const stringColIndex = colTypes.indexOf('string')
+          if (stringColIndex !== -1) {
+            foundMaterial = currentCols[stringColIndex]
+          }
+        } else if (numericValues.length > 2) {
+          // Assume the first number is an ID if it looks like an integer and small?
+          // Safer to take the first two numbers found after any strings, OR simply map strictly:
+          // To prevent shifting, we must be consistent.
+
+          // If pattern is Num, Num, Num... assume first is ID.
+          // If pattern is Str, Num, Num... assume Mat, Lab, Anl.
+
+          if (colTypes[0] === 'string') {
+            foundMaterial = currentCols[0]
+            // Find next numbers
+            const nextNums = currentCols
+              .slice(1)
+              .map((c) => parseFloat(c.replace(',', '.')))
+              .filter((n) => !isNaN(n))
+            if (nextNums.length >= 2) {
+              record[`${targetMetric}_lab`] = nextNums[0]
+              record[`${targetMetric}_anl`] = nextNums[1]
+            }
+          } else {
+            // First col is number. Assume ID.
+            // Take 2nd and 3rd numbers.
+            record[`${targetMetric}_lab`] = numericValues[1]
+            record[`${targetMetric}_anl`] = numericValues[2]
+          }
+        } else {
+          // Fallback
+          record[`${targetMetric}_lab`] = numericValues[0]
+          record[`${targetMetric}_anl`] = numericValues[1]
+        }
       } else {
         errors.push(
-          `${rowErrorPrefix}É necessário dois valores numéricos (LAB e ANL).`,
+          `${rowErrorPrefix}É necessário dois valores numéricos (LAB e ANL). Encontrado: ${numericValues.length}`,
         )
         hasError = true
+      }
+
+      if (!foundMaterial && colTypes[0] === 'string') {
+        foundMaterial = currentCols[0]
       }
 
       record.material = foundMaterial // Might be empty, defaults to Desconhecido later
