@@ -63,6 +63,11 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
     }
   }, [isOpen])
 
+  // Reset results when metric changes to avoid stale validation
+  useEffect(() => {
+    setParseResult(null)
+  }, [selectedMetric])
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
@@ -187,6 +192,15 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedMetric && selectedMetric !== 'auto' && (
+                  <p className="text-[10px] text-zinc-400 px-1">
+                    <span className="text-emerald-500 font-medium">
+                      Modo Estrito:
+                    </span>{' '}
+                    Dados sem cabeçalho serão mapeados como: Col 1 = LAB, Col 2
+                    = ANL.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -255,7 +269,11 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
 
               <TabsContent value="text" className="space-y-4 pt-4">
                 <Textarea
-                  placeholder="Cole aqui as células copiadas do Excel..."
+                  placeholder={
+                    selectedMetric && selectedMetric !== 'auto'
+                      ? 'Cole aqui os dados...\nExemplo:\nMaterialA 10.5 10.2\nMaterialB 11.0 10.8\n\n(Onde 1º valor = LAB e 2º valor = ANL)'
+                      : 'Cole aqui as células copiadas do Excel...'
+                  }
                   className="min-h-[200px] bg-zinc-900 border-zinc-800 font-mono text-xs"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
@@ -331,6 +349,10 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                             <span className="text-zinc-500 font-mono">
                               {rec[`${selectedMetric}_lab`] !== undefined
                                 ? `LAB: ${rec[`${selectedMetric}_lab`]}`
+                                : ''}
+                              {' | '}
+                              {rec[`${selectedMetric}_anl`] !== undefined
+                                ? `ANL: ${rec[`${selectedMetric}_anl`]}`
                                 : ''}
                             </span>
                           )}
