@@ -25,7 +25,12 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
-import { Loader2, FlaskConical, Building2, Package } from 'lucide-react'
+import {
+  Loader2,
+  FlaskConical,
+  Building2,
+  Package,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface EditRecordDialogProps {
@@ -96,7 +101,7 @@ export const EditRecordDialog = ({
       return
     }
     if (!formData.material) {
-      toast.error('Informe o submaterial.')
+      toast.error('Informe o material.')
       return
     }
 
@@ -193,14 +198,14 @@ export const EditRecordDialog = ({
                 <div className="space-y-2">
                   <Label className="text-zinc-300 flex items-center gap-2">
                     <Package className="h-3.5 w-3.5 text-zinc-500" />
-                    Submaterial <span className="text-red-500">*</span>
+                    Material <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.material || ''}
                     onValueChange={(val) => handleChange('material', val)}
                   >
                     <SelectTrigger className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20">
-                      <SelectValue placeholder="Selecione o submaterial..." />
+                      <SelectValue placeholder="Selecione o material..." />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
                       {MATERIALS_OPTIONS.map((material) => (

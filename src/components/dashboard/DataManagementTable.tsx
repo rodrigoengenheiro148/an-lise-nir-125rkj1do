@@ -57,7 +57,7 @@ export const DataManagementTable = ({
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
               <TableHead className="w-[120px] min-w-[120px] text-zinc-400">
-                Submaterial
+                Material
               </TableHead>
               <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
                 Empresa
