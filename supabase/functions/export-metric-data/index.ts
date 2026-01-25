@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
     const ws = XLSX.utils.aoa_to_sheet(aoa)
     XLSX.utils.book_append_sheet(wb, ws, 'Dados')
 
+    // write with type 'buffer' returns Uint8Array in Deno with the official sheetjs build
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
 
     return new Response(buf, {
