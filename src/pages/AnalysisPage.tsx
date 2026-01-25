@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -340,33 +340,20 @@ const AnalysisPage = () => {
                     <TableHead></TableHead>
                     <TableHead></TableHead>
                     {METRICS.slice(0, 5).map((m) => (
-                      <>
-                        <TableHead
-                          key={`${m.key}-lab`}
-                          className="text-zinc-500 border-l border-zinc-800"
-                        >
+                      <Fragment key={m.key}>
+                        <TableHead className="text-zinc-500 border-l border-zinc-800">
                           LAB
                         </TableHead>
-                        <TableHead
-                          key={`${m.key}-nir`}
-                          className="text-zinc-500"
-                        >
-                          NIR
-                        </TableHead>
-                        <TableHead
-                          key={`${m.key}-anl`}
-                          className="text-zinc-500"
-                        >
-                          ANL
-                        </TableHead>
-                      </>
+                        <TableHead className="text-zinc-500">NIR</TableHead>
+                        <TableHead className="text-zinc-500">ANL</TableHead>
+                      </Fragment>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsedRecords.slice(0, 10).map((row, i) => (
+                  {parsedRecords.slice(0, 10).map((row) => (
                     <TableRow
-                      key={i}
+                      key={row.id}
                       className="border-zinc-800 hover:bg-zinc-800/50 text-xs"
                     >
                       <TableCell className="font-medium text-zinc-300">
@@ -379,26 +366,17 @@ const AnalysisPage = () => {
                         {row.material || '-'}
                       </TableCell>
                       {METRICS.slice(0, 5).map((m) => (
-                        <>
-                          <TableCell
-                            key={`${m.key}-l`}
-                            className="text-zinc-400 font-mono border-l border-zinc-800"
-                          >
+                        <Fragment key={m.key}>
+                          <TableCell className="text-zinc-400 font-mono border-l border-zinc-800">
                             {Number(row[`${m.key}_lab`]).toFixed(2)}
                           </TableCell>
-                          <TableCell
-                            key={`${m.key}-n`}
-                            className="text-zinc-500 font-mono"
-                          >
+                          <TableCell className="text-zinc-500 font-mono">
                             {Number(row[`${m.key}_nir`]).toFixed(2)}
                           </TableCell>
-                          <TableCell
-                            key={`${m.key}-a`}
-                            className="text-blue-400 font-mono"
-                          >
+                          <TableCell className="text-blue-400 font-mono">
                             {Number(row[`${m.key}_anl`]).toFixed(2)}
                           </TableCell>
-                        </>
+                        </Fragment>
                       ))}
                     </TableRow>
                   ))}
