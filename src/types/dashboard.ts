@@ -27,16 +27,16 @@ export const MATERIALS_OPTIONS = [
 ]
 
 export const STATIC_SUBMATERIALS = [
-  'ACIDEZ',
-  'UMIDADE',
+  'Acidez',
+  'Umidade',
   'FCO',
-  'PROTEINA',
-  'FOSFORO',
-  'MAT.MINERAL',
-  'PEROXIDO',
-  'EXT. ETERIO',
-  'CALCIO',
-  'DIG.PROTEICA',
+  'Proteína',
+  'Fósforo',
+  'Mat. Mineral',
+  'Peróxido',
+  'Ext. Etéreo',
+  'Cálcio',
+  'Dig. Proteica',
 ]
 
 export type MetricKey =

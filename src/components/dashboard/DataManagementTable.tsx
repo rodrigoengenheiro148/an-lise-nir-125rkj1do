@@ -19,6 +19,16 @@ import {
   formatResidue,
 } from '@/lib/calculations'
 import { cn } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface DataManagementTableProps {
   records: AnalysisRecord[]
@@ -37,20 +47,28 @@ export const DataManagementTable = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [showResidues, setShowResidues] = useState(true)
 
-  const handleDelete = async (id: string) => {
-    if (
-      confirm(
-        'Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.',
-      )
-    ) {
-      try {
-        await api.deleteRecord(id)
-        toast.success('Registro excluído com sucesso!')
-        if (onDataChange) onDataChange()
-      } catch (e) {
-        console.error(e)
-        toast.error('Erro ao excluir registro.')
-      }
+  // Alert Dialog State
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false)
+
+  const confirmDelete = (id: string) => {
+    setDeleteId(id)
+    setIsDeleteAlertOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteId) return
+
+    try {
+      await api.deleteRecord(deleteId)
+      toast.success('Registro excluído com sucesso!')
+      if (onDataChange) onDataChange()
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao excluir registro.')
+    } finally {
+      setDeleteId(null)
+      setIsDeleteAlertOpen(false)
     }
   }
 
@@ -254,7 +272,7 @@ export const DataManagementTable = ({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-zinc-400 hover:text-red-500"
-                        onClick={() => handleDelete(record.id)}
+                        onClick={() => confirmDelete(record.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -286,6 +304,29 @@ export const DataManagementTable = ({
           if (onDataChange) onDataChange()
         }}
       />
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o
+              registro de análise do banco de dados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
