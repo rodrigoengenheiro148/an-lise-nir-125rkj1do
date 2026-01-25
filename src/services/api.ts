@@ -33,6 +33,7 @@ const transformRecordFromDB = (
     company: companyName,
     company_id: row.company_id,
     date: row.date,
+    material: row.material,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
@@ -47,6 +48,7 @@ const transformRecordToDB = (record: AnalysisRecord, companyId: string) => {
   const dbRow: any = {
     company_id: companyId,
     date: record.date,
+    material: record.material,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
@@ -112,6 +114,7 @@ export const api = {
     // We only support updating values for now, assuming company/date changes are rare/different
     const dbUpdates: any = {}
     if (updates.date) dbUpdates.date = updates.date
+    if (updates.material !== undefined) dbUpdates.material = updates.material
 
     Object.keys(updates).forEach((key) => {
       if (key.endsWith('_lab') || key.endsWith('_nir')) {

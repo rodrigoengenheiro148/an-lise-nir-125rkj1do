@@ -46,10 +46,20 @@ const AnalysisPage = () => {
       const now = new Date()
 
       const headerRow = rows[0].toLowerCase()
+      const headers = headerRow.split(/[\t,;]+/).map((s) => s.trim())
+
       let startIdx = 0
       if (headerRow.includes('empresa') || headerRow.includes('company')) {
         startIdx = 1
       }
+
+      // Try to find material column index
+      const materialIdx = headers.findIndex(
+        (h) =>
+          h.includes('material') ||
+          h.includes('produto') ||
+          h.includes('amostra'),
+      )
 
       for (let i = startIdx; i < rows.length; i++) {
         const row = rows[i]
@@ -59,22 +69,52 @@ const AnalysisPage = () => {
         if (cols.length < 3) continue
 
         const company = cols[0] || 'Unknown'
+        // If date is not found at expected position, use today
         const dateRaw = cols[1]
         const date =
           dateRaw && dateRaw.length > 5
             ? dateRaw
             : now.toISOString().split('T')[0]
 
+        // Extract Material if column exists
+        let material: string | undefined = undefined
+        if (materialIdx >= 0 && cols[materialIdx]) {
+          material = cols[materialIdx]
+        }
+
         const record: any = {
           id: crypto.randomUUID(),
           company,
           date,
+          material,
         }
 
         let colIdx = 2
+        // Adjust column index if material is taking up space before metrics
+        // Heuristic: If materialIdx is 2 (after Date), metrics start at 3?
+        // This parser is brittle for varying columns, but let's assume standard format:
+        // Company | Date | [Material?] | Metrics...
+        // For now, let's keep the existing logic for metrics but be aware of shifts
+        // If the user pastes "Material" as column 3, we need to skip it for metrics parsing if we blindly increment
+        // But the previous logic was: colIdx = 2.
+
+        // Better heuristic: Find where metrics start.
+        // Or assume user follows: Company | Date | Metric1 L | Metric1 N | ...
+        // If Material is present, it might be: Company | Material | Date | ... or Company | Date | Material | ...
+
+        // Let's assume the user pastes Company | Date | ...metrics... and maybe Material is somewhere else or appended.
+        // If materialIdx is defined, we took it.
+        // We need to ensure we don't treat Material as a number for metrics.
+
         METRICS.forEach((metric) => {
-          const lab = parseFloat(cols[colIdx]?.replace(',', '.') || '0')
-          const nir = parseFloat(cols[colIdx + 1]?.replace(',', '.') || '0')
+          // Skip material column if we encounter it
+          if (colIdx === materialIdx) colIdx++
+
+          const labStr = cols[colIdx]?.replace(',', '.') || '0'
+          const nirStr = cols[colIdx + 1]?.replace(',', '.') || '0'
+
+          const lab = parseFloat(labStr)
+          const nir = parseFloat(nirStr)
 
           record[`${metric.key}_lab`] = isNaN(lab) ? 0 : lab
           record[`${metric.key}_nir`] = isNaN(nir) ? 0 : nir
@@ -194,6 +234,11 @@ const AnalysisPage = () => {
                     ' | ',
                   )}
                 </code>
+                <br />
+                <span className="text-xs text-zinc-500 mt-1 block">
+                  Opcional: Você pode incluir uma coluna "Material" ou "Produto"
+                  no cabeçalho.
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -297,6 +342,7 @@ const AnalysisPage = () => {
                   <TableRow className="border-zinc-800 hover:bg-transparent">
                     <TableHead className="text-zinc-400">Empresa</TableHead>
                     <TableHead className="text-zinc-400">Data</TableHead>
+                    <TableHead className="text-zinc-400">Material</TableHead>
                     {METRICS.slice(0, 5).map((m) => (
                       <TableHead
                         key={m.key}
@@ -308,6 +354,7 @@ const AnalysisPage = () => {
                     ))}
                   </TableRow>
                   <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead></TableHead>
                     <TableHead></TableHead>
                     <TableHead></TableHead>
                     {METRICS.slice(0, 5).map((m) => (
@@ -340,6 +387,9 @@ const AnalysisPage = () => {
                       <TableCell className="text-zinc-400">
                         {row.date}
                       </TableCell>
+                      <TableCell className="text-zinc-400 text-xs">
+                        {row.material || '-'}
+                      </TableCell>
                       {METRICS.slice(0, 5).map((m) => (
                         <>
                           <TableCell
@@ -367,5 +417,3 @@ const AnalysisPage = () => {
     </div>
   )
 }
-
-export default AnalysisPage

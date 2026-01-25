@@ -52,6 +52,9 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
               <TableHead className="w-[150px] text-zinc-400">Empresa</TableHead>
+              <TableHead className="w-[120px] text-zinc-400">
+                Material
+              </TableHead>
               <TableHead className="w-[120px] text-zinc-400">Data</TableHead>
               {METRICS.slice(0, 3).map((m) => (
                 <TableHead
@@ -73,6 +76,9 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
               >
                 <TableCell className="font-medium text-zinc-200">
                   {record.company}
+                </TableCell>
+                <TableCell className="text-zinc-300 text-sm">
+                  {record.material || '-'}
                 </TableCell>
                 <TableCell className="text-zinc-400 text-xs font-mono">
                   {record.date}
@@ -118,7 +124,7 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.

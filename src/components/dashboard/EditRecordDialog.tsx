@@ -62,43 +62,55 @@ export const EditRecordDialog = ({
           </DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-1 pr-4">
-          <div className="grid grid-cols-2 gap-6 p-1">
-            {METRICS.map((metric) => (
-              <div
-                key={metric.key}
-                className="space-y-4 border border-zinc-800 p-4 rounded-lg bg-zinc-900/30"
-              >
-                <h4 className="font-semibold text-sm text-blue-400 border-b border-zinc-800 pb-2 mb-2">
-                  {metric.label} ({metric.unit})
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-zinc-500">LAB</Label>
-                    <Input
-                      value={String(formData[`${metric.key}_lab`] ?? '')}
-                      onChange={(e) =>
-                        handleChange(`${metric.key}_lab`, e.target.value)
-                      }
-                      className="h-8 bg-zinc-950 border-zinc-700"
-                      type="number"
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-zinc-500">ANL (NIR)</Label>
-                    <Input
-                      value={String(formData[`${metric.key}_nir`] ?? '')}
-                      onChange={(e) =>
-                        handleChange(`${metric.key}_nir`, e.target.value)
-                      }
-                      className="h-8 bg-zinc-950 border-zinc-700"
-                      type="number"
-                      step="0.01"
-                    />
+          <div className="grid gap-6 p-1">
+            <div className="space-y-2">
+              <Label>Material / Produto</Label>
+              <Input
+                value={formData.material || ''}
+                onChange={(e) => handleChange('material', e.target.value)}
+                placeholder="Ex: Farelo de Soja"
+                className="bg-zinc-900 border-zinc-700"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              {METRICS.map((metric) => (
+                <div
+                  key={metric.key}
+                  className="space-y-4 border border-zinc-800 p-4 rounded-lg bg-zinc-900/30"
+                >
+                  <h4 className="font-semibold text-sm text-blue-400 border-b border-zinc-800 pb-2 mb-2">
+                    {metric.label} ({metric.unit})
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-zinc-500">LAB</Label>
+                      <Input
+                        value={String(formData[`${metric.key}_lab`] ?? '')}
+                        onChange={(e) =>
+                          handleChange(`${metric.key}_lab`, e.target.value)
+                        }
+                        className="h-8 bg-zinc-950 border-zinc-700"
+                        type="number"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-zinc-500">ANL (NIR)</Label>
+                      <Input
+                        value={String(formData[`${metric.key}_nir`] ?? '')}
+                        onChange={(e) =>
+                          handleChange(`${metric.key}_nir`, e.target.value)
+                        }
+                        className="h-8 bg-zinc-950 border-zinc-700"
+                        type="number"
+                        step="0.01"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </ScrollArea>
         <DialogFooter className="mt-4 pt-4 border-t border-zinc-800">

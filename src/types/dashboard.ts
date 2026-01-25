@@ -55,6 +55,7 @@ export interface AnalysisRecord {
   id: string
   company: Company
   company_id?: string
+  material?: string
   date: string
 
   [key: string]: string | number | undefined

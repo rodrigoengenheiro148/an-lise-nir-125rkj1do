@@ -9,6 +9,7 @@ import {
   Line,
   ComposedChart,
   Tooltip as RechartsTooltip,
+  ReferenceLine,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,7 @@ export const MetricScatterChart = ({
       y: item[`${metricKey}_nir` as keyof AnalysisRecord] as number,
       date: item.date,
       company: item.company,
+      material: item.material,
     }))
   }, [data, metricKey])
 
@@ -54,6 +56,16 @@ export const MetricScatterChart = ({
     () => generateRegressionPoints(chartData, stats.slope, stats.intercept),
     [chartData, stats],
   )
+
+  const identityLine = useMemo(() => {
+    if (chartData.length === 0) return []
+    const min = Math.min(stats.min, 0)
+    const max = stats.max * 1.1 // Add some padding
+    return [
+      { x: min, y: min },
+      { x: max, y: max },
+    ]
+  }, [stats])
 
   const ChartRender = ({ height = '100%' }: { height?: string | number }) => (
     <ResponsiveContainer width="100%" height={height}>
@@ -96,6 +108,9 @@ export const MetricScatterChart = ({
               return (
                 <div className="bg-zinc-900 border border-zinc-700 p-2 rounded text-xs text-zinc-200 shadow-xl">
                   <p className="font-bold mb-1">{d.company}</p>
+                  {d.material && (
+                    <p className="text-zinc-400 mb-1 italic">{d.material}</p>
+                  )}
                   <p>{d.date}</p>
                   <div className="grid grid-cols-2 gap-x-2 mt-1">
                     <span className="text-zinc-400">LAB:</span>
@@ -113,13 +128,19 @@ export const MetricScatterChart = ({
             return null
           }}
         />
-        <Scatter
-          name="Samples"
-          data={chartData}
-          fill={color}
-          shape="circle"
-          className="glow-point opacity-80"
+        {/* Identity Line (y=x) */}
+        <Line
+          data={identityLine}
+          dataKey="y"
+          stroke="#52525b"
+          strokeWidth={1}
+          strokeDasharray="5 5"
+          dot={false}
+          activeDot={false}
+          type="monotone"
+          name="Identity (y=x)"
         />
+        {/* Regression Line */}
         <Line
           data={regressionLine}
           dataKey="y"
@@ -129,6 +150,14 @@ export const MetricScatterChart = ({
           dot={false}
           activeDot={false}
           type="monotone"
+          name="Regression"
+        />
+        <Scatter
+          name="Samples"
+          data={chartData}
+          fill={color}
+          shape="circle"
+          className="glow-point opacity-80"
         />
       </ComposedChart>
     </ResponsiveContainer>
