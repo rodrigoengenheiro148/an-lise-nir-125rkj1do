@@ -152,28 +152,30 @@ export function MetricDataDialog({
 
   const handleExport = async () => {
     const companyId = form.getValues('companyId')
-    if (!companyId) {
-      toast.error('Selecione uma empresa para exportar.')
-      return
-    }
 
     setIsExporting(true)
     try {
-      const blob = await api.exportMetricData(companyId, metricKey)
+      // Allow export without companyId (exports all data for the metric)
+      const blob = await api.exportMetricData(metricKey, companyId || undefined)
+
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      const companyName =
-        companies.find((c) => c.id === companyId)?.name || 'Empresa'
+
+      const companyName = companyId
+        ? companies.find((c) => c.id === companyId)?.name || 'Empresa'
+        : 'Geral'
+
       a.download = `Analise_${metricInfo?.label}_${companyName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
       toast.success('Exportação concluída com sucesso!')
     } catch (error) {
       console.error(error)
-      toast.error('Erro ao exportar dados.')
+      toast.error('Não há dados para exportar ou ocorreu um erro.')
     } finally {
       setIsExporting(false)
     }

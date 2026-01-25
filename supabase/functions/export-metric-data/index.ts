@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from '@supabase/supabase-js'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'npm:xlsx'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const KEY_MAPPING: Record<string, string> = {
@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
   try {
     const { companyId, metricKey } = await req.json()
 
-    if (!companyId || !metricKey) {
-      throw new Error('Company ID and Metric Key are required')
+    if (!metricKey) {
+      throw new Error('Metric Key is required')
     }
 
     const dbPrefix = KEY_MAPPING[metricKey]
@@ -35,8 +35,7 @@ Deno.serve(async (req) => {
     }
 
     // Initialize Supabase Client
-    // Using service role to ensure we can read all data for export,
-    // assuming the frontend request is authenticated and authorized to ask for this export.
+    // Using service role to ensure we can read all data for export
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -45,31 +44,70 @@ Deno.serve(async (req) => {
     const colLab = `${dbPrefix}_lab`
     const colAnl = `${dbPrefix}_anl`
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('analysis_records')
-      .select(`id, ${colLab}, ${colAnl}`)
-      .eq('company_id', companyId)
-      // Filter to include rows where at least one of the values is present
+      .select(
+        `date, material, sub_material, submaterial, companies!inner(name), ${colLab}, ${colAnl}`,
+      )
+      // Filter to include rows where at least one of the values is present for the requested metric
       .or(`${colLab}.neq.null,${colAnl}.neq.null`)
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
+
+    if (companyId) {
+      query = query.eq('company_id', companyId)
+    }
+
+    const { data, error } = await query
 
     if (error) throw error
 
-    // Format Data for Excel: "LAB" and "ANL" columns
-    const aoa = [['LAB', 'ANL']]
+    if (!data || data.length === 0) {
+      return new Response(JSON.stringify({ error: 'No data found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
-    data.forEach((row: any) => {
-      aoa.push([
-        row[colLab] ?? '', // Value or empty string
-        row[colAnl] ?? '',
-      ])
+    // Format Data for Excel: Strict ordering
+    // 1. LAB
+    // 2. ANL
+    // 3. Data da Análise
+    // 4. Empresa
+    // 5. Material
+    // 6. Submaterial
+
+    const header = [
+      'LAB',
+      'ANL',
+      'Data da Análise',
+      'Empresa',
+      'Material',
+      'Submaterial',
+    ]
+
+    const rows = data.map((record: any) => {
+      // Handle company name from join
+      const companyName = record.companies?.name || ''
+      // Handle submaterial (check both fields)
+      const sub = record.sub_material || record.submaterial || ''
+
+      return [
+        record[colLab] ?? '', // LAB
+        record[colAnl] ?? '', // ANL
+        record.date ?? '', // Date
+        companyName, // Company
+        record.material ?? '', // Material
+        sub, // Submaterial
+      ]
     })
+
+    const aoa = [header, ...rows]
 
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet(aoa)
     XLSX.utils.book_append_sheet(wb, ws, 'Dados')
 
-    // write with type 'buffer' returns Uint8Array in Deno with the official sheetjs build
+    // write with type 'buffer' returns Uint8Array in Deno
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
 
     return new Response(buf, {
@@ -81,6 +119,7 @@ Deno.serve(async (req) => {
       },
     })
   } catch (error: any) {
+    console.error(error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

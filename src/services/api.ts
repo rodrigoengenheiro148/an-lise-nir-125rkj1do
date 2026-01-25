@@ -212,7 +212,7 @@ export const api = {
     }
   },
 
-  exportMetricData: async (companyId: string, metricKey: string) => {
+  exportMetricData: async (metricKey: string, companyId?: string) => {
     const { data, error } = await supabase.functions.invoke(
       'export-metric-data',
       {
