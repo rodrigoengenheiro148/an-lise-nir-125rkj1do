@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 import {
-  ResponsiveContainer,
   ComposedChart,
   Line,
   CartesianGrid,
   XAxis,
   YAxis,
-  Tooltip,
   Scatter,
 } from 'recharts'
 import { AnalysisRecord, MetricKey, METRICS } from '@/types/dashboard'
@@ -29,23 +27,25 @@ export const MetricEvolutionChart = ({
   metricKey,
   color,
   unit,
-  height = '100%',
 }: MetricEvolutionChartProps) => {
-  const metricInfo = METRICS.find((m) => m.key === metricKey) || METRICS[0]
-
   const chartData = useMemo(() => {
     return data
       .map((item) => {
-        const lab = Number(item[`${metricKey}_lab`] || 0)
-        const anl = Number(item[`${metricKey}_anl`] || 0)
+        const labRaw = item[`${metricKey}_lab`]
+        const anlRaw = item[`${metricKey}_anl`]
 
-        // Filter out cases where both are 0, or missing
-        if (!lab && !anl) return null
+        // Strict type check to handle 0 values correctly
+        const hasLab = typeof labRaw === 'number'
+        const hasAnl = typeof anlRaw === 'number'
+
+        // For correlation chart (LAB vs ANL), we need both values
+        // We do not filter out 0 values, as they are valid measurements
+        if (!hasLab || !hasAnl) return null
 
         return {
           id: item.id,
-          lab,
-          anl,
+          lab: Number(labRaw),
+          anl: Number(anlRaw),
           company: item.company,
           material: item.material,
         }

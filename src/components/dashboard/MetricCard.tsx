@@ -8,10 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Maximize2 } from 'lucide-react'
+import { Maximize2, BarChart2, Activity } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { MetricEvolutionChart } from './MetricEvolutionChart'
+import { MetricHistogram } from './MetricHistogram'
+import { ResidualHistogram } from './ResidualHistogram'
 import { cn } from '@/lib/utils'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface MetricCardProps {
   title: string
@@ -35,16 +38,20 @@ export const MetricCard = ({
 
   // Calculate stats based on created_at descending sort (default)
   const latestRecord = data.length > 0 ? data[0] : null
-  const latestLab = latestRecord
-    ? Number(latestRecord[`${metricKey}_lab`] || 0)
-    : 0
-  const latestAnl = latestRecord
-    ? Number(latestRecord[`${metricKey}_anl`] || 0)
-    : 0
-  const latestNir = latestRecord
-    ? Number(latestRecord[`${metricKey}_nir`] || 0)
-    : 0
-  const latestResidual = latestLab - latestAnl
+
+  // Safely extract values, handling nulls/undefined
+  const getVal = (key: string) => {
+    if (!latestRecord) return null
+    const val = latestRecord[key]
+    return typeof val === 'number' ? val : null
+  }
+
+  const latestLab = getVal(`${metricKey}_lab`)
+  const latestAnl = getVal(`${metricKey}_anl`)
+  const latestNir = getVal(`${metricKey}_nir`)
+
+  const latestResidual =
+    latestLab !== null && latestAnl !== null ? latestLab - latestAnl : null
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -84,13 +91,13 @@ export const MetricCard = ({
             <div className="flex flex-col">
               <span className="text-zinc-500">LAB (Ref)</span>
               <span className="font-mono font-medium text-zinc-200">
-                {latestRecord ? latestLab.toFixed(2) : '-'}
+                {latestLab !== null ? latestLab.toFixed(2) : '-'}
               </span>
             </div>
             <div className="flex flex-col">
               <span className="text-zinc-500">ANL</span>
               <span className="font-mono font-medium" style={{ color: color }}>
-                {latestRecord ? latestAnl.toFixed(2) : '-'}
+                {latestAnl !== null ? latestAnl.toFixed(2) : '-'}
               </span>
             </div>
             <div className="flex flex-col">
@@ -101,17 +108,21 @@ export const MetricCard = ({
                 className={cn(
                   'font-mono font-medium',
                   isAcidity
-                    ? Math.abs(latestResidual) > 0.5
-                      ? 'text-red-400'
-                      : 'text-green-400'
+                    ? latestResidual !== null
+                      ? Math.abs(latestResidual) > 0.5
+                        ? 'text-red-400'
+                        : 'text-green-400'
+                      : 'text-zinc-400'
                     : 'text-zinc-400',
                 )}
               >
-                {latestRecord
-                  ? isAcidity
+                {isAcidity
+                  ? latestResidual !== null
                     ? latestResidual.toFixed(2)
-                    : latestNir.toFixed(2)
-                  : '-'}
+                    : '-'
+                  : latestNir !== null
+                    ? latestNir.toFixed(2)
+                    : '-'}
               </span>
             </div>
           </div>
@@ -139,13 +150,49 @@ export const MetricCard = ({
           </DialogTitle>
         </DialogHeader>
         <div className="flex-1 w-full min-h-0 p-4">
-          <MetricEvolutionChart
-            data={data}
-            metricKey={metricKey}
-            color={color}
-            unit={unit}
-            height="100%"
-          />
+          <Tabs
+            defaultValue="evolution"
+            className="w-full h-full flex flex-col"
+          >
+            <TabsList className="grid w-full grid-cols-3 bg-zinc-900 mb-4">
+              <TabsTrigger
+                value="evolution"
+                className="flex items-center gap-2"
+              >
+                <Activity className="h-4 w-4" /> Evolução (LAB vs ANL)
+              </TabsTrigger>
+              <TabsTrigger
+                value="histogram"
+                className="flex items-center gap-2"
+              >
+                <BarChart2 className="h-4 w-4" /> Histograma (LAB)
+              </TabsTrigger>
+              <TabsTrigger
+                value="residuals"
+                className="flex items-center gap-2"
+              >
+                <BarChart2 className="h-4 w-4" /> Resíduos
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="evolution" className="flex-1 min-h-0">
+              <MetricEvolutionChart
+                data={data}
+                metricKey={metricKey}
+                color={color}
+                unit={unit}
+                height="100%"
+              />
+            </TabsContent>
+
+            <TabsContent value="histogram" className="flex-1 min-h-0">
+              <MetricHistogram data={data} metricKey={metricKey} />
+            </TabsContent>
+
+            <TabsContent value="residuals" className="flex-1 min-h-0">
+              <ResidualHistogram data={data} metricKey={metricKey} />
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>

@@ -94,10 +94,12 @@ export const api = {
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
     // Fetches records ordered by creation date descending
+    // Increased limit to 10000 to prevent data cutoff on dashboard
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .order('created_at', { ascending: false })
+      .limit(10000)
 
     if (error) throw error
 
@@ -108,9 +110,11 @@ export const api = {
   },
 
   getUniqueMaterials: async (): Promise<string[]> => {
+    // Increased limit to 10000 to ensure we get all materials
     const { data, error } = await supabase
       .from('analysis_records')
       .select('material')
+      .limit(10000)
 
     if (error) throw error
 
@@ -153,7 +157,6 @@ export const api = {
     if (updates.submaterial !== undefined)
       dbUpdates.sub_material = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
-    // Date update removed
 
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
       const types = ['lab', 'nir', 'anl']
@@ -188,7 +191,7 @@ export const api = {
     const { error } = await supabase
       .from('analysis_records')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000') // Matches all records as IDs are random UUIDs
+      .neq('id', '00000000-0000-0000-0000-000000000000')
 
     if (error) throw error
   },
