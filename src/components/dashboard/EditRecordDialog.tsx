@@ -28,6 +28,7 @@ import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { Loader2, FlaskConical, Building2, Package, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { calculateResidue, formatResidue } from '@/lib/calculations'
 
 interface EditRecordDialogProps {
   record: AnalysisRecord | null
@@ -125,15 +126,6 @@ export const EditRecordDialog = ({
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const calculateResidue = (
-    labVal: string | number | undefined,
-    anlVal: string | number | undefined,
-  ) => {
-    const lab = Number(labVal || 0)
-    const anl = Number(anlVal || 0)
-    return (lab - anl).toFixed(2)
   }
 
   return (
@@ -320,9 +312,11 @@ export const EditRecordDialog = ({
                           Resíduo (L-A)
                         </Label>
                         <div className="flex items-center justify-center h-8 bg-zinc-900/50 border border-zinc-800/50 rounded-md font-mono text-xs text-zinc-500">
-                          {calculateResidue(
-                            formData[`${metric.key}_lab`],
-                            formData[`${metric.key}_anl`],
+                          {formatResidue(
+                            calculateResidue(
+                              formData[`${metric.key}_lab`],
+                              formData[`${metric.key}_anl`],
+                            ),
                           )}
                         </div>
                       </div>

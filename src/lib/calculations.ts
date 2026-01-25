@@ -33,5 +33,5 @@ export const getResidueColor = (val: number | null): string => {
 
 export const formatResidue = (val: number | null): string => {
   if (val === null) return '-'
-  return (val > 0 ? '+' : '') + val.toFixed(2)
+  return (val > 0 ? '+' : '') + val.toFixed(4)
 }
