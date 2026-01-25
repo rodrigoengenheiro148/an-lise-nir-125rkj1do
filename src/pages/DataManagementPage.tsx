@@ -82,7 +82,7 @@ export default function DataManagementPage() {
         <div className="flex-1 relative group">
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
           <Input
-            placeholder="Buscar por data (AAAA-MM-DD) ou material..."
+            placeholder="Buscar por data (AAAA-MM-DD) ou submaterial..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 bg-zinc-950 border-zinc-800 focus:ring-zinc-700 h-10"

@@ -17,16 +17,12 @@ export const DEFAULT_COMPANIES: string[] = [
 ]
 
 export const MATERIALS_OPTIONS = [
-  'Umidade',
-  'Acidez',
-  'Proteína',
-  'Cálcio',
   'FCO',
-  'Fósforo',
-  'Extrato Etéreo',
-  'Matéria Mineral',
-  'Proteína Digestível',
-  'Peróxido',
+  'FARINHA DE PENAS E SANGUE',
+  'FARINHA DE SANGUE',
+  'FARINHA DE PEIXE',
+  'FARINHA DE VÍSCERAS',
+  'SEBO',
 ]
 
 export type MetricKey =
