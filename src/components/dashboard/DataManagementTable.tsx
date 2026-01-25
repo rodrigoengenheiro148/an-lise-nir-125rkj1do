@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Edit2, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Edit2, Trash2 } from 'lucide-react'
 import { EditRecordDialog } from './EditRecordDialog'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
@@ -45,7 +45,6 @@ export const DataManagementTable = ({
     null,
   )
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [showResidues, setShowResidues] = useState(true)
 
   // Alert Dialog State
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -79,25 +78,6 @@ export const DataManagementTable = ({
 
   return (
     <>
-      <div className="flex justify-end mb-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowResidues(!showResidues)}
-          className={cn(
-            'text-xs gap-2',
-            showResidues ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-500',
-          )}
-        >
-          {showResidues ? (
-            <Eye className="h-3 w-3" />
-          ) : (
-            <EyeOff className="h-3 w-3" />
-          )}
-          {showResidues ? 'Ocultar Resíduos' : 'Mostrar Resíduos'}
-        </Button>
-      </div>
-
       <div className="rounded-md border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
         <Table>
           <TableHeader>
@@ -118,8 +98,8 @@ export const DataManagementTable = ({
                 <TableHead
                   key={m.key}
                   className="text-zinc-400 text-center border-l border-zinc-800/50"
-                  colSpan={showResidues ? 5 : 3}
-                  style={{ minWidth: showResidues ? '300px' : '180px' }}
+                  colSpan={3}
+                  style={{ minWidth: '240px' }}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span
@@ -144,31 +124,18 @@ export const DataManagementTable = ({
               <TableHead colSpan={3}></TableHead>
               {METRICS.map((m) => (
                 <Fragment key={m.key}>
-                  <TableHead className="text-zinc-500 text-center border-l border-zinc-800/50 bg-zinc-900/30">
-                    NIR
-                  </TableHead>
-                  <TableHead className="text-zinc-300 text-center bg-zinc-900/30 font-bold">
+                  <TableHead className="text-zinc-300 text-center bg-zinc-900/30 font-bold border-l border-zinc-800/50">
                     LAB
                   </TableHead>
                   <TableHead className="text-blue-400/70 text-center bg-zinc-900/30">
                     ANL
                   </TableHead>
-                  {showResidues && (
-                    <>
-                      <TableHead
-                        className="text-zinc-500 text-center bg-zinc-900/20 border-l border-zinc-800/30"
-                        title="Resíduo: LAB - NIR"
-                      >
-                        R(L-N)
-                      </TableHead>
-                      <TableHead
-                        className="text-zinc-500 text-center bg-zinc-900/20"
-                        title="Resíduo: ANL - NIR"
-                      >
-                        R(A-N)
-                      </TableHead>
-                    </>
-                  )}
+                  <TableHead
+                    className="text-zinc-500 text-center bg-zinc-900/20"
+                    title="Resíduo: LAB - ANL"
+                  >
+                    Resíduo
+                  </TableHead>
                 </Fragment>
               ))}
               {!readOnly && (
@@ -210,21 +177,14 @@ export const DataManagementTable = ({
                   {record.date}
                 </TableCell>
                 {METRICS.map((m) => {
-                  const nir = record[`${m.key}_nir`]
                   const lab = record[`${m.key}_lab`]
                   const anl = record[`${m.key}_anl`]
 
-                  const resLabNir = calculateResidue(lab, nir)
-                  const resAnlNir = calculateResidue(anl, nir)
+                  const residue = calculateResidue(lab, anl)
 
                   return (
                     <Fragment key={m.key}>
-                      <TableCell className="text-zinc-500 text-xs text-center border-l border-zinc-800/50 font-mono">
-                        {nir !== undefined && nir !== null
-                          ? Number(nir).toFixed(2)
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium bg-zinc-900/20">
+                      <TableCell className="text-zinc-200 text-xs text-center font-mono font-medium bg-zinc-900/20 border-l border-zinc-800/50">
                         {lab !== undefined && lab !== null
                           ? Number(lab).toFixed(2)
                           : '-'}
@@ -234,26 +194,14 @@ export const DataManagementTable = ({
                           ? Number(anl).toFixed(2)
                           : '-'}
                       </TableCell>
-                      {showResidues && (
-                        <>
-                          <TableCell
-                            className={cn(
-                              'text-xs text-center font-mono border-l border-zinc-800/30',
-                              getResidueColor(resLabNir),
-                            )}
-                          >
-                            {formatResidue(resLabNir)}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              'text-xs text-center font-mono',
-                              getResidueColor(resAnlNir),
-                            )}
-                          >
-                            {formatResidue(resAnlNir)}
-                          </TableCell>
-                        </>
-                      )}
+                      <TableCell
+                        className={cn(
+                          'text-xs text-center font-mono',
+                          getResidueColor(residue),
+                        )}
+                      >
+                        {formatResidue(residue)}
+                      </TableCell>
                     </Fragment>
                   )
                 })}
@@ -284,7 +232,7 @@ export const DataManagementTable = ({
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4 + METRICS.length * (showResidues ? 5 : 3) + 1}
+                  colSpan={4 + METRICS.length * 3 + 1}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.
