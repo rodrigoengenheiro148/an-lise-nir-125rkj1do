@@ -94,6 +94,7 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
               return (
                 <div className="bg-zinc-900 border border-zinc-700 p-2 rounded text-xs text-zinc-200">
                   <p className="font-bold">{d.company}</p>
+                  {d.date && <p className="text-zinc-400">{d.date}</p>}
                   <div className="grid grid-cols-2 gap-x-2 mt-1">
                     <span className="text-zinc-400">LAB:</span>
                     <span className="font-mono text-right">

@@ -1,4 +1,4 @@
-import { AnalysisRecord, METRICS, MetricKey } from '@/types/dashboard'
+import { AnalysisRecord, METRICS } from '@/types/dashboard'
 
 export interface ParseResult {
   records: AnalysisRecord[]
@@ -159,10 +159,7 @@ export const parseImportData = (
     }
 
     // Validation
-    if (!record.date) {
-      errors.push(`${rowErrorPrefix}Data inválida ou ausente.`)
-      hasError = true
-    }
+    // Removed date validation as it is now optional
 
     if (!record.company) {
       errors.push(`${rowErrorPrefix}Empresa não identificada.`)
@@ -175,12 +172,6 @@ export const parseImportData = (
           c.id === record.company,
       )
       if (!matched) {
-        // If strict validation is needed we would error here.
-        // For now, we allow it, but the API might reject or create it.
-        // User story says "match ... with an existing record".
-        // We will warn if not found.
-        // Actually API saveRecords tries to find by name. If not found it skips.
-        // So we must ensure it matches.
         errors.push(
           `${rowErrorPrefix}Empresa '${record.company}' não encontrada no sistema.`,
         )
@@ -191,7 +182,6 @@ export const parseImportData = (
     }
 
     if (!record.material) {
-      // Maybe material is not mandatory in DB but usually it is good to have
       record.material = 'Desconhecido'
     }
 

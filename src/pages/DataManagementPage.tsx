@@ -59,7 +59,7 @@ export default function DataManagementPage() {
       const lowerSearch = search.toLowerCase()
       res = res.filter(
         (r) =>
-          r.date.includes(search) ||
+          (r.date && r.date.includes(search)) ||
           r.material?.toLowerCase().includes(lowerSearch),
       )
     }

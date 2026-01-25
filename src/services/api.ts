@@ -44,7 +44,7 @@ const transformRecordToDB = (
 ) => {
   const dbRow: any = {
     company_id: companyId,
-    date: record.date,
+    date: record.date === '' ? null : record.date, // Handle empty string as null
     material: record.material,
     sub_material: record.submaterial,
   }
@@ -147,7 +147,7 @@ export const api = {
 
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
     const dbUpdates: any = {}
-    if (updates.date) dbUpdates.date = updates.date
+    if (updates.date !== undefined) dbUpdates.date = updates.date || null
     if (updates.material !== undefined) dbUpdates.material = updates.material
     if (updates.submaterial !== undefined)
       dbUpdates.sub_material = updates.submaterial

@@ -43,10 +43,13 @@ const Index = () => {
   useEffect(() => {
     if (selectedCompany) {
       const filtered = allRecords.filter((r) => r.company === selectedCompany)
-      // Sort by date descending for list/summary
-      filtered.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      )
+      // Sort by date descending (nulls last)
+      filtered.sort((a, b) => {
+        if (!a.date && !b.date) return 0
+        if (!a.date) return 1
+        if (!b.date) return -1
+        return new Date(b.date).getTime() - new Date(a.date).getTime()
+      })
       setFilteredRecords(filtered)
     }
   }, [selectedCompany, allRecords])
@@ -149,7 +152,7 @@ const Index = () => {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
             <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-            Evolução por Parâmetro
+            Dispersão por Parâmetro (LAB vs ANL)
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">

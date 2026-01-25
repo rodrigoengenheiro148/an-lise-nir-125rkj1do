@@ -43,7 +43,6 @@ const AnalysisPage = () => {
     try {
       const rows = dataInput.trim().split('\n')
       const records: AnalysisRecord[] = []
-      const now = new Date()
 
       const headerRow = rows[0].toLowerCase()
       // Heuristic to detect start index and material column
@@ -66,11 +65,9 @@ const AnalysisPage = () => {
         if (cols.length < 3) continue
 
         const company = cols[0] || 'Unknown'
+        // Date is now optional
         const dateRaw = cols[1]
-        const date =
-          dateRaw && dateRaw.length > 5
-            ? dateRaw
-            : now.toISOString().split('T')[0]
+        const date = dateRaw && dateRaw.length > 5 ? dateRaw : null
 
         let material: string | undefined = undefined
         if (materialIdx >= 0 && cols[materialIdx]) {
@@ -360,7 +357,7 @@ const AnalysisPage = () => {
                         {row.company}
                       </TableCell>
                       <TableCell className="text-zinc-400 whitespace-nowrap">
-                        {row.date}
+                        {row.date || '-'}
                       </TableCell>
                       <TableCell className="text-zinc-400">
                         {row.material || '-'}
@@ -389,5 +386,3 @@ const AnalysisPage = () => {
     </div>
   )
 }
-
-export default AnalysisPage

@@ -22,7 +22,7 @@ export const MetricCard = ({
 }: MetricCardProps) => {
   const isAcidity = metricKey === 'acidity'
 
-  // Calculate latest values for header summary
+  // Calculate latest values for header summary (First record in list, as list is sorted desc by default)
   const latestRecord = data.length > 0 ? data[0] : null
   const latestLab = latestRecord
     ? Number(latestRecord[`${metricKey}_lab`] || 0)
@@ -56,7 +56,7 @@ export const MetricCard = ({
         {/* Mini Summary Header */}
         <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col">
-            <span className="text-zinc-500">LAB</span>
+            <span className="text-zinc-500">LAB (Ref)</span>
             <span className="font-mono font-medium text-zinc-200">
               {latestRecord ? latestLab.toFixed(2) : '-'}
             </span>
@@ -93,6 +93,7 @@ export const MetricCard = ({
 
       <CardContent className="flex-1 p-0 pb-4">
         <div className="h-[200px] w-full px-2">
+          {/* Chart is now a Scatter Plot for this metric (LAB vs ANL) */}
           <MetricEvolutionChart
             data={data}
             metricKey={metricKey}

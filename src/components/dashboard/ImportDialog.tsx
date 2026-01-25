@@ -12,12 +12,10 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import {
   Upload,
-  FileText,
-  AlertTriangle,
   CheckCircle,
   XCircle,
   FileSpreadsheet,
-  Download,
+  AlertTriangle,
 } from 'lucide-react'
 import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
 import { toast } from 'sonner'
@@ -33,7 +31,6 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { parseImportData, ParseResult } from '@/lib/import-utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
 
 interface ImportDialogProps {
   onImportSuccess?: () => void
@@ -144,7 +141,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
             Carregue um arquivo CSV ou cole dados do Excel. Certifique-se de ter
-            cabeçalhos como "Data", "Material", "Proteína LAB", etc.
+            cabeçalhos como "Material", "Proteína LAB", etc. A data é opcional.
           </DialogDescription>
         </DialogHeader>
 
@@ -292,7 +289,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                             {rec.company}
                           </span>
                           <span className="text-zinc-500 font-mono">
-                            {rec.date}
+                            {rec.date || '-'}
                           </span>
                           <span className="truncate text-zinc-400">
                             {rec.material}

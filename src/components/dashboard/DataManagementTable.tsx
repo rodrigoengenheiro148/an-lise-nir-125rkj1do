@@ -174,7 +174,7 @@ export const DataManagementTable = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-zinc-400 text-xs font-mono whitespace-nowrap">
-                  {record.date}
+                  {record.date || '-'}
                 </TableCell>
                 {METRICS.map((m) => {
                   const lab = record[`${m.key}_lab`]

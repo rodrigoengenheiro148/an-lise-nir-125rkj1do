@@ -76,9 +76,9 @@ export const EditRecordDialog = ({
         setFormData({ ...record })
       } else if (mode === 'add') {
         setFormData({
-          date: new Date().toISOString().split('T')[0],
           material: '',
           submaterial: '',
+          date: null, // No default date
         })
       }
     }
@@ -98,10 +98,7 @@ export const EditRecordDialog = ({
       toast.error('Selecione uma empresa.')
       return
     }
-    if (!formData.date) {
-      toast.error('Informe a data.')
-      return
-    }
+    // Removed date validation
     if (!formData.material) {
       toast.error('Informe o material.')
       return
@@ -164,19 +161,8 @@ export const EditRecordDialog = ({
                 <div className="h-px bg-zinc-800 flex-1" />
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-zinc-300 flex items-center gap-2">
-                    <span className="text-zinc-500">📅</span>
-                    Data <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    type="date"
-                    value={formData.date || ''}
-                    onChange={(e) => handleChange('date', e.target.value)}
-                    className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20"
-                  />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Date field removed as per user story */}
 
                 <div className="space-y-2">
                   <Label className="text-zinc-300 flex items-center gap-2">

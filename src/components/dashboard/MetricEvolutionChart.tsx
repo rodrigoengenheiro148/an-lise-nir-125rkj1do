@@ -8,11 +8,9 @@ import {
   YAxis,
   Tooltip,
   Legend,
-  Area,
+  Scatter,
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 interface MetricEvolutionChartProps {
   data: AnalysisRecord[]
@@ -27,35 +25,25 @@ export const MetricEvolutionChart = ({
   color,
   unit,
 }: MetricEvolutionChartProps) => {
-  const isAcidity = metricKey === 'acidity'
-
   const chartData = useMemo(() => {
     return data
       .map((item) => {
         const lab = Number(item[`${metricKey}_lab`] || 0)
         const anl = Number(item[`${metricKey}_anl`] || 0)
-        const nir = Number(item[`${metricKey}_nir`] || 0)
 
-        // For acidity, we want residuals (LAB - ANL)
-        const residual = isAcidity ? lab - anl : 0
+        // We filter out 0 values for better visualization in scatter
+        if (lab === 0 && anl === 0) return null
 
         return {
-          date: item.date,
+          id: item.id,
           lab,
           anl,
-          nir,
-          residual,
-          // Format date for display
-          formattedDate: item.date
-            ? format(new Date(item.date), 'dd/MM', { locale: ptBR })
-            : '',
-          fullDate: item.date
-            ? format(new Date(item.date), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-            : '',
+          company: item.company,
+          material: item.material,
         }
       })
-      .reverse() // Recharts renders left-to-right, so we want oldest to newest (assuming data comes newest first)
-  }, [data, metricKey, isAcidity])
+      .filter((item) => item !== null) as any[]
+  }, [data, metricKey])
 
   if (chartData.length === 0) {
     return (
@@ -65,70 +53,80 @@ export const MetricEvolutionChart = ({
     )
   }
 
+  // Calculate domain for better visualization
+  const maxVal = Math.max(...chartData.map((d) => Math.max(d.lab, d.anl)))
+  const domainMax = Math.ceil(maxVal * 1.1)
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart
         data={chartData}
         margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
       >
-        <defs>
-          <linearGradient
-            id={`gradient-${metricKey}`}
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-          {isAcidity && (
-            <linearGradient id="gradient-residual" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-            </linearGradient>
-          )}
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
         <XAxis
-          dataKey="formattedDate"
+          type="number"
+          dataKey="lab"
+          name="LAB"
+          unit={unit}
           stroke="#666"
           fontSize={10}
           tickLine={false}
           axisLine={false}
+          domain={[0, domainMax]}
+          label={{
+            value: 'LAB',
+            position: 'bottom',
+            offset: -5,
+            fontSize: 10,
+            fill: '#666',
+          }}
         />
         <YAxis
+          type="number"
+          dataKey="anl"
+          name="ANL"
+          unit={unit}
           stroke="#666"
           fontSize={10}
           tickLine={false}
           axisLine={false}
-          unit={unit}
+          domain={[0, domainMax]}
           width={30}
+          label={{
+            value: 'ANL',
+            angle: -90,
+            position: 'insideLeft',
+            fontSize: 10,
+            fill: '#666',
+          }}
         />
         <Tooltip
-          content={({ active, payload, label }) => {
+          cursor={{ strokeDasharray: '3 3' }}
+          content={({ active, payload }) => {
             if (active && payload && payload.length) {
+              const d = payload[0].payload
               return (
                 <div className="rounded border border-zinc-700 bg-zinc-900 p-2 shadow-xl">
-                  <p className="mb-2 text-xs font-semibold text-zinc-300">
-                    {payload[0].payload.fullDate}
+                  <p className="mb-1 text-xs font-semibold text-zinc-300">
+                    {d.company}
                   </p>
-                  <div className="flex flex-col gap-1">
-                    {payload.map((entry: any) => (
-                      <div
-                        key={entry.name}
-                        className="flex items-center gap-2 text-xs"
-                      >
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: entry.color }}
-                        />
-                        <span className="text-zinc-400">{entry.name}:</span>
-                        <span className="font-mono font-medium text-zinc-100">
-                          {Number(entry.value).toFixed(2)} {unit}
-                        </span>
-                      </div>
-                    ))}
+                  <p className="text-[10px] text-zinc-400 mb-2 italic">
+                    {d.material}
+                  </p>
+                  <div className="flex flex-col gap-1 text-xs">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-zinc-400">LAB:</span>
+                      <span className="font-mono font-medium text-white">
+                        {d.lab.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-zinc-400">ANL:</span>
+                      <span className="font-mono font-medium" style={{ color }}>
+                        {d.anl.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )
@@ -136,63 +134,20 @@ export const MetricEvolutionChart = ({
             return null
           }}
         />
-        <Legend
-          wrapperStyle={{ paddingTop: '10px' }}
-          iconType="circle"
-          iconSize={8}
-          className="text-xs"
-        />
 
-        {/* LAB - Reference - Always present */}
+        {/* Reference Line Y = X */}
         <Line
-          type="monotone"
           dataKey="lab"
-          name="LAB"
-          stroke="#fff"
-          strokeWidth={2}
-          dot={{ r: 2, fill: '#fff' }}
-          activeDot={{ r: 4 }}
+          stroke="#52525b"
+          strokeDasharray="3 3"
+          strokeWidth={1}
+          dot={false}
+          activeDot={false}
+          legendType="none"
+          name="Referência"
         />
 
-        {/* NIR - Present for non-acidity */}
-        {!isAcidity && (
-          <Line
-            type="monotone"
-            dataKey="nir"
-            name="NIR"
-            stroke={color}
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={false}
-            activeDot={{ r: 4 }}
-            opacity={0.7}
-          />
-        )}
-
-        {/* ANL - Always present */}
-        <Line
-          type="monotone"
-          dataKey="anl"
-          name="ANL"
-          stroke={color}
-          strokeWidth={2}
-          dot={{ r: 2, fill: color }}
-          activeDot={{ r: 4 }}
-        />
-
-        {/* Residuals - Only for Acidity */}
-        {isAcidity && (
-          <Area
-            type="monotone"
-            dataKey="residual"
-            name="Resíduos (L-A)"
-            stroke="#f43f5e"
-            fill="url(#gradient-residual)"
-            strokeWidth={1}
-            dot={false}
-            opacity={0.6}
-          />
-        )}
+        <Scatter name="Amostras" dataKey="anl" fill={color} fillOpacity={0.6} />
       </ComposedChart>
     </ResponsiveContainer>
   )
