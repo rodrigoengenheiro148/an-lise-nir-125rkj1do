@@ -16,10 +16,8 @@ import {
 import {
   LayoutDashboard,
   FileSpreadsheet,
-  FileText,
   Settings,
-  Database,
-  FlaskConical,
+  Microscope,
 } from 'lucide-react'
 
 export function AppSidebar() {
@@ -28,19 +26,14 @@ export function AppSidebar() {
 
   const items = [
     {
-      title: 'Dashboard',
+      title: 'Dashboard Analítico',
       url: '/',
       icon: LayoutDashboard,
     },
     {
-      title: 'Gestão de Dados',
-      url: '/import',
-      icon: Database,
-    },
-    {
-      title: 'Relatórios',
-      url: '/reports',
-      icon: FileText,
+      title: 'Importar & Analisar',
+      url: '/analysis',
+      icon: Microscope, // Represents detailed analysis
     },
   ]
 
@@ -57,12 +50,12 @@ export function AppSidebar() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Link to="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <FlaskConical className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+                  <FileSpreadsheet className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">LabAnalytics</span>
-                  <span className="truncate text-xs">Versão 1.0</span>
+                  <span className="truncate font-semibold">Analise NIR</span>
+                  <span className="truncate text-xs">Versão 3.0</span>
                 </div>
               </Link>
             </SidebarMenuButton>

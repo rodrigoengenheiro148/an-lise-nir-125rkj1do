@@ -1,18 +1,12 @@
-export type Company =
-  | 'AgroCorp Alpha'
-  | 'GreenField Ltd'
-  | 'Harvest Moon'
-  | "Nature's Best"
-  | 'Pure Earth'
-  | 'Golden Grain'
+export type Company = string
 
-export const COMPANIES: Company[] = [
-  'AgroCorp Alpha',
-  'GreenField Ltd',
-  'Harvest Moon',
-  "Nature's Best",
-  'Pure Earth',
-  'Golden Grain',
+export const DEFAULT_COMPANIES: string[] = [
+  'Brasmix',
+  'Mar Reciclagem',
+  'Farinorte',
+  'Juina',
+  'Nutrição',
+  'Varzea',
 ]
 
 export type MetricKey =
@@ -26,7 +20,6 @@ export type MetricKey =
   | 'etherExtract'
   | 'proteinDigestibility'
   | 'calcium'
-  | 'sodium'
 
 export const METRICS: {
   key: MetricKey
@@ -49,7 +42,6 @@ export const METRICS: {
     color: '#14b8a6',
   },
   { key: 'calcium', label: 'Cálcio', unit: '%', color: '#f97316' },
-  { key: 'sodium', label: 'Sódio', unit: '%', color: '#06b6d4' },
 ]
 
 export interface AnalysisRecord {
@@ -57,37 +49,5 @@ export interface AnalysisRecord {
   company: Company
   date: string
 
-  // Lab and NIR values for each metric
-  acidity_lab: number
-  acidity_nir: number
-
-  moisture_lab: number
-  moisture_nir: number
-
-  fco_lab: number
-  fco_nir: number
-
-  protein_lab: number
-  protein_nir: number
-
-  phosphorus_lab: number
-  phosphorus_nir: number
-
-  mineralMatter_lab: number
-  mineralMatter_nir: number
-
-  peroxide_lab: number
-  peroxide_nir: number
-
-  etherExtract_lab: number
-  etherExtract_nir: number
-
-  proteinDigestibility_lab: number
-  proteinDigestibility_nir: number
-
-  calcium_lab: number
-  calcium_nir: number
-
-  sodium_lab: number
-  sodium_nir: number
+  [key: string]: string | number
 }

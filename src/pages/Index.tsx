@@ -1,19 +1,12 @@
 import { useState, useEffect } from 'react'
-import {
-  Company,
-  AnalysisRecord,
-  COMPANIES,
-  METRICS,
-  MetricKey,
-} from '@/types/dashboard'
+import { Company, AnalysisRecord, METRICS, MetricKey } from '@/types/dashboard'
 import { storageService } from '@/services/storage'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
-import { ImportDialog } from '@/components/dashboard/ImportDialog'
 import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
 import { MetricHistogram } from '@/components/dashboard/MetricHistogram'
 import { ResidualChart } from '@/components/dashboard/ResidualChart'
 import { Button } from '@/components/ui/button'
-import { Save, Activity, Database, TrendingUp, Cloud } from 'lucide-react'
+import { Save, Activity, TrendingUp, Cloud } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -24,33 +17,32 @@ import {
 } from '@/components/ui/select'
 
 const Index = () => {
-  const [selectedCompany, setSelectedCompany] = useState<Company>(COMPANIES[0])
+  const [selectedCompany, setSelectedCompany] = useState<Company>('')
   const [allRecords, setAllRecords] = useState<AnalysisRecord[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [detailedMetric, setDetailedMetric] = useState<MetricKey>('protein')
 
-  // Load data on mount
   useEffect(() => {
-    const data = storageService.getRecords()
-    setAllRecords(data)
+    // Initialize data
+    const records = storageService.getRecords()
+    const companies = storageService.getCompanies()
+    setAllRecords(records)
+    if (companies.length > 0) {
+      setSelectedCompany(companies[0])
+    }
     setLoading(false)
   }, [])
 
-  // Filter when company or records change
   useEffect(() => {
-    const filtered = allRecords.filter((r) => r.company === selectedCompany)
-    // Sort by date ascending
-    filtered.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    )
-    setFilteredRecords(filtered)
+    if (selectedCompany) {
+      const filtered = allRecords.filter((r) => r.company === selectedCompany)
+      filtered.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      )
+      setFilteredRecords(filtered)
+    }
   }, [selectedCompany, allRecords])
-
-  const handleImport = (newRecords: AnalysisRecord[]) => {
-    const updated = storageService.saveRecords(newRecords)
-    setAllRecords(updated)
-  }
 
   const handleReset = () => {
     if (
@@ -59,15 +51,13 @@ const Index = () => {
       )
     ) {
       storageService.clearData()
-      const data = storageService.getRecords()
-      setAllRecords(data)
-      toast.success('Dados resetados com sucesso.')
+      window.location.reload()
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-zinc-950 text-zinc-100">
+      <div className="flex items-center justify-center h-full bg-zinc-950 text-zinc-100">
         <div className="animate-pulse flex flex-col items-center">
           <Activity className="h-10 w-10 text-blue-500 mb-4" />
           <span className="text-lg font-medium">Carregando Análise NIR...</span>
@@ -103,7 +93,6 @@ const Index = () => {
               />
             </div>
             <div className="flex items-center gap-2">
-              <ImportDialog onImport={handleImport} />
               <Button
                 variant="ghost"
                 size="icon"
@@ -146,7 +135,7 @@ const Index = () => {
               <Cloud className="h-3 w-3" /> Status Cloud
             </span>
             <span className="text-sm font-medium text-green-400 mt-1">
-              Sincronizado (Simulated)
+              Sincronizado (Local)
             </span>
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
@@ -221,6 +210,20 @@ const Index = () => {
               metricKey={detailedMetric}
             />
             <ResidualChart data={filteredRecords} metricKey={detailedMetric} />
+            <div className="md:col-span-1">
+              {/* Small summary for the selected metric */}
+              <div className="h-full bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center items-center text-center">
+                <p className="text-zinc-400 mb-2">
+                  Resumo: {METRICS.find((m) => m.key === detailedMetric)?.label}
+                </p>
+                <div className="text-4xl font-bold text-white mb-1">
+                  {filteredRecords.length}
+                </div>
+                <span className="text-xs text-zinc-500 uppercase">
+                  Amostras Analisadas
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </main>
