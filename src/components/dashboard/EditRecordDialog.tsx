@@ -113,7 +113,6 @@ export const EditRecordDialog = ({
       if (mode === 'edit' && record) {
         // Only send changed fields to prevent overwriting other columns if data is partial
         const updates: Partial<AnalysisRecord> = {}
-        let hasChanges = false
 
         // Always check key fields
         if (formData.material !== initialData.material)
@@ -295,7 +294,7 @@ export const EditRecordDialog = ({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-4 gap-3">
                       <div className="space-y-1.5">
                         <Label className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
                           LAB
@@ -309,6 +308,21 @@ export const EditRecordDialog = ({
                             handleChange(`${metric.key}_lab`, e.target.value)
                           }
                           className="bg-zinc-950 border-zinc-800 font-mono text-zinc-100 h-8 text-xs focus:border-zinc-600"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold text-purple-500/70 uppercase tracking-wider">
+                          NIR
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={formData[`${metric.key}_nir`] ?? ''}
+                          onChange={(e) =>
+                            handleChange(`${metric.key}_nir`, e.target.value)
+                          }
+                          className="bg-zinc-950 border-zinc-800 font-mono text-purple-400 h-8 text-xs focus:border-purple-900"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -328,7 +342,7 @@ export const EditRecordDialog = ({
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">
-                          Resíduo (L-A)
+                          Resíduo
                         </Label>
                         <div className="flex items-center justify-center h-8 bg-zinc-900/50 border border-zinc-800/50 rounded-md font-mono text-xs text-zinc-500">
                           {formatResidue(

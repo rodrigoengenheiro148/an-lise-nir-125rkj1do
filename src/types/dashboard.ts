@@ -58,23 +58,102 @@ export const METRICS: {
   label: string
   unit: string
   color: string
+  aliases?: string[]
 }[] = [
-  { key: 'acidity', label: 'Acidez', unit: '%', color: '#0ea5e9' },
-  { key: 'moisture', label: 'Umidade', unit: '%', color: '#3b82f6' },
-  { key: 'fco', label: 'FCO', unit: 'mg/kg', color: '#8b5cf6' },
-  { key: 'protein', label: 'Proteína', unit: '%', color: '#10b981' },
-  { key: 'phosphorus', label: 'Fósforo', unit: '%', color: '#f59e0b' },
-  { key: 'mineralMatter', label: 'Mat. Mineral', unit: '%', color: '#6366f1' },
-  { key: 'peroxide', label: 'Peróxido', unit: 'meq/kg', color: '#ef4444' },
-  { key: 'etherExtract', label: 'Ext. Etéreo', unit: '%', color: '#ec4899' },
+  {
+    key: 'acidity',
+    label: 'Acidez',
+    unit: '%',
+    color: '#0ea5e9',
+    aliases: ['acidez', 'acidity'],
+  },
+  {
+    key: 'moisture',
+    label: 'Umidade',
+    unit: '%',
+    color: '#3b82f6',
+    aliases: ['umidade', 'moisture', 'humid'],
+  },
+  {
+    key: 'fco',
+    label: 'FCO',
+    unit: 'mg/kg',
+    color: '#8b5cf6',
+    aliases: ['fco'],
+  },
+  {
+    key: 'protein',
+    label: 'Proteína',
+    unit: '%',
+    color: '#10b981',
+    aliases: ['proteina', 'protein', 'pb', 'proteina bruta'],
+  },
+  {
+    key: 'phosphorus',
+    label: 'Fósforo',
+    unit: '%',
+    color: '#f59e0b',
+    aliases: ['fosforo', 'phosphorus'],
+  },
+  {
+    key: 'mineralMatter',
+    label: 'Mat. Mineral',
+    unit: '%',
+    color: '#6366f1',
+    aliases: [
+      'materia mineral',
+      'mat. mineral',
+      'cinzas',
+      'mineral matter',
+      'mm',
+    ],
+  },
+  {
+    key: 'peroxide',
+    label: 'Peróxido',
+    unit: 'meq/kg',
+    color: '#ef4444',
+    aliases: ['peroxido', 'peroxide'],
+  },
+  {
+    key: 'etherExtract',
+    label: 'Ext. Etéreo',
+    unit: '%',
+    color: '#ec4899',
+    aliases: [
+      'extrato etereo',
+      'ext. etereo',
+      'ether extract',
+      'ee',
+      'gordura',
+    ],
+  },
   {
     key: 'proteinDigestibility',
     label: 'Dig. Proteica',
     unit: '%',
     color: '#14b8a6',
+    aliases: [
+      'digestibilidade proteica',
+      'dig. proteica',
+      'protein digestibility',
+      'pepsina',
+    ],
   },
-  { key: 'calcium', label: 'Cálcio', unit: '%', color: '#f97316' },
-  { key: 'sodium', label: 'Sódio', unit: '%', color: '#eab308' },
+  {
+    key: 'calcium',
+    label: 'Cálcio',
+    unit: '%',
+    color: '#f97316',
+    aliases: ['calcio', 'calcium'],
+  },
+  {
+    key: 'sodium',
+    label: 'Sódio',
+    unit: '%',
+    color: '#eab308',
+    aliases: ['sodio', 'sodium'],
+  },
 ]
 
 export interface AnalysisRecord {
@@ -84,7 +163,7 @@ export interface AnalysisRecord {
   company_logo?: string
   material?: string
   submaterial?: string
-  date?: string | null // Deprecated, kept for compatibility if needed but unused in UI
+  date?: string | null
   created_at?: string
 
   // Dynamic keys for metrics: *_lab, *_nir, *_anl

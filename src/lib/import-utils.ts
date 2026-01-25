@@ -89,7 +89,11 @@ export const parseImportData = (
       'resultado',
       'value',
       'result',
-      ...METRICS.map((m) => normalize(m.label)),
+      ...METRICS.flatMap((m) => [
+        normalize(m.label),
+        normalize(m.key),
+        ...(m.aliases?.map(normalize) || []),
+      ]),
     ]
 
     // Check matches
@@ -105,7 +109,6 @@ export const parseImportData = (
     })
 
     // Heuristic: If we don't find enough known headers OR if we find numbers (suggesting data), treat as raw data
-    // Requiring at least 2 header matches to be confident, unless row 0 has no numbers and at least 1 match
     if (matches < 2 && hasNumbers) {
       useStrictMetricMapping = true
       dataStartIndex = 0
@@ -150,6 +153,7 @@ export const parseImportData = (
         }
         const metricObj = METRICS.find((m) => m.key === targetMetric)
         const metricLabel = metricObj ? normalize(metricObj.label) : ''
+        const metricAliases = metricObj?.aliases?.map(normalize) || []
 
         if (
           norm === 'valor' ||
@@ -157,7 +161,8 @@ export const parseImportData = (
           norm === 'value' ||
           norm === 'result' ||
           norm === targetMetric.toLowerCase() ||
-          (metricLabel && norm.includes(metricLabel))
+          (metricLabel && norm.includes(metricLabel)) ||
+          metricAliases.some((a) => norm.includes(a))
         ) {
           headerMap.push({ index, field: `${targetMetric}_lab` })
           return
@@ -169,14 +174,23 @@ export const parseImportData = (
       for (const metric of METRICS) {
         const metricName = normalize(metric.label)
         const metricKey = normalize(metric.key)
+        const aliases = metric.aliases?.map(normalize) || []
 
-        if (norm.includes(metricName) || norm.includes(metricKey)) {
+        const isMatch =
+          norm.includes(metricName) ||
+          norm.includes(metricKey) ||
+          aliases.some((a) => norm.includes(a))
+
+        if (isMatch) {
           for (const suffix of METRIC_SUFFIXES) {
             if (norm.includes(suffix)) {
               headerMap.push({ index, field: `${metric.key}_${suffix}` })
               return
             }
           }
+          // Fallback if matched name but no suffix - assume lab if no conflicting suffix found
+          headerMap.push({ index, field: `${metric.key}_lab` })
+          return
         }
       }
     })
@@ -198,7 +212,7 @@ export const parseImportData = (
     let rowErrorPrefix = `Linha ${i + 1}: `
 
     if (useStrictMetricMapping && targetMetric) {
-      // Robust strict mapping logic to prevent shifting
+      // Robust strict mapping logic
       let currentCols = cols
 
       // Handle space-separated single column issue if applicable
@@ -210,23 +224,12 @@ export const parseImportData = (
         currentCols = currentCols[0].split(/\s+/)
       }
 
-      // Identify column types
       const colTypes = currentCols.map((col) => {
         if (!col || col.trim() === '') return 'empty'
         const cleanVal = col.replace(/\s/g, '').replace(',', '.')
         const num = parseFloat(cleanVal)
         return !isNaN(num) ? 'number' : 'string'
       })
-
-      const numbers: number[] = []
-      let foundMaterial = ''
-
-      // Heuristic for column mapping based on structure
-      // Expected patterns:
-      // 1. [String, Number, Number] -> Material, Lab, Anl
-      // 2. [Number, Number] -> Lab, Anl
-      // 3. [Number, Number, Number] -> ID, Lab, Anl (Take last two)
-      // 4. [String, String, Number, Number] -> Material, Submaterial, Lab, Anl
 
       const numericValues = currentCols
         .map((col) => {
@@ -236,69 +239,43 @@ export const parseImportData = (
         .filter((n) => !isNaN(n))
 
       if (numericValues.length >= 2) {
-        // If we have at least 2 numbers, assume the LAST two are Lab and Anl (or Lab and Nir depending on request, but standard is Lab/Anl)
-        // However, if we only have 2 numbers total, they are Lab and Anl.
-        // If we have 3 numbers (e.g. ID, Lab, Anl), take last 2.
-
-        // Take the first available numbers for measurement to align with typical left-to-right reading if explicit structure isn't clear
-        // But the "ID" issue requires us to be careful.
-
-        // Let's refine:
-        // If col[0] is string -> Material.
-        // If col[0] is number and col[1] is number and col[2] is number -> likely ID, Lab, Anl.
-        // If col[0] is number and col[1] is number and total cols is 2 -> Lab, Anl.
-
         if (numericValues.length === 2) {
           record[`${targetMetric}_lab`] = numericValues[0]
           record[`${targetMetric}_anl`] = numericValues[1]
           // Find material in string columns
           const stringColIndex = colTypes.indexOf('string')
           if (stringColIndex !== -1) {
-            foundMaterial = currentCols[stringColIndex]
+            record.material = currentCols[stringColIndex]
           }
-        } else if (numericValues.length > 2) {
-          // Assume the first number is an ID if it looks like an integer and small?
-          // Safer to take the first two numbers found after any strings, OR simply map strictly:
-          // To prevent shifting, we must be consistent.
-
-          // If pattern is Num, Num, Num... assume first is ID.
-          // If pattern is Str, Num, Num... assume Mat, Lab, Anl.
-
-          if (colTypes[0] === 'string') {
-            foundMaterial = currentCols[0]
-            // Find next numbers
-            const nextNums = currentCols
-              .slice(1)
-              .map((c) => parseFloat(c.replace(',', '.')))
-              .filter((n) => !isNaN(n))
-            if (nextNums.length >= 2) {
-              record[`${targetMetric}_lab`] = nextNums[0]
-              record[`${targetMetric}_anl`] = nextNums[1]
-            }
-          } else {
-            // First col is number. Assume ID.
-            // Take 2nd and 3rd numbers.
-            record[`${targetMetric}_lab`] = numericValues[1]
+        } else if (numericValues.length >= 3) {
+          // If 3 numbers provided, map to Lab, Nir, Anl to support full range
+          // Heuristic: If we have exactly 3 numbers in a row, it likely matches the full spectrum
+          if (numericValues.length === 3) {
+            record[`${targetMetric}_lab`] = numericValues[0]
+            record[`${targetMetric}_nir`] = numericValues[1]
             record[`${targetMetric}_anl`] = numericValues[2]
+          } else {
+            // Fallback for messy rows or IDs:
+            if (colTypes[0] === 'string') {
+              // Pattern: Mat, Lab, Anl (ignore extra numbers or take first 2)
+              record.material = currentCols[0]
+              record[`${targetMetric}_lab`] = numericValues[0]
+              record[`${targetMetric}_anl`] = numericValues[1]
+            } else {
+              // Pattern: ID, Lab, Anl
+              record[`${targetMetric}_lab`] = numericValues[1]
+              record[`${targetMetric}_anl`] = numericValues[2]
+            }
           }
-        } else {
-          // Fallback
-          record[`${targetMetric}_lab`] = numericValues[0]
-          record[`${targetMetric}_anl`] = numericValues[1]
         }
       } else {
         errors.push(
-          `${rowErrorPrefix}É necessário dois valores numéricos (LAB e ANL). Encontrado: ${numericValues.length}`,
+          `${rowErrorPrefix}É necessário pelo menos dois valores numéricos.`,
         )
         hasError = true
       }
 
-      if (!foundMaterial && colTypes[0] === 'string') {
-        foundMaterial = currentCols[0]
-      }
-
-      record.material = foundMaterial // Might be empty, defaults to Desconhecido later
-      record.company = defaultCompany // Strict mode heavily relies on default company
+      record.company = defaultCompany
     } else {
       // Standard Header Mapping
       headerMap.forEach((map) => {
