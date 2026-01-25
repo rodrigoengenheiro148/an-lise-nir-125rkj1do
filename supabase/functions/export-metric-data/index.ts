@@ -44,13 +44,17 @@ Deno.serve(async (req) => {
     const colLab = `${dbPrefix}_lab`
     const colAnl = `${dbPrefix}_anl`
 
+    // Use .not.is.null instead of .neq.null to avoid postgres double precision casting errors
+    // with the string "null" in the OR filter.
+    const filterString = `${colLab}.not.is.null,${colAnl}.not.is.null`
+
     let query = supabase
       .from('analysis_records')
       .select(
         `date, material, sub_material, submaterial, companies!inner(name), ${colLab}, ${colAnl}`,
       )
       // Filter to include rows where at least one of the values is present for the requested metric
-      .or(`${colLab}.neq.null,${colAnl}.neq.null`)
+      .or(filterString)
       .order('date', { ascending: false })
 
     if (companyId) {
@@ -59,7 +63,10 @@ Deno.serve(async (req) => {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) {
+      console.error('Database query error:', error)
+      throw error
+    }
 
     if (!data || data.length === 0) {
       return new Response(JSON.stringify({ error: 'No data found' }), {
@@ -119,7 +126,7 @@ Deno.serve(async (req) => {
       },
     })
   } catch (error: any) {
-    console.error(error)
+    console.error('Function error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
