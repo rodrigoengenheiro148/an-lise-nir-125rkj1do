@@ -4,13 +4,13 @@ import {
   METRICS,
   CompanyEntity,
   MetricKey,
+  MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -218,14 +218,23 @@ export const EditRecordDialog = ({
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-zinc-300 flex items-center gap-2">
                     <Package className="h-3.5 w-3.5 text-zinc-500" />
-                    Material / Produto <span className="text-red-500">*</span>
+                    Material <span className="text-red-500">*</span>
                   </Label>
-                  <Input
+                  <Select
                     value={formData.material || ''}
-                    onChange={(e) => handleChange('material', e.target.value)}
-                    placeholder="Ex: Farelo de Soja 46%"
-                    className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20"
-                  />
+                    onValueChange={(val) => handleChange('material', val)}
+                  >
+                    <SelectTrigger className="bg-zinc-900 border-zinc-700 focus:ring-blue-500/20">
+                      <SelectValue placeholder="Selecione o material..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
+                      {MATERIALS_OPTIONS.map((material) => (
+                        <SelectItem key={material} value={material}>
+                          {material}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

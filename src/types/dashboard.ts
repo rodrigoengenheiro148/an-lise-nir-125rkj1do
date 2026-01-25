@@ -16,6 +16,19 @@ export const DEFAULT_COMPANIES: string[] = [
   'Varzea',
 ]
 
+export const MATERIALS_OPTIONS = [
+  'Umidade',
+  'Acidez',
+  'Proteína',
+  'Cálcio',
+  'FCO',
+  'Fósforo',
+  'Extrato Etéreo',
+  'Matéria Mineral',
+  'Proteína Digestível',
+  'Peróxido',
+]
+
 export type MetricKey =
   | 'acidity'
   | 'moisture'
