@@ -16,12 +16,13 @@ const KEY_MAPPING: Record<string, string> = {
 
 const transformRecordFromDB = (
   row: any,
-  companyName: string,
+  company: { name: string; logo_url?: string | null },
 ): AnalysisRecord => {
   const record: AnalysisRecord = {
     id: row.id,
-    company: companyName,
+    company: company.name,
     company_id: row.company_id,
+    company_logo: company.logo_url || undefined,
     date: row.date,
     material: row.material,
   }
@@ -35,7 +36,10 @@ const transformRecordFromDB = (
   return record
 }
 
-const transformRecordToDB = (record: AnalysisRecord, companyId: string) => {
+const transformRecordToDB = (
+  record: Partial<AnalysisRecord>,
+  companyId: string,
+) => {
   const dbRow: any = {
     company_id: companyId,
     date: record.date,
@@ -43,9 +47,21 @@ const transformRecordToDB = (record: AnalysisRecord, companyId: string) => {
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
-    dbRow[`${dbPrefix}_lab`] = parseFloat(String(record[`${appKey}_lab`] || 0))
-    dbRow[`${dbPrefix}_nir`] = parseFloat(String(record[`${appKey}_nir`] || 0))
-    dbRow[`${dbPrefix}_anl`] = parseFloat(String(record[`${appKey}_anl`] || 0))
+    // Helper to safely parse float
+    const parseVal = (val: any) => {
+      if (val === undefined || val === null || val === '') return null
+      const num = parseFloat(String(val).replace(',', '.'))
+      return isNaN(num) ? null : num
+    }
+
+    const lab = parseVal(record[`${appKey}_lab`])
+    const nir = parseVal(record[`${appKey}_nir`])
+    const anl = parseVal(record[`${appKey}_anl`])
+
+    // Only add if not undefined (to allow partial updates if needed, though usually full record)
+    if (lab !== undefined) dbRow[`${dbPrefix}_lab`] = lab
+    if (nir !== undefined) dbRow[`${dbPrefix}_nir`] = nir
+    if (anl !== undefined) dbRow[`${dbPrefix}_anl`] = anl
   })
 
   return dbRow
@@ -72,16 +88,18 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
+    // Updated query to fetch logo_url
     const { data, error } = await supabase
       .from('analysis_records')
-      .select('*, companies(name)')
+      .select('*, companies(name, logo_url)')
       .order('date', { ascending: false })
 
     if (error) throw error
 
-    return (data || []).map((row) =>
-      transformRecordFromDB(row, (row.companies as any)?.name || 'Unknown'),
-    )
+    return (data || []).map((row) => {
+      const comp = (row.companies as any) || { name: 'Unknown' }
+      return transformRecordFromDB(row, comp)
+    })
   },
 
   saveRecords: async (records: AnalysisRecord[]) => {
@@ -102,31 +120,32 @@ export const api = {
     if (error) throw error
   },
 
+  createRecord: async (
+    record: Partial<AnalysisRecord> & { company_id: string },
+  ) => {
+    const dbRow = transformRecordToDB(record, record.company_id)
+    const { error } = await supabase.from('analysis_records').insert(dbRow)
+    if (error) throw error
+  },
+
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
     const dbUpdates: any = {}
     if (updates.date) dbUpdates.date = updates.date
     if (updates.material !== undefined) dbUpdates.material = updates.material
+    if (updates.company_id) dbUpdates.company_id = updates.company_id
 
-    Object.keys(updates).forEach((key) => {
-      if (
-        key.endsWith('_lab') ||
-        key.endsWith('_nir') ||
-        key.endsWith('_anl')
-      ) {
-        const metricKey = key
-          .replace('_lab', '')
-          .replace('_nir', '')
-          .replace('_anl', '')
-        const type = key.endsWith('_lab')
-          ? 'lab'
-          : key.endsWith('_nir')
-            ? 'nir'
-            : 'anl'
-        const dbPrefix = KEY_MAPPING[metricKey]
-        if (dbPrefix) {
-          dbUpdates[`${dbPrefix}_${type}`] = parseFloat(String(updates[key]))
+    Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
+      const types = ['lab', 'nir', 'anl']
+      types.forEach((type) => {
+        const val = updates[`${appKey}_${type}`]
+        if (val !== undefined) {
+          const parsed =
+            val === '' ? null : parseFloat(String(val).replace(',', '.'))
+          dbUpdates[`${dbPrefix}_${type}`] = isNaN(parsed as number)
+            ? null
+            : parsed
         }
-      }
+      })
     })
 
     const { error } = await supabase

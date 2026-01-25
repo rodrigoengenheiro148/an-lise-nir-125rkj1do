@@ -17,27 +17,37 @@ export type Database = {
     Tables: {
       analysis_records: {
         Row: {
+          acidity_anl: number | null
           acidity_lab: number | null
           acidity_nir: number | null
+          calcium_anl: number | null
           calcium_lab: number | null
           calcium_nir: number | null
           company_id: string
           created_at: string
           date: string
+          ether_extract_anl: number | null
           ether_extract_lab: number | null
           ether_extract_nir: number | null
+          fco_anl: number | null
           fco_lab: number | null
           fco_nir: number | null
           id: string
           material: string | null
+          mineral_matter_anl: number | null
           mineral_matter_lab: number | null
           mineral_matter_nir: number | null
+          moisture_anl: number | null
           moisture_lab: number | null
           moisture_nir: number | null
+          peroxide_anl: number | null
           peroxide_lab: number | null
           peroxide_nir: number | null
+          phosphorus_anl: number | null
           phosphorus_lab: number | null
           phosphorus_nir: number | null
+          protein_anl: number | null
+          protein_digestibility_anl: number | null
           protein_digestibility_lab: number | null
           protein_digestibility_nir: number | null
           protein_lab: number | null
@@ -45,27 +55,37 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acidity_anl?: number | null
           acidity_lab?: number | null
           acidity_nir?: number | null
+          calcium_anl?: number | null
           calcium_lab?: number | null
           calcium_nir?: number | null
           company_id: string
           created_at?: string
           date: string
+          ether_extract_anl?: number | null
           ether_extract_lab?: number | null
           ether_extract_nir?: number | null
+          fco_anl?: number | null
           fco_lab?: number | null
           fco_nir?: number | null
           id?: string
           material?: string | null
+          mineral_matter_anl?: number | null
           mineral_matter_lab?: number | null
           mineral_matter_nir?: number | null
+          moisture_anl?: number | null
           moisture_lab?: number | null
           moisture_nir?: number | null
+          peroxide_anl?: number | null
           peroxide_lab?: number | null
           peroxide_nir?: number | null
+          phosphorus_anl?: number | null
           phosphorus_lab?: number | null
           phosphorus_nir?: number | null
+          protein_anl?: number | null
+          protein_digestibility_anl?: number | null
           protein_digestibility_lab?: number | null
           protein_digestibility_nir?: number | null
           protein_lab?: number | null
@@ -73,27 +93,37 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acidity_anl?: number | null
           acidity_lab?: number | null
           acidity_nir?: number | null
+          calcium_anl?: number | null
           calcium_lab?: number | null
           calcium_nir?: number | null
           company_id?: string
           created_at?: string
           date?: string
+          ether_extract_anl?: number | null
           ether_extract_lab?: number | null
           ether_extract_nir?: number | null
+          fco_anl?: number | null
           fco_lab?: number | null
           fco_nir?: number | null
           id?: string
           material?: string | null
+          mineral_matter_anl?: number | null
           mineral_matter_lab?: number | null
           mineral_matter_nir?: number | null
+          moisture_anl?: number | null
           moisture_lab?: number | null
           moisture_nir?: number | null
+          peroxide_anl?: number | null
           peroxide_lab?: number | null
           peroxide_nir?: number | null
+          phosphorus_anl?: number | null
           phosphorus_lab?: number | null
           phosphorus_nir?: number | null
+          protein_anl?: number | null
+          protein_digestibility_anl?: number | null
           protein_digestibility_lab?: number | null
           protein_digestibility_nir?: number | null
           protein_lab?: number | null

@@ -16,9 +16,13 @@ import { toast } from 'sonner'
 
 interface DataManagementTableProps {
   records: AnalysisRecord[]
+  onDataChange?: () => void
 }
 
-export const DataManagementTable = ({ records }: DataManagementTableProps) => {
+export const DataManagementTable = ({
+  records,
+  onDataChange,
+}: DataManagementTableProps) => {
   const [editingRecord, setEditingRecord] = useState<AnalysisRecord | null>(
     null,
   )
@@ -33,6 +37,7 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
       try {
         await api.deleteRecord(id)
         toast.success('Registro excluído com sucesso!')
+        if (onDataChange) onDataChange()
       } catch (e) {
         console.error(e)
         toast.error('Erro ao excluir registro.')
@@ -54,7 +59,7 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
               <TableHead className="w-[120px] text-zinc-400">
                 Material
               </TableHead>
-              <TableHead className="w-[150px] text-zinc-400">Empresa</TableHead>
+              <TableHead className="w-[180px] text-zinc-400">Empresa</TableHead>
               <TableHead className="w-[100px] text-zinc-400">Data</TableHead>
               {METRICS.slice(0, 3).map((m) => (
                 <TableHead
@@ -100,11 +105,26 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
                 key={record.id}
                 className="border-zinc-800 hover:bg-zinc-800/50"
               >
-                <TableCell className="text-zinc-300 text-xs">
+                <TableCell className="text-zinc-300 text-xs font-medium">
                   {record.material || '-'}
                 </TableCell>
-                <TableCell className="font-medium text-zinc-200 text-sm">
-                  {record.company}
+                <TableCell className="text-zinc-200 text-sm">
+                  <div className="flex items-center gap-2">
+                    {record.company_logo ? (
+                      <img
+                        src={record.company_logo}
+                        alt={record.company}
+                        className="h-6 w-6 rounded-sm object-contain bg-white/5 p-0.5"
+                      />
+                    ) : (
+                      <div className="h-6 w-6 rounded-sm bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 font-bold">
+                        {record.company.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="truncate max-w-[120px]">
+                      {record.company}
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell className="text-zinc-400 text-xs font-mono whitespace-nowrap">
                   {record.date}
@@ -115,19 +135,19 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
                       key={`${m.key}-n`}
                       className="text-zinc-400 text-xs text-center border-l border-zinc-800/50 font-mono"
                     >
-                      {Number(record[`${m.key}_nir`]).toFixed(2)}
+                      {Number(record[`${m.key}_nir`] || 0).toFixed(2)}
                     </TableCell>
                     <TableCell
                       key={`${m.key}-l`}
                       className="text-zinc-200 text-xs text-center font-mono font-medium"
                     >
-                      {Number(record[`${m.key}_lab`]).toFixed(2)}
+                      {Number(record[`${m.key}_lab`] || 0).toFixed(2)}
                     </TableCell>
                     <TableCell
                       key={`${m.key}-a`}
                       className="text-blue-400 text-xs text-center font-mono"
                     >
-                      {Number(record[`${m.key}_anl`]).toFixed(2)}
+                      {Number(record[`${m.key}_anl`] || 0).toFixed(2)}
                     </TableCell>
                   </>
                 ))}
@@ -168,10 +188,13 @@ export const DataManagementTable = ({ records }: DataManagementTableProps) => {
       </div>
 
       <EditRecordDialog
+        mode="edit"
         record={editingRecord}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (onDataChange) onDataChange()
+        }}
       />
     </>
   )
