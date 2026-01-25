@@ -411,3 +411,5 @@ const AnalysisPage = () => {
     </div>
   )
 }
+
+export default AnalysisPage

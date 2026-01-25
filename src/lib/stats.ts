@@ -1,126 +1,86 @@
-export interface SimplePoint {
+export interface Point {
   x: number
   y: number
 }
 
 export interface StatsResult {
   r2: number
-  r: number
-  slope: number
-  intercept: number
   bias: number
-  sep: number // Standard Error of Prediction (often used as StdDev of residuals)
-  mae: number // Mean Absolute Error
+  sep: number
+  slope: number
   n: number
   min: number
   max: number
-  stdDevResiduals: number
 }
 
-export function calculateStats(points: SimplePoint[]): StatsResult {
-  const n = points.length
-  if (n < 2) {
+export function calculateStats(data: Point[]): StatsResult {
+  const n = data.length
+  if (n === 0) {
     return {
       r2: 0,
-      r: 0,
-      slope: 0,
-      intercept: 0,
-      sep: 0,
       bias: 0,
-      mae: 0,
-      n,
+      sep: 0,
+      slope: 0,
+      n: 0,
       min: 0,
       max: 0,
-      stdDevResiduals: 0,
     }
   }
 
   let sumX = 0
   let sumY = 0
-  let sumXY = 0
-  let sumX2 = 0
-  let sumY2 = 0
-  let sumDiff = 0
-  let sumAbsDiff = 0
+  let min = data[0].x
+  let max = data[0].x
 
-  let minVal = Infinity
-  let maxVal = -Infinity
-
-  for (const p of points) {
+  for (const p of data) {
     sumX += p.x
     sumY += p.y
-    sumXY += p.x * p.y
-    sumX2 += p.x * p.x
-    sumY2 += p.y * p.y
-
-    const diff = p.x - p.y // LAB - NIR
-    sumDiff += diff
-    sumAbsDiff += Math.abs(diff)
-
-    minVal = Math.min(minVal, p.x, p.y)
-    maxVal = Math.max(maxVal, p.x, p.y)
+    if (p.x < min) min = p.x
+    if (p.x > max) max = p.x
   }
 
   const meanX = sumX / n
   const meanY = sumY / n
 
-  const numerator = n * sumXY - sumX * sumY
-  const denominator = n * sumX2 - sumX * sumX
+  let numerator = 0
+  let denomX = 0
+  let denomY = 0
+  let sumDiff = 0
 
-  const slope = denominator !== 0 ? numerator / denominator : 0
-  const intercept = meanY - slope * meanX
+  for (const p of data) {
+    const diffX = p.x - meanX
+    const diffY = p.y - meanY
+    numerator += diffX * diffY
+    denomX += diffX * diffX
+    denomY += diffY * diffY
 
-  const rNumerator = numerator
-  const rDenominator = Math.sqrt(
-    (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY),
-  )
-  const r = rDenominator !== 0 ? rNumerator / rDenominator : 0
-  const r2 = r * r
-
-  const bias = sumDiff / n
-  const mae = sumAbsDiff / n
-
-  let sumSqDiffMinusBias = 0
-  for (const p of points) {
-    const diff = p.x - p.y // LAB - NIR
-    sumSqDiffMinusBias += Math.pow(diff - bias, 2)
+    // Bias is mean(y - x) (pred - ref) or (y - x)
+    // Assuming y is prediction (ANL/NIR) and x is reference (LAB)
+    sumDiff += p.y - p.x
   }
 
-  // SEP (Standard Error of Prediction) ~ Standard Deviation of Residuals
-  const stdDevResiduals = Math.sqrt(sumSqDiffMinusBias / (n - 1))
-  const sep = stdDevResiduals // In this context using same formula
+  const slope = denomX !== 0 ? numerator / denomX : 0
+  const r2 =
+    denomX * denomY !== 0 ? Math.pow(numerator, 2) / (denomX * denomY) : 0
+  const bias = sumDiff / n
+
+  // SEP (Standard Error of Prediction)
+  // SEP = sqrt( sum((res - mean_res)^2) / (n-1) )
+  // where res = y - x
+  let sumSqRes = 0
+  for (const p of data) {
+    const res = p.y - p.x - bias
+    sumSqRes += res * res
+  }
+  const sep = Math.sqrt(sumSqRes / (n > 1 ? n - 1 : 1))
 
   return {
     r2,
-    r,
-    slope,
-    intercept,
     bias,
     sep,
-    mae,
+    slope,
     n,
-    min: minVal,
-    max: maxVal,
-    stdDevResiduals,
+    min,
+    max,
   }
-}
-
-export function generateRegressionPoints(
-  points: SimplePoint[],
-  slope: number,
-  intercept: number,
-) {
-  if (points.length === 0) return []
-  const xValues = points.map((p) => p.x)
-  const minX = Math.min(...xValues)
-  const maxX = Math.max(...xValues)
-
-  const padding = (maxX - minX) * 0.05
-  const start = Math.max(0, minX - padding)
-  const end = maxX + padding
-
-  return [
-    { x: start, y: slope * start + intercept },
-    { x: end, y: slope * end + intercept },
-  ]
 }
