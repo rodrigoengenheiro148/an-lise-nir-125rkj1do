@@ -4,7 +4,7 @@ import { api } from '@/services/api'
 import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, Plus, Database, X, Printer } from 'lucide-react'
+import { Search, Plus, Database, X, Printer, Trash2 } from 'lucide-react'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
@@ -17,6 +17,16 @@ import {
 } from '@/components/ui/select'
 import { printElement } from '@/lib/export-utils'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export default function DataManagementPage() {
   const [records, setRecords] = useState<AnalysisRecord[]>([])
@@ -27,6 +37,8 @@ export default function DataManagementPage() {
   const [loading, setLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [uniqueMaterials, setUniqueMaterials] = useState<string[]>([])
+  const [isDeleteAllAlertOpen, setIsDeleteAllAlertOpen] = useState(false)
+  const [isDeletingAll, setIsDeletingAll] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -81,6 +93,21 @@ export default function DataManagementPage() {
     }
   }
 
+  const handleDeleteAll = async () => {
+    setIsDeletingAll(true)
+    try {
+      await api.deleteAllRecords()
+      toast.success('Todos os registros foram excluídos com sucesso.')
+      fetchData()
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao excluir todos os registros.')
+    } finally {
+      setIsDeletingAll(false)
+      setIsDeleteAllAlertOpen(false)
+    }
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-8 text-zinc-100 min-h-screen pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800 pb-6">
@@ -97,6 +124,14 @@ export default function DataManagementPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <Button
+            variant="destructive"
+            onClick={() => setIsDeleteAllAlertOpen(true)}
+            className="gap-2 shadow-lg shadow-red-900/20 transition-all hover:scale-105"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Apagar Tudo</span>
+          </Button>
           <Button
             variant="outline"
             onClick={handleExport}
@@ -202,6 +237,37 @@ export default function DataManagementPage() {
         onOpenChange={setIsAddDialogOpen}
         onSuccess={fetchData}
       />
+
+      <AlertDialog
+        open={isDeleteAllAlertOpen}
+        onOpenChange={setIsDeleteAllAlertOpen}
+      >
+        <AlertDialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-500">
+              CUIDADO: Apagar TODOS os dados?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              Esta ação é <strong className="text-red-400">irreversível</strong>
+              . Isso excluirá permanentemente <strong>TODOS</strong> os
+              registros de análise do banco de dados. Você terá que importar
+              tudo novamente se confirmar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              disabled={isDeletingAll}
+              className="bg-red-600 hover:bg-red-700 text-white border-red-800"
+            >
+              {isDeletingAll ? 'Apagando...' : 'Sim, Apagar Tudo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -183,6 +183,15 @@ export const api = {
     if (error) throw error
   },
 
+  deleteAllRecords: async () => {
+    const { error } = await supabase
+      .from('analysis_records')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000') // Matches all records as IDs are random UUIDs
+
+    if (error) throw error
+  },
+
   subscribeToRecords: (callback: () => void) => {
     const subscription = supabase
       .channel('public:analysis_records')
