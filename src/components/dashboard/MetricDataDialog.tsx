@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Calendar as CalendarIcon, Loader2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Loader2, Download } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -87,6 +87,7 @@ export function MetricDataDialog({
 }: MetricDataDialogProps) {
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [loading, setLoading] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const metricInfo = METRICS.find((m) => m.key === metricKey)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -146,6 +147,35 @@ export function MetricDataDialog({
       toast.error('Erro ao salvar dados.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    const companyId = form.getValues('companyId')
+    if (!companyId) {
+      toast.error('Selecione uma empresa para exportar.')
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      const blob = await api.exportMetricData(companyId, metricKey)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const companyName =
+        companies.find((c) => c.id === companyId)?.name || 'Empresa'
+      a.download = `Analise_${metricInfo?.label}_${companyName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      toast.success('Exportação concluída com sucesso!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao exportar dados.')
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -358,22 +388,38 @@ export function MetricDataDialog({
               />
             </div>
 
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-4 sm:justify-between">
               <Button
                 type="button"
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
+                variant="outline"
+                className="bg-zinc-900 border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+                onClick={handleExport}
+                disabled={isExporting}
               >
-                Cancelar
+                {isExporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Exportar Excel
               </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar Dados
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Dados
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>

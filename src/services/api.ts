@@ -211,4 +211,17 @@ export const api = {
       supabase.removeChannel(subscription)
     }
   },
+
+  exportMetricData: async (companyId: string, metricKey: string) => {
+    const { data, error } = await supabase.functions.invoke(
+      'export-metric-data',
+      {
+        body: { companyId, metricKey },
+        responseType: 'blob',
+      },
+    )
+
+    if (error) throw error
+    return data as Blob
+  },
 }

@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "jsr:@supabase/functions-js/edge-runtime.d.ts": "jsr:@supabase/functions-js/edge-runtime.d.ts",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "../_shared/": "../_shared/"
+  }
+}
