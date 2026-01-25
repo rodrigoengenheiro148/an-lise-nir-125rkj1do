@@ -25,7 +25,7 @@ export type Database = {
           calcium_nir: number | null
           company_id: string
           created_at: string
-          date: string
+          date: string | null
           ether_extract_anl: number | null
           ether_extract_lab: number | null
           ether_extract_nir: number | null
@@ -65,7 +65,7 @@ export type Database = {
           calcium_nir?: number | null
           company_id: string
           created_at?: string
-          date: string
+          date?: string | null
           ether_extract_anl?: number | null
           ether_extract_lab?: number | null
           ether_extract_nir?: number | null
@@ -105,7 +105,7 @@ export type Database = {
           calcium_nir?: number | null
           company_id?: string
           created_at?: string
-          date?: string
+          date?: string | null
           ether_extract_anl?: number | null
           ether_extract_lab?: number | null
           ether_extract_nir?: number | null

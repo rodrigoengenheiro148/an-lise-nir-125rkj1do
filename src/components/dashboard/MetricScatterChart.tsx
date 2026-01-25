@@ -46,7 +46,6 @@ export const MetricScatterChart = ({
         lab: Number(item[`${metricKey}_lab`] || 0),
         nir: Number(item[`${metricKey}_nir`] || 0),
         anl: Number(item[`${metricKey}_anl`] || 0),
-        date: item.date,
         company: item.company,
         material: item.material,
       }))
@@ -112,7 +111,6 @@ export const MetricScatterChart = ({
                   {d.material && (
                     <p className="text-zinc-400 mb-1 italic">{d.material}</p>
                   )}
-                  {d.date && <p>{d.date}</p>}
                   <div className="grid grid-cols-2 gap-x-2 mt-1 border-t border-zinc-800 pt-1">
                     <span className="text-zinc-400">LAB:</span>
                     <span className="text-right font-mono font-bold">

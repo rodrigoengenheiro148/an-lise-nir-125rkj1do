@@ -44,7 +44,7 @@ const transformRecordToDB = (
 ) => {
   const dbRow: any = {
     company_id: companyId,
-    date: record.date === '' ? null : record.date, // Handle empty string as null
+    date: null, // Always null as date is removed from usage
     material: record.material,
     sub_material: record.submaterial,
   }
@@ -91,11 +91,11 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
-    // Updated query to fetch logo_url
+    // Fetches records ordered by creation date descending instead of the removed date field
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
-      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) throw error
 
@@ -147,11 +147,11 @@ export const api = {
 
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
     const dbUpdates: any = {}
-    if (updates.date !== undefined) dbUpdates.date = updates.date || null
     if (updates.material !== undefined) dbUpdates.material = updates.material
     if (updates.submaterial !== undefined)
       dbUpdates.sub_material = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
+    // Date update removed
 
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
       const types = ['lab', 'nir', 'anl']

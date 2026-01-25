@@ -7,7 +7,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   Scatter,
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'

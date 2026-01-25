@@ -91,9 +91,7 @@ export const DataManagementTable = ({
               <TableHead className="w-[180px] min-w-[180px] text-zinc-400">
                 Empresa
               </TableHead>
-              <TableHead className="w-[100px] min-w-[100px] text-zinc-400">
-                Data
-              </TableHead>
+              {/* Date Column Removed */}
               {METRICS.map((m) => (
                 <TableHead
                   key={m.key}
@@ -121,7 +119,7 @@ export const DataManagementTable = ({
                 className="sticky left-0 bg-zinc-900/95 backdrop-blur z-20"
                 colSpan={1}
               ></TableHead>
-              <TableHead colSpan={3}></TableHead>
+              <TableHead colSpan={2}></TableHead>
               {METRICS.map((m) => (
                 <Fragment key={m.key}>
                   <TableHead className="text-zinc-300 text-center bg-zinc-900/30 font-bold border-l border-zinc-800/50">
@@ -172,9 +170,6 @@ export const DataManagementTable = ({
                       {record.company}
                     </span>
                   </div>
-                </TableCell>
-                <TableCell className="text-zinc-400 text-xs font-mono whitespace-nowrap">
-                  {record.date || '-'}
                 </TableCell>
                 {METRICS.map((m) => {
                   const lab = record[`${m.key}_lab`]
@@ -232,7 +227,7 @@ export const DataManagementTable = ({
             {records.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4 + METRICS.length * 3 + 1}
+                  colSpan={3 + METRICS.length * 3 + 1}
                   className="h-24 text-center text-zinc-500"
                 >
                   Nenhum registro encontrado.

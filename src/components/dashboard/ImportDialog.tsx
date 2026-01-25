@@ -17,7 +17,7 @@ import {
   FileSpreadsheet,
   AlertTriangle,
 } from 'lucide-react'
-import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
+import { CompanyEntity } from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
 import {
@@ -91,12 +91,10 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
 
     setIsProcessing(true)
 
-    // Find default company name if selected
     const defaultCompany = companies.find(
       (c) => c.id === selectedCompanyId,
     )?.name
 
-    // Small delay to allow UI to update
     setTimeout(() => {
       const result = parseImportData(content, defaultCompany, companies)
       setParseResult(result)
@@ -140,8 +138,8 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Carregue um arquivo CSV ou cole dados do Excel. Certifique-se de ter
-            cabeçalhos como "Material", "Proteína LAB", etc. A data é opcional.
+            Carregue um arquivo CSV ou cole dados do Excel. A data foi removida,
+            os registros serão agrupados por período.
           </DialogDescription>
         </DialogHeader>
 
@@ -211,11 +209,6 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                     onChange={handleFileChange}
                   />
                 </div>
-                <div className="text-xs text-amber-500/80 flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3" />
-                  Para arquivos .xlsx (Excel), salve como CSV ou use a opção
-                  "Colar Texto".
-                </div>
               </TabsContent>
 
               <TabsContent value="text" className="space-y-4 pt-4">
@@ -283,13 +276,10 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                       {parseResult.records.slice(0, 50).map((rec, i) => (
                         <div
                           key={i}
-                          className="grid grid-cols-[1fr_100px_1fr] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50"
+                          className="grid grid-cols-[1fr_1fr] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50"
                         >
                           <span className="truncate text-zinc-300 font-medium">
                             {rec.company}
-                          </span>
-                          <span className="text-zinc-500 font-mono">
-                            {rec.date || '-'}
                           </span>
                           <span className="truncate text-zinc-400">
                             {rec.material}

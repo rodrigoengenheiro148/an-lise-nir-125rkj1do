@@ -78,7 +78,7 @@ export const EditRecordDialog = ({
         setFormData({
           material: '',
           submaterial: '',
-          date: null, // No default date
+          date: null, // Always null
         })
       }
     }
@@ -98,7 +98,7 @@ export const EditRecordDialog = ({
       toast.error('Selecione uma empresa.')
       return
     }
-    // Removed date validation
+
     if (!formData.material) {
       toast.error('Informe o material.')
       return
@@ -162,8 +162,6 @@ export const EditRecordDialog = ({
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Date field removed as per user story */}
-
                 <div className="space-y-2">
                   <Label className="text-zinc-300 flex items-center gap-2">
                     <Building2 className="h-3.5 w-3.5 text-zinc-500" />

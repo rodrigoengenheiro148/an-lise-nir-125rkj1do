@@ -9,7 +9,7 @@ export interface ParseResult {
 
 export interface HeaderMap {
   index: number
-  field: 'date' | 'material' | 'submaterial' | 'company' | string // string for metric keys like 'acidity_lab'
+  field: 'material' | 'submaterial' | 'company' | string // string for metric keys like 'acidity_lab'
 }
 
 // Helper to normalize strings for comparison (remove accents, lowercase)
@@ -72,10 +72,7 @@ export const parseImportData = (
   headers.forEach((h, index) => {
     const norm = normalize(h)
 
-    if (norm === 'data' || norm === 'date') {
-      headerMap.push({ index, field: 'date' })
-      return
-    }
+    // Date parsing removed
     if (norm === 'material' || norm === 'produto' || norm === 'product') {
       headerMap.push({ index, field: 'material' })
       return
@@ -119,7 +116,7 @@ export const parseImportData = (
     const cols = parseRow(rows[i])
     if (cols.length < 2) continue // Skip empty or malformed lines
 
-    const record: any = { id: crypto.randomUUID() }
+    const record: any = { id: crypto.randomUUID(), date: null }
     let hasError = false
     let rowErrorPrefix = `Linha ${i + 1}: `
 
@@ -127,17 +124,7 @@ export const parseImportData = (
     headerMap.forEach((map) => {
       if (cols[map.index] !== undefined) {
         const val = cols[map.index]
-        if (map.field === 'date') {
-          // Try to parse date
-          // Expected formats: YYYY-MM-DD, DD/MM/YYYY
-          if (val.includes('/')) {
-            const parts = val.split('/')
-            if (parts.length === 3)
-              record.date = `${parts[2]}-${parts[1]}-${parts[0]}` // DD/MM/YYYY -> YYYY-MM-DD
-          } else {
-            record.date = val
-          }
-        } else if (map.field === 'company') {
+        if (map.field === 'company') {
           record.company = val
         } else if (map.field === 'material') {
           record.material = val
@@ -157,9 +144,6 @@ export const parseImportData = (
     if (!record.company && defaultCompany) {
       record.company = defaultCompany
     }
-
-    // Validation
-    // Removed date validation as it is now optional
 
     if (!record.company) {
       errors.push(`${rowErrorPrefix}Empresa não identificada.`)

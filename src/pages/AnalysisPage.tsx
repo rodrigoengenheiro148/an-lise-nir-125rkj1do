@@ -65,9 +65,7 @@ const AnalysisPage = () => {
         if (cols.length < 3) continue
 
         const company = cols[0] || 'Unknown'
-        // Date is now optional
-        const dateRaw = cols[1]
-        const date = dateRaw && dateRaw.length > 5 ? dateRaw : null
+        // Date parsing removed
 
         let material: string | undefined = undefined
         if (materialIdx >= 0 && cols[materialIdx]) {
@@ -77,19 +75,36 @@ const AnalysisPage = () => {
         const record: any = {
           id: crypto.randomUUID(),
           company,
-          date,
+          date: null,
           material,
         }
 
-        let colIdx = 2
-        // Adjust for material column if it's in the way of standard metrics (cols 2+)
-        if (
-          materialIdx === 2 ||
-          (!material && cols.length > METRICS.length * 3 + 2)
-        ) {
-          if (!material) record.material = cols[2]
-          colIdx = 3
+        let colIdx = 1 // Start reading metrics after company
+        if (materialIdx === 1) {
+          // If material is second column
+          colIdx = 2
         }
+
+        // This is a rough heuristic, usually specific to the user's excel format
+        // Assuming format: Company | Material | Metrics... or Company | Metrics...
+        // Previous code assumed Date was second column, so metrics started at 2 or 3
+        // Now metrics might start earlier if date is gone.
+        // However, usually copy-paste retains structure.
+        // If user removed Date column from excel, fine. If not, it will be ignored or read as garbage number.
+        // Let's try to be robust: assume metric columns are numeric groups of 3 (LAB, NIR, ANL)
+
+        // Reset colIdx to find where numbers start
+        // Find first numeric column after company/material
+
+        // Simple approach: skip non-numeric columns at start
+        let k = 1
+        while (
+          k < cols.length &&
+          isNaN(parseFloat(cols[k].replace(',', '.')))
+        ) {
+          k++
+        }
+        colIdx = k
 
         METRICS.forEach((metric) => {
           const lab = parseFloat(cols[colIdx]?.replace(',', '.') || '0')
@@ -210,7 +225,7 @@ const AnalysisPage = () => {
                 Copie as células do Excel e cole abaixo. A ordem esperada é:
                 <br />
                 <code className="bg-zinc-800 px-1 rounded text-xs">
-                  Empresa | Data | [Material] |{' '}
+                  Empresa | [Material] |{' '}
                   {METRICS.slice(0, 2)
                     .map(
                       (m) => `${m.label} LAB | ${m.label} NIR | ${m.label} ANL`,
@@ -320,7 +335,6 @@ const AnalysisPage = () => {
                 <TableHeader>
                   <TableRow className="border-zinc-800 hover:bg-transparent">
                     <TableHead className="text-zinc-400">Empresa</TableHead>
-                    <TableHead className="text-zinc-400">Data</TableHead>
                     <TableHead className="text-zinc-400">Material</TableHead>
                     {METRICS.slice(0, 5).map((m) => (
                       <TableHead
@@ -333,7 +347,6 @@ const AnalysisPage = () => {
                     ))}
                   </TableRow>
                   <TableRow className="border-zinc-800 hover:bg-transparent text-xs">
-                    <TableHead></TableHead>
                     <TableHead></TableHead>
                     <TableHead></TableHead>
                     {METRICS.slice(0, 5).map((m) => (
@@ -355,9 +368,6 @@ const AnalysisPage = () => {
                     >
                       <TableCell className="font-medium text-zinc-300">
                         {row.company}
-                      </TableCell>
-                      <TableCell className="text-zinc-400 whitespace-nowrap">
-                        {row.date || '-'}
                       </TableCell>
                       <TableCell className="text-zinc-400">
                         {row.material || '-'}
