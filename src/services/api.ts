@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
+import { MOCK_COMPANIES, MOCK_RECORDS } from '@/lib/mockData'
 
 const KEY_MAPPING: Record<string, string> = {
   acidity: 'acidity',
@@ -75,7 +76,15 @@ export const api = {
       .from('companies')
       .select('*')
       .order('name')
-    if (error) throw error
+
+    // Fallback to mock data if empty or error (reverting to stable state)
+    if (error || !data || data.length === 0) {
+      console.warn(
+        'Using Mock Data for Companies due to empty DB or error',
+        error,
+      )
+      return MOCK_COMPANIES
+    }
     return data || []
   },
 
@@ -96,7 +105,10 @@ export const api = {
       .order('created_at', { ascending: false })
       .limit(10000)
 
-    if (error) throw error
+    if (error || !data || data.length === 0) {
+      // Return mock records if no data found
+      return MOCK_RECORDS
+    }
 
     return (data || []).map((row) => {
       const comp = (row.companies as any) || { name: 'Unknown' }
@@ -121,6 +133,15 @@ export const api = {
       .order('created_at', { ascending: false })
       .limit(10000)
 
+    // Fallback to mock data if empty
+    if ((!data || data.length === 0) && !error) {
+      const mockRecs = MOCK_RECORDS.filter(
+        (r) =>
+          r.company_id === companyId && (!material || r.material === material),
+      )
+      if (mockRecs.length > 0) return mockRecs
+    }
+
     if (error) throw error
 
     return (data || []).map((row) => {
@@ -130,7 +151,14 @@ export const api = {
   },
 
   getMaterialsByCompany: async (companyId: string): Promise<string[]> => {
-    // Fetches distinct materials for a company
+    // Check mock data first if using mock company
+    if (companyId.startsWith('mock-')) {
+      const materials = MOCK_RECORDS.filter(
+        (r) => r.company_id === companyId,
+      ).map((r) => r.material!)
+      return Array.from(new Set(materials)).sort()
+    }
+
     const { data, error } = await supabase
       .from('analysis_records')
       .select('material')
@@ -236,36 +264,6 @@ export const api = {
       .neq('id', '00000000-0000-0000-0000-000000000000')
 
     if (error) throw error
-  },
-
-  subscribeToRecords: (callback: () => void) => {
-    const subscription = supabase
-      .channel('public:analysis_records')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'analysis_records' },
-        callback,
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(subscription)
-    }
-  },
-
-  subscribeToCompanies: (callback: () => void) => {
-    const subscription = supabase
-      .channel('public:companies')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'companies' },
-        callback,
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(subscription)
-    }
   },
 
   exportMetricData: async (

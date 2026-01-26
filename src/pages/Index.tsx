@@ -24,34 +24,36 @@ const Index = () => {
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
-  // 1. Fetch Companies
-  const fetchCompanies = useCallback(async () => {
-    setIsLoadingCompanies(true)
-    try {
-      const data = await api.getCompanies()
-      setCompanies(data)
-
-      // Automatically select first company if none selected or if selected one was deleted
-      if (data.length > 0) {
-        if (
-          !selectedCompanyId ||
-          !data.find((c) => c.id === selectedCompanyId)
-        ) {
-          setSelectedCompanyId(data[0].id)
-        }
-      } else {
-        setSelectedCompanyId('')
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setIsLoadingCompanies(false)
-    }
-  }, [selectedCompanyId])
-
+  // 1. Fetch Companies (One-time load)
   useEffect(() => {
-    fetchCompanies()
-  }, []) // Initial load
+    const loadCompanies = async () => {
+      setIsLoadingCompanies(true)
+      try {
+        const data = await api.getCompanies()
+        setCompanies(data)
+
+        // Automatically select first company if none selected or if selected one was deleted
+        if (data.length > 0) {
+          if (
+            !selectedCompanyId ||
+            !data.find((c) => c.id === selectedCompanyId)
+          ) {
+            setSelectedCompanyId(data[0].id)
+          }
+        } else {
+          setSelectedCompanyId('')
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setIsLoadingCompanies(false)
+      }
+    }
+
+    loadCompanies()
+    // Intentionally running once on mount or when selectedCompanyId changes is handled by the initial selection logic
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 2. Ensure Material Selection
   useEffect(() => {
@@ -65,18 +67,14 @@ const Index = () => {
     }
   }, [selectedCompanyId, selectedMaterial])
 
-  // 3. Fetch filtered records
+  // 3. Fetch filtered records (Reverted to simple fetch logic without realtime listeners)
   const fetchRecords = useCallback(async () => {
     if (!selectedCompanyId) {
       setFilteredRecords([])
       return
     }
 
-    // Don't show global loading spinner on realtime update to avoid flickering
-    // Only show if filteredRecords is empty
-    if (filteredRecords.length === 0) {
-      setIsLoadingRecords(true)
-    }
+    setIsLoadingRecords(true)
 
     try {
       const records = await api.getCompanyRecords(
@@ -90,30 +88,13 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId, selectedMaterial]) // Depend on filteredRecords.length is not needed here as we check current state
+  }, [selectedCompanyId, selectedMaterial])
 
   useEffect(() => {
     fetchRecords()
   }, [fetchRecords])
 
-  // Realtime updates for Records
-  useEffect(() => {
-    const unsubscribe = api.subscribeToRecords(() => {
-      fetchRecords()
-    })
-    return () => unsubscribe()
-  }, [fetchRecords])
-
-  // Realtime updates for Companies
-  useEffect(() => {
-    const unsubscribe = api.subscribeToCompanies(() => {
-      fetchCompanies()
-    })
-    return () => unsubscribe()
-  }, [fetchCompanies])
-
   const handleCompanyAdded = (newCompany: CompanyEntity) => {
-    // Optimistic update or wait for realtime
     setCompanies((prev) => [...prev, newCompany])
     setSelectedCompanyId(newCompany.id)
   }
@@ -128,9 +109,7 @@ const Index = () => {
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
         <div className="animate-pulse flex flex-col items-center">
           <Activity className="h-10 w-10 text-blue-500 mb-4" />
-          <span className="text-lg font-medium">
-            Sincronizando com Nuvem...
-          </span>
+          <span className="text-lg font-medium">Carregando Dados...</span>
         </div>
       </div>
     )
@@ -225,10 +204,10 @@ const Index = () => {
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
             <span className="text-xs text-zinc-500 uppercase font-mono flex items-center gap-2">
-              <Cloud className="h-3 w-3 text-green-500" /> Cloud Sync
+              <Cloud className="h-3 w-3 text-zinc-500" /> Status
             </span>
-            <span className="text-sm font-medium text-green-400 mt-1">
-              Conectado (Realtime)
+            <span className="text-sm font-medium text-zinc-300 mt-1">
+              Modo Clássico (No Sync)
             </span>
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">

@@ -113,33 +113,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  // Initial load
+  // Initial load only - Removed realtime subscriptions
   useEffect(() => {
     loadData()
   }, [])
-
-  // Realtime Subscriptions
-  useEffect(() => {
-    const unsubscribeRecords = api.subscribeToRecords(() => {
-      loadData()
-    })
-
-    const unsubscribeCompanies = api.subscribeToCompanies(() => {
-      loadData()
-    })
-
-    return () => {
-      unsubscribeRecords()
-      unsubscribeCompanies()
-    }
-  }, []) // Empty dependency array means this only runs on mount
 
   const refreshData = () => {
     loadData()
   }
 
   const addSamples = (newSamples: Sample[]) => {
-    // This function is kept for interface compatibility
     toast({
       title: 'Funcionalidade em atualização',
       description: 'Por favor, utilize a importação direta via banco de dados.',
