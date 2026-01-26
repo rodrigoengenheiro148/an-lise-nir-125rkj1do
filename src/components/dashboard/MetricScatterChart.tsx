@@ -64,7 +64,7 @@ export const MetricScatterChart = ({
     return { points: pts, stats: statistics, trendPoints: trend }
   }, [data, metricKey])
 
-  const chartTitle = title ? `${title} - LAB X ANL` : 'LAB X ANL'
+  const chartTitle = title ? `${title} - LAB X NIR` : 'LAB X NIR'
 
   const chartConfig = {
     points: {
@@ -81,9 +81,9 @@ export const MetricScatterChart = ({
     return (
       <div
         className={cn(
-          'flex h-full items-center justify-center text-sm text-muted-foreground',
+          'flex h-full items-center justify-center text-sm text-zinc-400',
           !compact &&
-            'min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-950/50',
+            'min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-900',
         )}
       >
         Sem dados para exibir
@@ -99,14 +99,15 @@ export const MetricScatterChart = ({
       )}
     >
       {!compact && (
-        <div className="flex items-center justify-between px-2">
-          <h4 className="text-sm font-bold text-zinc-100 uppercase tracking-wide">
+        <div className="flex flex-col space-y-2 mb-2">
+          <h4 className="text-lg font-bold text-zinc-200 uppercase tracking-wide text-center">
             {chartTitle}
           </h4>
-          <div className="flex gap-4 text-xs font-mono text-zinc-400">
+          <div className="flex justify-center gap-6 text-xs font-mono text-zinc-400 bg-zinc-950/30 py-1 rounded">
             <span>R²: {stats.r2.toFixed(3)}</span>
             <span>Slope: {stats.slope.toFixed(3)}</span>
             <span>Bias: {stats.bias.toFixed(3)}</span>
+            <span>SEP: {stats.sep.toFixed(3)}</span>
           </div>
         </div>
       )}
@@ -116,26 +117,26 @@ export const MetricScatterChart = ({
           'flex-1',
           compact
             ? 'min-h-0'
-            : 'min-h-[300px] bg-zinc-950/50 rounded-lg border border-zinc-800 p-4',
+            : 'min-h-[400px] bg-[#27272a] rounded-lg border border-zinc-700 p-4 shadow-xl',
         )}
       >
         <ChartContainer config={chartConfig} className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               margin={{
-                top: 10,
-                right: compact ? 10 : 30,
-                bottom: compact ? 0 : 20,
-                left: compact ? -20 : 10,
+                top: 20,
+                right: 30,
+                bottom: 20,
+                left: 10,
               }}
             >
               <defs>
                 <filter
                   id={`glow-${safeFilterId}`}
-                  height="300%"
-                  width="300%"
-                  x="-100%"
-                  y="-100%"
+                  x="-50%"
+                  y="-50%"
+                  width="200%"
+                  height="200%"
                 >
                   <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                   <feMerge>
@@ -146,8 +147,8 @@ export const MetricScatterChart = ({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#333"
-                strokeOpacity={0.5}
+                stroke="#52525b"
+                strokeOpacity={0.4}
                 vertical={true}
                 horizontal={true}
               />
@@ -155,38 +156,40 @@ export const MetricScatterChart = ({
                 type="number"
                 dataKey="x"
                 name="LAB"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                tickLine={{ stroke: '#71717a' }}
+                axisLine={{ stroke: '#71717a' }}
+                tick={{ fill: '#e4e4e7', fontSize: 11 }}
                 domain={['auto', 'auto']}
                 label={{
-                  value: `LAB (${unit})`,
+                  value: 'LAB',
                   position: 'insideBottom',
-                  offset: compact ? -5 : -10,
-                  fill: '#a1a1aa',
-                  fontSize: 10,
+                  offset: -10,
+                  fill: '#e4e4e7',
+                  fontSize: 12,
+                  fontWeight: 600,
                 }}
               />
               <YAxis
                 type="number"
                 dataKey="y"
-                name="ANL"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                name="NIR"
+                tickLine={{ stroke: '#71717a' }}
+                axisLine={{ stroke: '#71717a' }}
+                tick={{ fill: '#e4e4e7', fontSize: 11 }}
                 domain={['auto', 'auto']}
                 label={{
-                  value: `ANL (${unit})`,
+                  value: 'NIR',
                   angle: -90,
                   position: 'insideLeft',
-                  fill: '#a1a1aa',
-                  fontSize: 10,
-                  offset: compact ? 10 : 0,
+                  fill: '#e4e4e7',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  offset: 0,
                 }}
               />
               <Tooltip
                 cursor={{
-                  stroke: '#52525b',
+                  stroke: '#a1a1aa',
                   strokeWidth: 1,
                   strokeDasharray: '4 4',
                 }}
@@ -197,8 +200,8 @@ export const MetricScatterChart = ({
                     )?.payload
                     if (!dataPoint) return null
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50">
-                        <div className="font-bold text-zinc-100 mb-2">
+                      <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 shadow-xl text-xs z-50">
+                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-800 pb-1">
                           {dataPoint.original.company}
                         </div>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-zinc-400">
@@ -214,7 +217,7 @@ export const MetricScatterChart = ({
                           <span className="text-right text-zinc-100 font-mono font-medium">
                             {dataPoint.x.toFixed(2)}
                           </span>
-                          <span>ANL/NIR:</span>
+                          <span>NIR (Pred):</span>
                           <span
                             className="text-right font-mono font-medium"
                             style={{ color: color }}
@@ -245,6 +248,9 @@ export const MetricScatterChart = ({
                 fill="var(--color-points)"
                 shape="circle"
                 style={{ filter: `url(#glow-${safeFilterId})` }}
+                stroke="#ffffff"
+                strokeWidth={1}
+                strokeOpacity={0.5}
               >
                 {points.map((entry, index) => (
                   <Cell
@@ -258,7 +264,7 @@ export const MetricScatterChart = ({
                 data={trendPoints}
                 dataKey="y"
                 stroke="var(--color-trend)"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 dot={false}
                 activeDot={false}
                 isAnimationActive={false}
