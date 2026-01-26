@@ -46,7 +46,8 @@ export const ResidualScatter = ({
   height = '100%',
 }: ResidualScatterProps) => {
   const metricInfo = METRICS.find((m) => m.key === metricKey) || METRICS[0]
-  const cyanColor = '#22d3ee'
+  const color = metricInfo.color
+  const filterId = `glow-residual-${metricKey}`
 
   const chartData = useMemo(() => {
     return data
@@ -91,11 +92,11 @@ export const ResidualScatter = ({
   const chartConfig = {
     residual: {
       label: 'Resíduo',
-      color: cyanColor,
+      color: color,
     },
     trend: {
       label: 'Tendência',
-      color: cyanColor,
+      color: color,
     },
   } satisfies ChartConfig
 
@@ -106,6 +107,12 @@ export const ResidualScatter = ({
     >
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
+          <defs>
+            <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="#333"
@@ -151,7 +158,7 @@ export const ResidualScatter = ({
           <Line
             data={trendLine}
             dataKey="residual"
-            stroke={cyanColor}
+            stroke={color}
             strokeWidth={2}
             dot={false}
             activeDot={false}
@@ -163,9 +170,10 @@ export const ResidualScatter = ({
           <Scatter
             name="Amostras"
             data={chartData}
-            fill={cyanColor}
+            fill={color}
             shape="circle"
             className="glow-point"
+            style={{ filter: `url(#${filterId})` }}
             fillOpacity={0.8}
           />
         </ComposedChart>

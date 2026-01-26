@@ -7,7 +7,6 @@ import {
   YAxis,
   Scatter,
   ResponsiveContainer,
-  Tooltip,
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import {
@@ -21,7 +20,7 @@ import { calculateStats } from '@/lib/stats'
 interface MetricEvolutionChartProps {
   data: AnalysisRecord[]
   metricKey: MetricKey
-  color: string // Kept for compatibility, but we will use Cyan for the chart as requested
+  color: string
   unit: string
   height?: string | number
 }
@@ -29,10 +28,11 @@ interface MetricEvolutionChartProps {
 export const MetricEvolutionChart = ({
   data,
   metricKey,
+  color,
   unit,
   height = '100%',
 }: MetricEvolutionChartProps) => {
-  const CYAN_COLOR = '#22d3ee' // Cyan-400
+  const filterId = `glow-${metricKey}`
 
   const chartData = useMemo(() => {
     return data
@@ -87,7 +87,7 @@ export const MetricEvolutionChart = ({
   const chartConfig = {
     anl: {
       label: 'ANL',
-      color: CYAN_COLOR,
+      color: color,
     },
     lab: {
       label: 'LAB',
@@ -109,7 +109,13 @@ export const MetricEvolutionChart = ({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
-              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <filter
+                id={filterId}
+                x="-20%"
+                y="-20%"
+                width="140%"
+                height="140%"
+              >
                 <feGaussianBlur stdDeviation="2" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
@@ -158,7 +164,7 @@ export const MetricEvolutionChart = ({
             <Line
               data={trendLine}
               dataKey="anl"
-              stroke={CYAN_COLOR}
+              stroke={color}
               strokeWidth={2}
               dot={false}
               activeDot={false}
@@ -169,9 +175,9 @@ export const MetricEvolutionChart = ({
             <Scatter
               data={chartData}
               name="Amostras"
-              fill={CYAN_COLOR}
+              fill={color}
               shape="circle"
-              style={{ filter: 'url(#glow)' }}
+              style={{ filter: `url(#${filterId})` }}
             />
           </ComposedChart>
         </ResponsiveContainer>
