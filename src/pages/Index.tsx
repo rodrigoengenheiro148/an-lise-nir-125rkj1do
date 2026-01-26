@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
+import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
@@ -10,10 +11,13 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
+  const [materials, setMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
@@ -48,7 +52,33 @@ const Index = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 2. Fetch filtered records
+  // 2. Fetch Materials for Company
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      if (!selectedCompanyId) {
+        setMaterials([])
+        setSelectedMaterial('')
+        return
+      }
+
+      setIsLoadingMaterials(true)
+      try {
+        const mats = await api.getCompanyMaterials(selectedCompanyId)
+        setMaterials(mats)
+        // Reset material selection when company changes
+        setSelectedMaterial('')
+      } catch (error) {
+        console.error('Error fetching materials:', error)
+        setMaterials([])
+      } finally {
+        setIsLoadingMaterials(false)
+      }
+    }
+
+    fetchMaterials()
+  }, [selectedCompanyId])
+
+  // 3. Fetch filtered records
   const fetchRecords = useCallback(async () => {
     if (!selectedCompanyId) {
       setFilteredRecords([])
@@ -58,7 +88,10 @@ const Index = () => {
     setIsLoadingRecords(true)
 
     try {
-      const records = await api.getCompanyRecords(selectedCompanyId)
+      const records = await api.getCompanyRecords(
+        selectedCompanyId,
+        selectedMaterial,
+      )
       setFilteredRecords(records)
     } catch (error) {
       console.error(error)
@@ -66,7 +99,7 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId])
+  }, [selectedCompanyId, selectedMaterial])
 
   useEffect(() => {
     fetchRecords()
@@ -122,6 +155,15 @@ const Index = () => {
                   }}
                   onCompanyAdded={handleCompanyAdded}
                   isLoading={isLoadingCompanies}
+                />
+              </div>
+              <div className="w-full sm:w-[250px]">
+                <MaterialSelector
+                  selectedMaterial={selectedMaterial}
+                  materials={materials}
+                  onSelect={setSelectedMaterial}
+                  isLoading={isLoadingMaterials}
+                  disabled={!selectedCompanyId}
                 />
               </div>
             </div>
@@ -195,6 +237,11 @@ const Index = () => {
               <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
                 <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
                 Dispersão por Parâmetro (LAB vs ANL)
+                {selectedMaterial && (
+                  <span className="text-sm font-normal text-zinc-500 ml-2">
+                    - {selectedMaterial}
+                  </span>
+                )}
               </h2>
             </div>
 

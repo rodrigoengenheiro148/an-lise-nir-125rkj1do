@@ -116,17 +116,29 @@ export const api = {
     })
   },
 
-  getCompanyRecords: async (companyId: string): Promise<AnalysisRecord[]> => {
-    const { data, error } = await supabase
+  getCompanyRecords: async (
+    companyId: string,
+    material?: string,
+  ): Promise<AnalysisRecord[]> => {
+    let query = supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(10000)
 
+    if (material) {
+      query = query.eq('material', material)
+    }
+
+    const { data, error } = await query
+
     // Fallback to mock data if empty
     if ((!data || data.length === 0) && !error) {
-      const mockRecs = MOCK_RECORDS.filter((r) => r.company_id === companyId)
+      let mockRecs = MOCK_RECORDS.filter((r) => r.company_id === companyId)
+      if (material) {
+        mockRecs = mockRecs.filter((r) => r.material === material)
+      }
       if (mockRecs.length > 0) return mockRecs
     }
 
@@ -136,6 +148,30 @@ export const api = {
       const comp = (row.companies as any) || { name: 'Unknown' }
       return transformRecordFromDB(row, comp)
     })
+  },
+
+  getCompanyMaterials: async (companyId: string): Promise<string[]> => {
+    const { data, error } = await supabase
+      .from('analysis_records')
+      .select('material')
+      .eq('company_id', companyId)
+      .limit(10000)
+
+    // Fallback to mock if error or empty (to maintain consistency with getCompanyRecords)
+    if (error || !data || data.length === 0) {
+      const mockRecs = MOCK_RECORDS.filter((r) => r.company_id === companyId)
+      if (mockRecs.length > 0) {
+        return Array.from(
+          new Set(mockRecs.map((r) => r.material).filter(Boolean) as string[]),
+        ).sort()
+      }
+    }
+
+    if (error) throw error
+
+    return Array.from(
+      new Set(data?.map((d) => d.material).filter(Boolean) as string[]),
+    ).sort()
   },
 
   getUniqueMaterials: async (): Promise<string[]> => {
