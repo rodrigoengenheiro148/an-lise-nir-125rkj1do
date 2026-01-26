@@ -18,6 +18,7 @@ import {
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { MetricEvolutionChart } from './MetricEvolutionChart'
 import { MetricHistogram } from './MetricHistogram'
+import { MetricScatterChart } from './MetricScatterChart'
 import { ResidualScatter } from './ResidualChart'
 import { MetricDataDialog } from './MetricDataDialog'
 import { cn } from '@/lib/utils'
@@ -191,12 +192,12 @@ export const MetricCard = ({
               </TabsList>
 
               <TabsContent value="correlation" className="flex-1 min-h-0">
-                <MetricEvolutionChart
+                <MetricScatterChart
                   data={data}
                   metricKey={metricKey}
                   color={color}
                   unit={unit}
-                  height="100%"
+                  title={title}
                 />
               </TabsContent>
 
@@ -205,7 +206,12 @@ export const MetricCard = ({
               </TabsContent>
 
               <TabsContent value="residuals" className="flex-1 min-h-0">
-                <ResidualScatter data={data} metricKey={metricKey} />
+                <ResidualScatter
+                  data={data}
+                  metricKey={metricKey}
+                  unit={unit}
+                  title={title}
+                />
               </TabsContent>
             </Tabs>
           </div>

@@ -1,23 +1,4 @@
-import { useMemo, useState } from 'react'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogHeader,
-  DialogTitle as DialogTitleComponent,
-} from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Maximize2 } from 'lucide-react'
-import { AnalysisRecord, MetricKey } from '@/types/dashboard'
-import { calculateStats } from '@/lib/stats'
+import { useMemo } from 'react'
 import {
   ComposedChart,
   Line,
@@ -30,41 +11,26 @@ import {
   Cell,
 } from 'recharts'
 import { ChartContainer } from '@/components/ui/chart'
-import useDashboardStore from '@/stores/useDashboardStore'
+import { AnalysisRecord, MetricKey } from '@/types/dashboard'
+import { calculateStats } from '@/lib/stats'
 
 interface MetricScatterChartProps {
-  title: string
   data: AnalysisRecord[]
   metricKey: MetricKey
   color: string
   unit: string
+  title?: string
 }
 
 export const MetricScatterChart = ({
-  title,
   data,
   metricKey,
   unit,
+  title,
 }: MetricScatterChartProps) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const { selectedCompanyId, selectedMaterial } = useDashboardStore()
-
-  // Filter data based on global selection
-  const filteredData = useMemo(() => {
-    return data.filter((item) => {
-      const matchCompany =
-        !selectedCompanyId || item.company_id === selectedCompanyId
-      const matchMaterial =
-        !selectedMaterial ||
-        (item.material &&
-          item.material.toLowerCase() === selectedMaterial.toLowerCase())
-      return matchCompany && matchMaterial
-    })
-  }, [data, selectedCompanyId, selectedMaterial])
-
   // Calculate stats and prepare data for Scatter Plot
   const { points, stats, trendPoints } = useMemo(() => {
-    const pts = filteredData
+    const pts = data
       .map((item) => {
         const lab = Number(item[`${metricKey}_lab`])
         const anl = Number(item[`${metricKey}_anl`])
@@ -89,9 +55,9 @@ export const MetricScatterChart = ({
     }
 
     return { points: pts, stats: statistics, trendPoints: trend }
-  }, [filteredData, metricKey])
+  }, [data, metricKey])
 
-  const chartTitle = `${title} - LAB X NIR`
+  const chartTitle = title ? `${title} - LAB X NIR` : 'LAB X NIR'
 
   const chartConfig = {
     points: {
@@ -100,231 +66,161 @@ export const MetricScatterChart = ({
     },
     trend: {
       label: 'Tendência',
-      color: '#0891b2', // Cyan-600
+      color: '#0e7490', // Cyan-700
     },
   }
 
-  const ChartRender = ({ height = '100%' }: { height?: string | number }) => {
-    if (points.length === 0) {
-      return (
-        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-          Sem dados para exibir
-        </div>
-      )
-    }
-
+  if (points.length === 0) {
     return (
-      <ChartContainer config={chartConfig} className="h-full w-full">
-        <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-            <defs>
-              <filter id="glow" height="300%" width="300%" x="-100%" y="-100%">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#333"
-              strokeOpacity={0.4}
-              vertical={true}
-              horizontal={true}
-            />
-            <XAxis
-              type="number"
-              dataKey="x"
-              name="LAB"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: '#71717a', fontSize: 10 }}
-              domain={['auto', 'auto']}
-              label={{
-                value: `LAB (${unit})`,
-                position: 'insideBottom',
-                offset: -10,
-                fill: '#71717a',
-                fontSize: 10,
-              }}
-            />
-            <YAxis
-              type="number"
-              dataKey="y"
-              name="NIR"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: '#71717a', fontSize: 10 }}
-              domain={['auto', 'auto']}
-              label={{
-                value: `NIR (${unit})`,
-                angle: -90,
-                position: 'insideLeft',
-                fill: '#71717a',
-                fontSize: 10,
-              }}
-            />
-            <Tooltip
-              cursor={{
-                stroke: '#ffffff',
-                strokeWidth: 1,
-                strokeDasharray: '4 4',
-              }}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const dataPoint = payload.find(
-                    (p) => p.name === 'points',
-                  )?.payload
-                  if (!dataPoint) return null
-                  return (
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-2 shadow-xl text-xs">
-                      <div className="font-bold text-zinc-200 mb-1">
-                        {dataPoint.original.company}
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-zinc-400">
-                        <span>LAB:</span>
-                        <span className="text-right text-zinc-100 font-mono">
-                          {dataPoint.x.toFixed(2)}
-                        </span>
-                        <span>NIR:</span>
-                        <span className="text-right text-cyan-400 font-mono">
-                          {dataPoint.y.toFixed(2)}
-                        </span>
-                        <span>Erro:</span>
-                        <span className="text-right text-red-400 font-mono">
-                          {(dataPoint.x - dataPoint.y).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              }}
-            />
-            <Scatter
-              name="points"
-              data={points}
-              fill="var(--color-points)"
-              style={{ filter: 'url(#glow)' }}
-            >
-              {points.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="var(--color-points)" />
-              ))}
-            </Scatter>
-            <Line
-              name="trend"
-              data={trendPoints}
-              dataKey="y"
-              stroke="var(--color-trend)"
-              strokeWidth={2}
-              dot={false}
-              activeDot={false}
-              isAnimationActive={false}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </ChartContainer>
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-950/50">
+        Sem dados para exibir
+      </div>
     )
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="flex flex-col h-full border-zinc-800 bg-zinc-950 text-zinc-100 shadow-md group">
-        <CardHeader className="p-4 pb-2 border-b border-zinc-800 flex flex-row items-start justify-between space-y-0">
-          <div>
-            <CardTitle className="text-lg font-bold text-zinc-100 uppercase tracking-wide font-display">
-              {chartTitle}
-            </CardTitle>
-            <CardDescription className="text-xs text-zinc-400 font-mono mt-1">
-              R²: {stats.r2.toFixed(3)} | Slope: {stats.slope.toFixed(3)} |
-              Bias: {stats.bias.toFixed(3)}
-            </CardDescription>
-          </div>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-zinc-500 hover:text-white -mr-2"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-        </CardHeader>
-        <CardContent className="flex-1 p-2 min-h-[300px] relative bg-zinc-950/50">
-          <ChartRender height="100%" />
-        </CardContent>
-      </Card>
-
-      <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100 p-0 overflow-hidden">
-        <div className="flex flex-col h-full">
-          <DialogHeader className="p-6 pb-2 border-b border-zinc-800">
-            <DialogTitleComponent className="flex gap-4 items-baseline uppercase">
-              <span className="text-xl font-bold">{title}</span>
-              <span className="text-sm font-normal text-zinc-400">
-                Visualização Detalhada
-              </span>
-            </DialogTitleComponent>
-          </DialogHeader>
-
-          <Tabs defaultValue="correlation" className="flex-1 flex flex-col">
-            <div className="px-6 border-b border-zinc-800 bg-zinc-950/50">
-              <TabsList className="bg-transparent h-12 p-0 gap-6">
-                <TabsTrigger
-                  value="correlation"
-                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-white px-0 font-medium transition-none"
-                >
-                  Correlação
-                </TabsTrigger>
-                <TabsTrigger
-                  value="histogram"
-                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-white px-0 font-medium transition-none"
-                >
-                  Histograma (LAB)
-                </TabsTrigger>
-                <TabsTrigger
-                  value="residuals"
-                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-white px-0 font-medium transition-none"
-                >
-                  Dispersão Resíduos
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <div className="flex-1 p-6 min-h-0 bg-zinc-950">
-              <TabsContent
-                value="correlation"
-                className="h-full m-0 data-[state=active]:flex flex-col"
-              >
-                <div className="mb-4 text-xs font-mono text-zinc-400 flex gap-4">
-                  <span>R²: {stats.r2.toFixed(4)}</span>
-                  <span>Slope: {stats.slope.toFixed(4)}</span>
-                  <span>Intercept: {stats.intercept.toFixed(4)}</span>
-                  <span>Bias: {stats.bias.toFixed(4)}</span>
-                  <span>SEP: {stats.sep.toFixed(4)}</span>
-                </div>
-                <div className="flex-1 min-h-0">
-                  <ChartRender height="100%" />
-                </div>
-              </TabsContent>
-
-              <TabsContent
-                value="histogram"
-                className="h-full m-0 flex items-center justify-center text-zinc-500"
-              >
-                Em desenvolvimento
-              </TabsContent>
-
-              <TabsContent
-                value="residuals"
-                className="h-full m-0 flex items-center justify-center text-zinc-500"
-              >
-                Em desenvolvimento
-              </TabsContent>
-            </div>
-          </Tabs>
+    <div className="h-full w-full flex flex-col space-y-2">
+      <div className="flex items-center justify-between px-2">
+        <h4 className="text-sm font-bold text-zinc-100 uppercase tracking-wide">
+          {chartTitle}
+        </h4>
+        <div className="flex gap-4 text-xs font-mono text-zinc-400">
+          <span>R²: {stats.r2.toFixed(3)}</span>
+          <span>Slope: {stats.slope.toFixed(3)}</span>
+          <span>Bias: {stats.bias.toFixed(3)}</span>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      <div className="flex-1 min-h-[300px] bg-zinc-950/50 rounded-lg border border-zinc-800 p-4">
+        <ChartContainer config={chartConfig} className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              margin={{ top: 20, right: 30, bottom: 20, left: 10 }}
+            >
+              <defs>
+                <filter
+                  id="glow"
+                  height="300%"
+                  width="300%"
+                  x="-100%"
+                  y="-100%"
+                >
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#333"
+                strokeOpacity={0.5}
+                vertical={true}
+                horizontal={true}
+              />
+              <XAxis
+                type="number"
+                dataKey="x"
+                name="LAB"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                domain={['auto', 'auto']}
+                label={{
+                  value: `LAB (${unit})`,
+                  position: 'insideBottom',
+                  offset: -10,
+                  fill: '#a1a1aa',
+                  fontSize: 10,
+                }}
+              />
+              <YAxis
+                type="number"
+                dataKey="y"
+                name="NIR"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                domain={['auto', 'auto']}
+                label={{
+                  value: `NIR (${unit})`,
+                  angle: -90,
+                  position: 'insideLeft',
+                  fill: '#a1a1aa',
+                  fontSize: 10,
+                }}
+              />
+              <Tooltip
+                cursor={{
+                  stroke: '#52525b',
+                  strokeWidth: 1,
+                  strokeDasharray: '4 4',
+                }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const dataPoint = payload.find(
+                      (p) => p.name === 'points',
+                    )?.payload
+                    if (!dataPoint) return null
+                    return (
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs">
+                        <div className="font-bold text-zinc-100 mb-2">
+                          {dataPoint.original.company}
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-zinc-400">
+                          <span>Data:</span>
+                          <span className="text-right text-zinc-300">
+                            {dataPoint.original.date
+                              ? new Date(
+                                  dataPoint.original.date,
+                                ).toLocaleDateString()
+                              : '-'}
+                          </span>
+                          <span>LAB:</span>
+                          <span className="text-right text-zinc-100 font-mono font-medium">
+                            {dataPoint.x.toFixed(2)}
+                          </span>
+                          <span>NIR:</span>
+                          <span className="text-right text-cyan-400 font-mono font-medium">
+                            {dataPoint.y.toFixed(2)}
+                          </span>
+                          <span>Erro:</span>
+                          <span className="text-right text-red-400 font-mono">
+                            {(dataPoint.x - dataPoint.y).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+              />
+              <Scatter
+                name="points"
+                data={points}
+                fill="var(--color-points)"
+                shape="circle"
+                style={{ filter: 'url(#glow)' }}
+              >
+                {points.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill="var(--color-points)" />
+                ))}
+              </Scatter>
+              <Line
+                name="trend"
+                data={trendPoints}
+                dataKey="y"
+                stroke="var(--color-trend)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    </div>
   )
 }
