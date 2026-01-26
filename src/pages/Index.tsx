@@ -1,24 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Company, AnalysisRecord, METRICS } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
-import { DataManagementTable } from '@/components/dashboard/DataManagementTable'
-import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Activity, TrendingUp, Cloud, X } from 'lucide-react'
+import { Activity, TrendingUp, Cloud } from 'lucide-react'
 
 const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company>('')
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
-  const [selectedSubmaterial, setSelectedSubmaterial] = useState<string>('')
-
   const [allRecords, setAllRecords] = useState<AnalysisRecord[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,55 +26,22 @@ const Index = () => {
     } finally {
       setLoading(false)
     }
-  }, [selectedCompany]) // Added selectedCompany dep though strictly not needed for logic inside, but nice for init
+  }, [selectedCompany])
 
   useEffect(() => {
     fetchData()
     // Subscribe to realtime changes
     const unsubscribe = api.subscribeToRecords(fetchData)
     return () => unsubscribe()
-  }, []) // Removed dependency on fetchData to avoid loop if not memoized properly, but added useCallback above
-
-  // Extract unique materials and submaterials for the current company
-  const { uniqueMaterials, uniqueSubmaterials } = useMemo(() => {
-    const mats = new Set<string>()
-    const subMats = new Set<string>()
-
-    const scope = selectedCompany
-      ? allRecords.filter((r) => r.company === selectedCompany)
-      : allRecords
-
-    scope.forEach((r) => {
-      if (r.material) mats.add(r.material.trim().toUpperCase())
-      if (r.submaterial) subMats.add(r.submaterial.trim().toUpperCase())
-    })
-
-    return {
-      uniqueMaterials: Array.from(mats).sort(),
-      uniqueSubmaterials: Array.from(subMats).sort(),
-    }
-  }, [allRecords, selectedCompany])
+  }, [])
 
   useEffect(() => {
     if (selectedCompany) {
-      let filtered = allRecords.filter((r) => r.company === selectedCompany)
-
-      if (selectedMaterial) {
-        filtered = filtered.filter(
-          (r) => r.material?.trim().toUpperCase() === selectedMaterial,
-        )
-      }
-
-      if (selectedSubmaterial) {
-        filtered = filtered.filter(
-          (r) => r.submaterial?.trim().toUpperCase() === selectedSubmaterial,
-        )
-      }
-
+      const filtered = allRecords.filter((r) => r.company === selectedCompany)
       // Records are already sorted by created_at desc from API
       setFilteredRecords(filtered)
     }
-  }, [selectedCompany, selectedMaterial, selectedSubmaterial, allRecords])
+  }, [selectedCompany, allRecords])
 
   if (loading) {
     return (
@@ -131,78 +86,11 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-4 bg-zinc-900/30 p-4 rounded-lg border border-zinc-800/50">
-          <span className="text-sm font-medium text-zinc-400">
-            Filtros Avançados:
-          </span>
-
-          {/* Material Filter */}
-          <div className="relative w-[200px]">
-            <Select
-              value={selectedMaterial}
-              onValueChange={setSelectedMaterial}
-            >
-              <SelectTrigger className="bg-zinc-950 border-zinc-800 text-zinc-200 h-9">
-                <SelectValue placeholder="Material" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 max-h-[300px]">
-                {uniqueMaterials.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedMaterial && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedMaterial('')
-                }}
-                className="absolute right-8 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-
-          {/* Submaterial Filter */}
-          <div className="relative w-[200px]">
-            <Select
-              value={selectedSubmaterial}
-              onValueChange={setSelectedSubmaterial}
-            >
-              <SelectTrigger className="bg-zinc-950 border-zinc-800 text-zinc-200 h-9">
-                <SelectValue placeholder="Submaterial" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200">
-                {uniqueSubmaterials.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedSubmaterial && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedSubmaterial('')
-                }}
-                className="absolute right-8 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* Key Indicators Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
-              Amostras (Filtradas)
+              Amostras (Total)
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-white">
@@ -261,19 +149,6 @@ const Index = () => {
               />
             ))}
           </div>
-        </div>
-
-        {/* Detailed Data Table with Residues */}
-        <div className="space-y-4 pt-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
-            <span className="h-4 w-1 bg-emerald-500 rounded-full"></span>
-            Detalhamento de Análises e Resíduos
-          </h2>
-          <DataManagementTable
-            records={filteredRecords}
-            readOnly={false}
-            onDataChange={fetchData}
-          />
         </div>
       </main>
     </div>
