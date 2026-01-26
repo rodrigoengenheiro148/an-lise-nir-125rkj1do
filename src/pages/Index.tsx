@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
-import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
@@ -11,13 +10,10 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
-  const [availableMaterials, setAvailableMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
-  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
 
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
@@ -41,54 +37,16 @@ const Index = () => {
     loadCompanies()
   }, [])
 
-  // 2. Load Materials when Company changes
-  useEffect(() => {
-    const loadMaterials = async () => {
-      if (!selectedCompanyId) {
-        setAvailableMaterials([])
-        setSelectedMaterial('')
-        return
-      }
-
-      setIsLoadingMaterials(true)
-      try {
-        const mats = await api.getMaterialsByCompany(selectedCompanyId)
-        setAvailableMaterials(mats)
-
-        // Automatic default selection logic
-        if (mats.length > 0) {
-          // If current selection is not in the new list, select the first one
-          // Or if nothing selected, select the first one
-          if (!selectedMaterial || !mats.includes(selectedMaterial)) {
-            setSelectedMaterial(mats[0])
-          }
-        } else {
-          setSelectedMaterial('')
-        }
-      } catch (e) {
-        console.error(e)
-        setAvailableMaterials([])
-        setSelectedMaterial('')
-      } finally {
-        setIsLoadingMaterials(false)
-      }
-    }
-    loadMaterials()
-  }, [selectedCompanyId])
-
-  // 3. Fetch filtered records when company or material changes
+  // 2. Fetch filtered records when company changes
   const fetchRecords = useCallback(async () => {
-    if (!selectedCompanyId || !selectedMaterial) {
+    if (!selectedCompanyId) {
       setFilteredRecords([])
       return
     }
 
     setIsLoadingRecords(true)
     try {
-      const records = await api.getFilteredRecords(
-        selectedCompanyId,
-        selectedMaterial,
-      )
+      const records = await api.getCompanyRecords(selectedCompanyId)
       setFilteredRecords(records)
     } catch (error) {
       console.error(error)
@@ -96,7 +54,7 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId, selectedMaterial])
+  }, [selectedCompanyId])
 
   useEffect(() => {
     fetchRecords()
@@ -105,23 +63,10 @@ const Index = () => {
   // Realtime updates
   useEffect(() => {
     const unsubscribe = api.subscribeToRecords(() => {
-      // Refresh materials in case new one was added
-      if (selectedCompanyId) {
-        api.getMaterialsByCompany(selectedCompanyId).then((mats) => {
-          setAvailableMaterials(mats)
-          // If we didn't have a material selected and now we do, select it
-          if (
-            mats.length > 0 &&
-            (!selectedMaterial || !mats.includes(selectedMaterial))
-          ) {
-            setSelectedMaterial(mats[0])
-          }
-        })
-      }
       fetchRecords()
     })
     return () => unsubscribe()
-  }, [fetchRecords, selectedCompanyId, selectedMaterial])
+  }, [fetchRecords])
 
   const handleCompanyAdded = (newCompany: CompanyEntity) => {
     setCompanies((prev) => [...prev, newCompany])
@@ -173,14 +118,6 @@ const Index = () => {
                   onSelect={setSelectedCompanyId}
                   onCompanyAdded={handleCompanyAdded}
                   isLoading={isLoadingCompanies}
-                />
-              </div>
-              <div className="w-full sm:w-[250px]">
-                <MaterialSelector
-                  selected={selectedMaterial}
-                  onSelect={setSelectedMaterial}
-                  materials={availableMaterials}
-                  isLoading={isLoadingMaterials}
                 />
               </div>
             </div>
@@ -264,9 +201,7 @@ const Index = () => {
               <p className="text-sm text-zinc-500">
                 {!selectedCompanyId
                   ? 'Selecione uma empresa para começar.'
-                  : !selectedMaterial
-                    ? 'Esta empresa não possui registros de materiais cadastrados.'
-                    : 'Nenhum registro encontrado para este material.'}
+                  : 'Nenhum registro encontrado para esta empresa.'}
               </p>
             </div>
           </div>

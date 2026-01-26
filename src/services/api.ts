@@ -109,15 +109,11 @@ export const api = {
     })
   },
 
-  getFilteredRecords: async (
-    companyId: string,
-    material: string,
-  ): Promise<AnalysisRecord[]> => {
+  getCompanyRecords: async (companyId: string): Promise<AnalysisRecord[]> => {
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .eq('company_id', companyId)
-      .eq('material', material)
       .order('created_at', { ascending: false })
       .limit(10000)
 
@@ -127,23 +123,6 @@ export const api = {
       const comp = (row.companies as any) || { name: 'Unknown' }
       return transformRecordFromDB(row, comp)
     })
-  },
-
-  getMaterialsByCompany: async (companyId: string): Promise<string[]> => {
-    // Limit to 10000 to ensure we get a good sample of materials
-    const { data, error } = await supabase
-      .from('analysis_records')
-      .select('material')
-      .eq('company_id', companyId)
-      .limit(10000)
-
-    if (error) throw error
-
-    // Deduplicate and sort
-    const unique = Array.from(
-      new Set(data?.map((d) => d.material).filter(Boolean) as string[]),
-    ).sort()
-    return unique
   },
 
   getUniqueMaterials: async (): Promise<string[]> => {
