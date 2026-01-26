@@ -212,7 +212,10 @@ export const api = {
     }
   },
 
-  exportMetricData: async (metricKey: string, companyId?: string) => {
+  exportMetricData: async (
+    metricKey: string,
+    companyId?: string,
+  ): Promise<Blob> => {
     const { data, error } = await supabase.functions.invoke(
       'export-metric-data',
       {
@@ -225,50 +228,52 @@ export const api = {
       console.error('Export error:', error)
       // Check for specific status in error context
       if (error && typeof error === 'object' && 'context' in error) {
-        const status = (error as any).context?.status
+        // @ts-expect-error
+        const status = error.context?.status
         if (status === 404) {
           throw new Error(
             'Não há dados para exportar com os filtros selecionados.',
           )
         }
       }
-      throw error
+      throw new Error('Falha na exportação dos dados. Tente novamente.')
     }
 
     if (!data) {
       throw new Error('Nenhum dado recebido da exportação.')
     }
 
-    // Handle Blob response (check for JSON error inside Blob)
+    let blob: Blob
+
     if (data instanceof Blob) {
-      if (data.type === 'application/json' || data.type.includes('json')) {
-        const text = await data.text()
-        try {
-          const json = JSON.parse(text)
-          if (json.error) {
-            throw new Error(json.error)
-          }
-        } catch (e) {
-          // ignore parse error
-        }
-        // If it was valid JSON but not an error, or if parsing failed, we fall through
-        // But typically JSON response with Blob type means error in this context
-      }
-      return data
+      blob = data
+    } else if (data instanceof ArrayBuffer) {
+      // Fallback if data comes as ArrayBuffer despite responseType: 'blob'
+      blob = new Blob([data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+    } else {
+      console.error('Unexpected export data format:', data)
+      throw new Error('Formato de resposta inválido (esperado Arquivo/Blob).')
     }
 
     // Check if data is a JSON object (if responseType 'blob' was ignored or fallback occurred)
-    if (typeof data === 'object' && !Array.isArray(data) && data !== null) {
-      if ((data as any).error) {
-        throw new Error((data as any).error)
+    // or if the blob content is actually a JSON error from the server
+    if (blob.type.includes('application/json') || blob.type.includes('json')) {
+      const text = await blob.text()
+      try {
+        const json = JSON.parse(text)
+        if (json.error) {
+          throw new Error(json.error)
+        }
+      } catch (e) {
+        // ignore parse error if it's not valid json
       }
+      // If it's JSON content type but we are here, it's not the expected excel file
+      // We might throw here if we are strict, but sometimes content-type might be wrong.
+      // However, for this app, we expect xlsx content type or error.
     }
 
-    // Fallback: If we got here, we have data but it's not a Blob and not an explicit error
-    // It might be that invoke returns the parsed body for application/json even with responseType: 'blob'
-    // but the edge function returns a Buffer for files.
-    // If we have an unexpected object, throw informative error.
-    console.error('Unexpected export data format:', data)
-    throw new Error('Formato de resposta inválido (esperado Arquivo/Blob).')
+    return blob
   },
 }

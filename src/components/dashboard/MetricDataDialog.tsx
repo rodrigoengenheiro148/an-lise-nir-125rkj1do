@@ -157,8 +157,9 @@ export function MetricDataDialog({
     try {
       const blob = await api.exportMetricData(metricKey, companyId || undefined)
 
-      if (!blob || !(blob instanceof Blob)) {
-        throw new Error('Arquivo de exportação inválido.')
+      // Ensure we have a Blob before proceeding
+      if (!blob) {
+        throw new Error('Erro ao obter arquivo de exportação.')
       }
 
       const url = window.URL.createObjectURL(blob)
