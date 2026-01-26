@@ -1,148 +1,97 @@
+import { useMemo } from 'react'
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Cell,
+  Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { AnalysisRecord, MetricKey, METRICS } from '@/types/dashboard'
-import { useMemo } from 'react'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
+import { AnalysisRecord, MetricKey } from '@/types/dashboard'
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 
 interface MetricHistogramProps {
   data: AnalysisRecord[]
   metricKey: MetricKey
-  height?: string | number
 }
 
-export const MetricHistogram = ({
-  data,
-  metricKey,
-  height = '100%',
-}: MetricHistogramProps) => {
-  const metricInfo = METRICS.find((m) => m.key === metricKey) || METRICS[0]
-
+export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
   const histogramData = useMemo(() => {
-    if (data.length === 0) return []
-
     const values = data
-      .map((d) => d[`${metricKey}_lab`])
-      .filter((v): v is number => typeof v === 'number' && v > 0)
+      .map((r) => r[`${metricKey}_lab`])
+      .filter((v): v is number => typeof v === 'number')
 
     if (values.length === 0) return []
 
     const min = Math.min(...values)
     const max = Math.max(...values)
-    const binCount = 15 // Increased resolution
-    const range = max - min
-    const step = range === 0 ? 1 : range / binCount
+    const range = max - min || 1
+    const bins = 10
+    const binSize = range / bins
 
-    const bins = Array.from({ length: binCount }, (_, i) => {
-      const start = min + i * step
-      const end = start + step
-      return {
-        name: `${start.toFixed(1)}-${end.toFixed(1)}`,
-        count: 0,
-        start,
-        end,
-      }
-    })
+    const buckets = Array.from({ length: bins }, (_, i) => ({
+      binStart: min + i * binSize,
+      binEnd: min + (i + 1) * binSize,
+      count: 0,
+      label: `${(min + i * binSize).toFixed(1)} - ${(
+        min +
+        (i + 1) * binSize
+      ).toFixed(1)}`,
+    }))
 
     values.forEach((v) => {
-      const bin =
-        bins.find((b) => v >= b.start && v < b.end) || bins[bins.length - 1]
-      if (v === max) {
-        bins[bins.length - 1].count++
-      } else if (bin) {
-        bin.count++
-      }
+      const bucketIndex = Math.min(Math.floor((v - min) / binSize), bins - 1)
+      buckets[bucketIndex].count++
     })
 
-    // Sort bins descending by count (frequency)
-    bins.sort((a, b) => b.count - a.count)
-
-    return bins
+    return buckets
   }, [data, metricKey])
 
   const chartConfig = {
     count: {
       label: 'Frequência',
-      color: metricInfo.color,
+      color: 'hsl(var(--primary))',
     },
   }
 
   if (histogramData.length === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-sm text-zinc-500 min-h-[200px]">
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
         Sem dados para exibir
       </div>
     )
   }
 
   return (
-    <ChartContainer
-      config={chartConfig}
-      className="w-full h-full min-h-[200px]"
-    >
-      <ResponsiveContainer width="100%" height={height}>
+    <ChartContainer config={chartConfig} className="h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={histogramData}
-          margin={{ top: 20, right: 10, left: 0, bottom: 5 }}
-          barCategoryGap="15%"
+          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
         >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="#333"
-            strokeOpacity={0.5}
-          />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
           <XAxis
-            dataKey="name"
+            dataKey="label"
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 10, fill: '#71717a' }}
-            interval={0}
-            angle={-45}
-            textAnchor="end"
-            height={60}
-            label={{
-              value: `Valor LAB (${metricInfo.unit})`,
-              position: 'insideBottom',
-              offset: -5,
-              fill: '#52525b',
-              fontSize: 10,
-            }}
+            tickMargin={10}
+            style={{ fontSize: '10px' }}
           />
           <YAxis
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 11, fill: '#71717a' }}
+            allowDecimals={false}
+            style={{ fontSize: '10px' }}
             width={30}
           />
-          <ChartTooltip
-            cursor={{ fill: '#ffffff', opacity: 0.05 }}
-            content={<ChartTooltipContent />}
-          />
+          <Tooltip content={<ChartTooltipContent hideLabel />} />
           <Bar
             dataKey="count"
+            fill="var(--color-count)"
             radius={[4, 4, 0, 0]}
-            fill={metricInfo.color}
-            fillOpacity={0.7}
-            stroke={metricInfo.color}
-            strokeWidth={1}
-            strokeOpacity={0.9}
-            animationDuration={1000}
-          >
-            {histogramData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fillOpacity={0.7} />
-            ))}
-          </Bar>
+            name="Frequência"
+          />
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>
