@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import {
-  BarChart,
+  ComposedChart,
+  Line,
   Bar,
   XAxis,
   YAxis,
@@ -9,14 +10,23 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
 
 interface MetricHistogramProps {
   data: AnalysisRecord[]
   metricKey: MetricKey
+  color?: string
 }
 
-export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
+export const MetricHistogram = ({
+  data,
+  metricKey,
+  color = 'hsl(var(--primary))',
+}: MetricHistogramProps) => {
   const histogramData = useMemo(() => {
     const values = data
       .map((r) => r[`${metricKey}_lab`])
@@ -45,13 +55,14 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
       buckets[bucketIndex].count++
     })
 
-    return buckets
+    // Sort bars from highest frequency to lowest (Pareto-like)
+    return buckets.sort((a, b) => b.count - a.count)
   }, [data, metricKey])
 
-  const chartConfig = {
+  const chartConfig: ChartConfig = {
     count: {
       label: 'Frequência',
-      color: 'hsl(var(--primary))',
+      color: color,
     },
   }
 
@@ -66,7 +77,7 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
   return (
     <ChartContainer config={chartConfig} className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
+        <ComposedChart
           data={histogramData}
           margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
         >
@@ -85,14 +96,25 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
             style={{ fontSize: '10px' }}
             width={30}
           />
-          <Tooltip content={<ChartTooltipContent hideLabel />} />
+          <Tooltip content={<ChartTooltipContent hideLabel={false} />} />
           <Bar
             dataKey="count"
-            fill="var(--color-count)"
+            fill={color}
+            fillOpacity={0.6}
             radius={[4, 4, 0, 0]}
             name="Frequência"
+            barSize={32}
           />
-        </BarChart>
+          <Line
+            type="monotone"
+            dataKey="count"
+            stroke={color}
+            strokeWidth={2}
+            dot={{ r: 3, fill: color, strokeWidth: 0 }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
+            name="Tendência"
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartContainer>
   )

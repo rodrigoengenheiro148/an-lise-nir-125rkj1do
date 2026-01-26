@@ -202,7 +202,11 @@ export const MetricCard = ({
               </TabsContent>
 
               <TabsContent value="histogram" className="flex-1 min-h-0">
-                <MetricHistogram data={data} metricKey={metricKey} />
+                <MetricHistogram
+                  data={data}
+                  metricKey={metricKey}
+                  color={color}
+                />
               </TabsContent>
 
               <TabsContent value="residuals" className="flex-1 min-h-0">
