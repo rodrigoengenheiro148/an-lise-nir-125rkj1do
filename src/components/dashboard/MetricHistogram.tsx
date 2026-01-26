@@ -40,19 +40,27 @@ export const MetricHistogram = ({
     const bins = 10
     const binSize = range / bins
 
+    // Determine precision based on bin size to avoid duplicate labels
+    const precision =
+      binSize < 1 && binSize > 0 ? Math.ceil(-Math.log10(binSize)) + 1 : 1
+    const safePrecision = Math.min(Math.max(precision, 1), 5)
+
     const buckets = Array.from({ length: bins }, (_, i) => ({
+      id: `bin-${i}`, // Unique identifier for Recharts key
       binStart: min + i * binSize,
       binEnd: min + (i + 1) * binSize,
       count: 0,
-      label: `${(min + i * binSize).toFixed(1)} - ${(
+      label: `${(min + i * binSize).toFixed(safePrecision)} - ${(
         min +
         (i + 1) * binSize
-      ).toFixed(1)}`,
+      ).toFixed(safePrecision)}`,
     }))
 
     values.forEach((v) => {
       const bucketIndex = Math.min(Math.floor((v - min) / binSize), bins - 1)
-      buckets[bucketIndex].count++
+      if (buckets[bucketIndex]) {
+        buckets[bucketIndex].count++
+      }
     })
 
     // Sort bars from highest frequency to lowest (Pareto-like)
@@ -83,11 +91,15 @@ export const MetricHistogram = ({
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
           <XAxis
-            dataKey="label"
+            dataKey="id"
             tickLine={false}
             axisLine={false}
             tickMargin={10}
             style={{ fontSize: '10px' }}
+            tickFormatter={(value) => {
+              const bucket = histogramData.find((b) => b.id === value)
+              return bucket ? bucket.label : ''
+            }}
           />
           <YAxis
             tickLine={false}
@@ -96,7 +108,16 @@ export const MetricHistogram = ({
             style={{ fontSize: '10px' }}
             width={30}
           />
-          <Tooltip content={<ChartTooltipContent hideLabel={false} />} />
+          <Tooltip
+            content={<ChartTooltipContent hideLabel={false} />}
+            labelFormatter={(value, payload) => {
+              if (payload && payload.length > 0 && payload[0].payload) {
+                return payload[0].payload.label
+              }
+              const bucket = histogramData.find((b) => b.id === value)
+              return bucket ? bucket.label : value
+            }}
+          />
           <Bar
             dataKey="count"
             fill={color}

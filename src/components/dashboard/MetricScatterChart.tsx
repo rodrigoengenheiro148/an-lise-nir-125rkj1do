@@ -247,7 +247,10 @@ export const MetricScatterChart = ({
                 style={{ filter: `url(#glow-${safeFilterId})` }}
               >
                 {points.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill="var(--color-points)" />
+                  <Cell
+                    key={entry.original.id || `cell-${index}`}
+                    fill="var(--color-points)"
+                  />
                 ))}
               </Scatter>
               <Line

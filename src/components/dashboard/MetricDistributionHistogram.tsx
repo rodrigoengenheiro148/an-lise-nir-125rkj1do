@@ -72,11 +72,17 @@ export const MetricDistributionHistogram = ({
     const range = max - min
     const step = range / binCount || 1
 
+    // Determine precision based on step size
+    const precision =
+      step < 1 && step > 0 ? Math.ceil(-Math.log10(step)) + 1 : 1
+    const safePrecision = Math.min(Math.max(precision, 1), 5)
+
     const bins = Array.from({ length: binCount }, (_, i) => {
       const start = min + i * step
       const end = start + step
       return {
-        name: `${start.toFixed(1)} - ${end.toFixed(1)}`,
+        id: `dist-bin-${i}`, // Unique ID for XAxis key
+        name: `${start.toFixed(safePrecision)} - ${end.toFixed(safePrecision)}`,
         labCount: 0,
         anlCount: 0,
         start,
@@ -135,7 +141,7 @@ export const MetricDistributionHistogram = ({
             strokeOpacity={0.5}
           />
           <XAxis
-            dataKey="name"
+            dataKey="id"
             tickLine={false}
             axisLine={false}
             tick={{ fontSize: 10, fill: '#71717a' }}
@@ -143,6 +149,10 @@ export const MetricDistributionHistogram = ({
             angle={-45}
             textAnchor="end"
             height={70}
+            tickFormatter={(value) => {
+              const bin = histogramData.find((b) => b.id === value)
+              return bin ? bin.name : ''
+            }}
             label={{
               value: `${title} (${unit})`,
               position: 'insideBottom',
@@ -167,6 +177,13 @@ export const MetricDistributionHistogram = ({
           <ChartTooltip
             cursor={{ fill: '#ffffff', opacity: 0.05 }}
             content={<ChartTooltipContent indicator="dashed" />}
+            labelFormatter={(value, payload) => {
+              if (payload && payload.length > 0 && payload[0].payload) {
+                return payload[0].payload.name
+              }
+              const bin = histogramData.find((b) => b.id === value)
+              return bin ? bin.name : value
+            }}
           />
           <Legend
             verticalAlign="top"
@@ -175,7 +192,7 @@ export const MetricDistributionHistogram = ({
               <div className="flex items-center justify-center gap-4 text-xs">
                 {payload?.map((entry: any, index: number) => (
                   <div
-                    key={`item-${index}`}
+                    key={`legend-item-${index}`}
                     className="flex items-center gap-2"
                   >
                     <span
