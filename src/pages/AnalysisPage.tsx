@@ -4,7 +4,7 @@ import { ArrowLeft, BarChart3, Loader2, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MetricScatterChart } from '@/components/dashboard/MetricScatterChart'
 import { MetricDistributionHistogram } from '@/components/dashboard/MetricDistributionHistogram'
-import { ResidualHistogram } from '@/components/dashboard/ResidualHistogram'
+import { ResidualChart } from '@/components/dashboard/ResidualChart'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS } from '@/types/dashboard'
 import {
@@ -127,7 +127,7 @@ export default function AnalysisPage() {
                   ? 'Distribuição (LAB vs ANL)'
                   : 'Correlação (LAB vs ANL)'}
               </TabsTrigger>
-              <TabsTrigger value="residual">Histograma de Resíduos</TabsTrigger>
+              <TabsTrigger value="residual">Dispersão de Resíduos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="scatter" className="space-y-6 animate-fade-in">
@@ -169,7 +169,7 @@ export default function AnalysisPage() {
             <TabsContent value="residual" className="space-y-6 animate-fade-in">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-zinc-200">
-                  Distribuição de Resíduos (Erro de Predição)
+                  Dispersão de Resíduos (LAB vs Erro)
                 </h2>
                 <span className="text-xs text-zinc-500">
                   {filteredRecords.length} amostras filtradas
@@ -177,7 +177,7 @@ export default function AnalysisPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {METRICS.map((metric) => (
-                  <ResidualHistogram
+                  <ResidualChart
                     key={metric.key}
                     data={filteredRecords}
                     metricKey={metric.key}

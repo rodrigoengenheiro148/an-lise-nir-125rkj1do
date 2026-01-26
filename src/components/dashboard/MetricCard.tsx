@@ -8,11 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Maximize2, BarChart2, Activity, Plus } from 'lucide-react'
+import {
+  Maximize2,
+  BarChart2,
+  Activity,
+  Plus,
+  ScatterChart,
+} from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { MetricEvolutionChart } from './MetricEvolutionChart'
 import { MetricHistogram } from './MetricHistogram'
-import { ResidualHistogram } from './ResidualHistogram'
+import { ResidualScatter } from './ResidualChart'
 import { MetricDataDialog } from './MetricDataDialog'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -96,7 +102,6 @@ export const MetricCard = ({
               </div>
             </div>
 
-            {/* Mini Summary Header */}
             <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
               <div className="flex flex-col">
                 <span className="text-zinc-500">LAB (Ref)</span>
@@ -157,12 +162,12 @@ export const MetricCard = ({
               defaultValue="evolution"
               className="w-full h-full flex flex-col"
             >
-              <TabsList className="grid w-full grid-cols-3 bg-zinc-900 mb-4">
+              <TabsList className="grid w-full grid-cols-3 bg-zinc-900 mb-4 border border-zinc-800">
                 <TabsTrigger
                   value="evolution"
                   className="flex items-center gap-2"
                 >
-                  <Activity className="h-4 w-4" /> Tendência (LAB vs ANL)
+                  <Activity className="h-4 w-4" /> Tendência
                 </TabsTrigger>
                 <TabsTrigger
                   value="histogram"
@@ -174,7 +179,7 @@ export const MetricCard = ({
                   value="residuals"
                   className="flex items-center gap-2"
                 >
-                  <BarChart2 className="h-4 w-4" /> Dist. Resíduos
+                  <ScatterChart className="h-4 w-4" /> Dispersão Resíduos
                 </TabsTrigger>
               </TabsList>
 
@@ -193,7 +198,7 @@ export const MetricCard = ({
               </TabsContent>
 
               <TabsContent value="residuals" className="flex-1 min-h-0">
-                <ResidualHistogram data={data} metricKey={metricKey} />
+                <ResidualScatter data={data} metricKey={metricKey} />
               </TabsContent>
             </Tabs>
           </div>
@@ -204,9 +209,7 @@ export const MetricCard = ({
         metricKey={metricKey}
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onSuccess={() => {
-          // Data refresh is handled by parent subscription
-        }}
+        onSuccess={() => {}}
       />
     </>
   )
