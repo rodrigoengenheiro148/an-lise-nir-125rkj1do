@@ -31,6 +31,8 @@ interface EditRecordDialogProps {
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   mode?: 'add' | 'edit'
+  defaultCompanyId?: string
+  defaultMaterial?: string
 }
 
 export const EditRecordDialog = ({
@@ -39,6 +41,8 @@ export const EditRecordDialog = ({
   onOpenChange,
   onSuccess,
   mode = 'edit',
+  defaultCompanyId,
+  defaultMaterial,
 }: EditRecordDialogProps) => {
   const [formData, setFormData] = useState<Partial<AnalysisRecord>>({})
   const [initialData, setInitialData] = useState<Partial<AnalysisRecord>>({})
@@ -72,12 +76,17 @@ export const EditRecordDialog = ({
         setFormData({ ...record })
         setInitialData({ ...record })
       } else if (mode === 'add') {
-        const initial = { material: '', submaterial: '', date: null }
+        const initial = {
+          material: defaultMaterial || '',
+          submaterial: '',
+          date: null,
+          company_id: defaultCompanyId || '',
+        }
         setFormData(initial)
         setInitialData(initial)
       }
     }
-  }, [open, record, mode])
+  }, [open, record, mode, defaultCompanyId, defaultMaterial])
 
   const handleChange = (key: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [key]: value }))
@@ -171,7 +180,7 @@ export const EditRecordDialog = ({
               <DialogDescription className="text-zinc-400">
                 {mode === 'edit'
                   ? 'Modifique os dados da amostra e os resultados.'
-                  : 'Cadastre uma nova amostra e insira os resultados.'}
+                  : `Cadastrando dados para: ${defaultMaterial || 'Geral'}`}
               </DialogDescription>
             </DialogHeader>
           </div>

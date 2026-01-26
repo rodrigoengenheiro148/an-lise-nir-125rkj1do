@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
+import {
+  AnalysisRecord,
+  METRICS,
+  CompanyEntity,
+  MATERIALS_OPTIONS,
+} from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
@@ -13,11 +18,9 @@ const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
-  const [materials, setMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
-  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
@@ -40,37 +43,17 @@ const Index = () => {
     loadCompanies()
   }, [])
 
-  // 2. Load Materials when Company Changes
+  // 2. Ensure Material Selection
   useEffect(() => {
-    const loadMaterials = async () => {
-      if (!selectedCompanyId) {
-        setMaterials([])
-        setSelectedMaterial('')
-        return
+    if (selectedCompanyId) {
+      // If no material selected, or selected not in options, default to first option
+      if (!selectedMaterial || !MATERIALS_OPTIONS.includes(selectedMaterial)) {
+        setSelectedMaterial(MATERIALS_OPTIONS[0])
       }
-
-      setIsLoadingMaterials(true)
-      try {
-        const data = await api.getMaterialsByCompany(selectedCompanyId)
-        setMaterials(data)
-
-        // Smart selection logic:
-        // 1. If previous material exists in new company, keep it
-        // 2. Else if materials exist, select first one
-        // 3. Else clear selection
-        setSelectedMaterial((prev) => {
-          if (prev && data.includes(prev)) return prev
-          return data.length > 0 ? data[0] : ''
-        })
-      } catch (e) {
-        console.error(e)
-        setMaterials([])
-      } finally {
-        setIsLoadingMaterials(false)
-      }
+    } else {
+      setSelectedMaterial('')
     }
-    loadMaterials()
-  }, [selectedCompanyId])
+  }, [selectedCompanyId, selectedMaterial])
 
   // 3. Fetch filtered records
   const fetchRecords = useCallback(async () => {
@@ -109,7 +92,7 @@ const Index = () => {
   const handleCompanyAdded = (newCompany: CompanyEntity) => {
     setCompanies((prev) => [...prev, newCompany])
     setSelectedCompanyId(newCompany.id)
-    setSelectedMaterial('')
+    // selectedMaterial will auto-select via useEffect
   }
 
   const selectedCompanyName = useMemo(
@@ -156,7 +139,6 @@ const Index = () => {
                   companies={companies}
                   onSelect={(id) => {
                     setSelectedCompanyId(id)
-                    // Note: selectedMaterial logic is handled in useEffect
                   }}
                   onCompanyAdded={handleCompanyAdded}
                   isLoading={isLoadingCompanies}
@@ -165,10 +147,9 @@ const Index = () => {
               <div className="w-full sm:w-[250px]">
                 <MaterialSelector
                   selectedMaterial={selectedMaterial}
-                  materials={materials}
+                  materials={MATERIALS_OPTIONS}
                   onSelect={setSelectedMaterial}
-                  isLoading={isLoadingMaterials}
-                  disabled={!selectedCompanyId || isLoadingCompanies}
+                  disabled={!selectedCompanyId}
                 />
               </div>
             </div>
@@ -183,6 +164,7 @@ const Index = () => {
               <Button
                 onClick={() => setIsAddRecordOpen(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                disabled={!selectedCompanyId}
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Adicionar</span>
@@ -243,21 +225,6 @@ const Index = () => {
               <span className="text-sm text-zinc-400">Carregando dados...</span>
             </div>
           </div>
-        ) : filteredRecords.length === 0 ? (
-          <div className="flex items-center justify-center py-20 border border-dashed border-zinc-800 rounded-lg bg-zinc-900/20">
-            <div className="flex flex-col items-center text-center max-w-md p-4">
-              <span className="text-lg font-medium text-zinc-300 mb-2">
-                Sem dados para exibir
-              </span>
-              <p className="text-sm text-zinc-500">
-                {!selectedCompanyId
-                  ? 'Selecione uma empresa para começar.'
-                  : !selectedMaterial && materials.length > 0
-                    ? 'Selecione um material.'
-                    : 'Nenhum registro encontrado para esta combinação.'}
-              </p>
-            </div>
-          </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -281,6 +248,8 @@ const Index = () => {
                   color={metric.color}
                   unit={metric.unit}
                   data={filteredRecords}
+                  selectedCompanyId={selectedCompanyId}
+                  selectedMaterial={selectedMaterial}
                 />
               ))}
             </div>
@@ -294,6 +263,8 @@ const Index = () => {
         record={null}
         mode="add"
         onSuccess={fetchRecords}
+        defaultCompanyId={selectedCompanyId}
+        defaultMaterial={selectedMaterial}
       />
     </div>
   )

@@ -74,6 +74,8 @@ interface MetricDataDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  defaultCompanyId?: string
+  defaultMaterial?: string
 }
 
 export function MetricDataDialog({
@@ -81,6 +83,8 @@ export function MetricDataDialog({
   open,
   onOpenChange,
   onSuccess,
+  defaultCompanyId,
+  defaultMaterial,
 }: MetricDataDialogProps) {
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [loading, setLoading] = useState(false)
@@ -108,15 +112,15 @@ export function MetricDataDialog({
     if (open) {
       api.getCompanies().then(setCompanies).catch(console.error)
       form.reset({
-        companyId: '',
-        material: '',
+        companyId: defaultCompanyId || '',
+        material: defaultMaterial || '',
         submaterial: '',
         date: new Date(),
         labValue: '',
         anlValue: '',
       })
     }
-  }, [open, form])
+  }, [open, form, defaultCompanyId, defaultMaterial])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true)
@@ -157,7 +161,6 @@ export function MetricDataDialog({
     try {
       const blob = await api.exportMetricData(metricKey, companyId || undefined)
 
-      // Ensure we have a Blob before proceeding
       if (!blob) {
         throw new Error('Erro ao obter arquivo de exportação.')
       }
@@ -263,6 +266,7 @@ export function MetricDataDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">
@@ -293,6 +297,7 @@ export function MetricDataDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">
@@ -321,6 +326,7 @@ export function MetricDataDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="bg-zinc-900 border-zinc-700">

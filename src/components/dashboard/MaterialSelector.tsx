@@ -31,7 +31,7 @@ export const MaterialSelector = ({
         <Select
           value={selectedMaterial}
           onValueChange={onSelect}
-          disabled={disabled || isLoading}
+          disabled={disabled}
         >
           <SelectTrigger className="w-full bg-background border-input min-w-[180px]">
             {isLoading ? (
@@ -42,7 +42,7 @@ export const MaterialSelector = ({
             ) : (
               <SelectValue
                 placeholder={
-                  materials.length === 0 ? 'Sem materiais' : 'Selecione...'
+                  materials.length === 0 ? 'Selecione...' : 'Selecione...'
                 }
               />
             )}
