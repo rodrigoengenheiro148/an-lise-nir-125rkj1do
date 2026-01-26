@@ -26,8 +26,9 @@ const Index = () => {
   // Fetch companies on mount
   useEffect(() => {
     const loadCompanies = async () => {
+      let data: CompanyEntity[] = []
       try {
-        const data = await api.getCompanies()
+        data = await api.getCompanies()
         setCompanies(data)
         if (data.length > 0 && !selectedCompany) {
           setSelectedCompany(data[0].name)
