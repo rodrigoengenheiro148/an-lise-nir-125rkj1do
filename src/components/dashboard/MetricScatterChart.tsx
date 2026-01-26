@@ -1,4 +1,4 @@
-import { useMemo, useId } from 'react'
+import { useMemo, useId, useState } from 'react'
 import {
   ComposedChart,
   Line,
@@ -24,6 +24,62 @@ interface MetricScatterChartProps {
   compact?: boolean
 }
 
+// Extracted Tooltip Component for cleaner code and line count management
+const CustomTooltip = ({
+  active,
+  payload,
+  isHoveringPoint,
+  unit,
+  color,
+}: any) => {
+  // Strict check: active AND hovering point
+  if (!active || !isHoveringPoint || !payload || !payload.length) return null
+
+  // Prioritize point data and ONLY show tooltip for points
+  const pointPayload = payload.find((p: any) => p.name === 'points')
+
+  if (pointPayload && pointPayload.payload && pointPayload.payload.original) {
+    const dataPoint = pointPayload.payload
+    return (
+      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
+        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
+          <span className="truncate max-w-[150px]">
+            {dataPoint.original.company}
+          </span>
+          <span className="text-[10px] text-zinc-500 font-normal">Amostra</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
+          <span>Data:</span>
+          <span className="text-right text-zinc-300">
+            {dataPoint.original.date
+              ? new Date(dataPoint.original.date).toLocaleDateString()
+              : '-'}
+          </span>
+          <span>LAB (Ref):</span>
+          <span className="text-right text-zinc-100 font-mono font-medium">
+            {dataPoint.x.toFixed(2)} {unit}
+          </span>
+          <span>NIR (Pred):</span>
+          <span
+            className="text-right font-mono font-medium"
+            style={{ color: color }}
+          >
+            {dataPoint.y.toFixed(2)} {unit}
+          </span>
+          <span>Resíduo:</span>
+          <span
+            className={cn('text-right font-mono font-bold', 'text-red-500')}
+          >
+            {(dataPoint.x - dataPoint.y).toFixed(2)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
+
 export const MetricScatterChart = ({
   data,
   metricKey,
@@ -32,6 +88,7 @@ export const MetricScatterChart = ({
   title,
   compact = false,
 }: MetricScatterChartProps) => {
+  const [isHoveringPoint, setIsHoveringPoint] = useState(false)
   const filterId = useId()
   const safeFilterId = filterId.replace(/:/g, '')
 
@@ -195,80 +252,17 @@ export const MetricScatterChart = ({
               />
               <Tooltip
                 cursor={false}
-                content={({ active, payload }) => {
-                  if (!active || !payload || !payload.length) return null
-
-                  // Prioritize point data and ONLY show tooltip for points
-                  const pointPayload = payload.find((p) => p.name === 'points')
-
-                  if (
-                    pointPayload &&
-                    pointPayload.payload &&
-                    pointPayload.payload.original
-                  ) {
-                    const dataPoint = pointPayload.payload
-                    return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
-                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
-                          <span className="truncate max-w-[150px]">
-                            {dataPoint.original.company}
-                          </span>
-                          <span className="text-[10px] text-zinc-500 font-normal">
-                            Amostra
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
-                          <span>Data:</span>
-                          <span className="text-right text-zinc-300">
-                            {dataPoint.original.date
-                              ? new Date(
-                                  dataPoint.original.date,
-                                ).toLocaleDateString()
-                              : '-'}
-                          </span>
-                          <span>LAB (Ref):</span>
-                          <span className="text-right text-zinc-100 font-mono font-medium">
-                            {dataPoint.x.toFixed(2)} {unit}
-                          </span>
-                          <span>NIR (Pred):</span>
-                          <span
-                            className="text-right font-mono font-medium"
-                            style={{ color: color }}
-                          >
-                            {dataPoint.y.toFixed(2)} {unit}
-                          </span>
-                          <span>Resíduo:</span>
-                          <span
-                            className={cn(
-                              'text-right font-mono font-bold',
-                              'text-red-500',
-                            )}
-                          >
-                            {(dataPoint.x - dataPoint.y).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  return null
-                }}
-              />
-              <Scatter
-                name="points"
-                data={points}
-                fill="var(--color-points)"
-                shape="circle"
-                style={{ filter: `url(#glow-${safeFilterId})` }}
-                strokeWidth={0}
-              >
-                {points.map((entry, index) => (
-                  <Cell
-                    key={entry.original.id || `cell-${index}`}
-                    fill={color}
+                content={(props) => (
+                  <CustomTooltip
+                    {...props}
+                    isHoveringPoint={isHoveringPoint}
+                    unit={unit}
+                    color={color}
                   />
-                ))}
-              </Scatter>
+                )}
+              />
+
+              {/* Trend Line rendered BEFORE Scatter so points are on top and receive events */}
               <Line
                 name="trend"
                 data={trendPoints}
@@ -280,6 +274,24 @@ export const MetricScatterChart = ({
                 isAnimationActive={false}
                 tooltipType="none"
               />
+
+              <Scatter
+                name="points"
+                data={points}
+                fill="var(--color-points)"
+                shape="circle"
+                style={{ filter: `url(#glow-${safeFilterId})` }}
+                strokeWidth={0}
+                onMouseEnter={() => setIsHoveringPoint(true)}
+                onMouseLeave={() => setIsHoveringPoint(false)}
+              >
+                {points.map((entry, index) => (
+                  <Cell
+                    key={entry.original.id || `cell-${index}`}
+                    fill={color}
+                  />
+                ))}
+              </Scatter>
             </ComposedChart>
           </ResponsiveContainer>
         </ChartContainer>
