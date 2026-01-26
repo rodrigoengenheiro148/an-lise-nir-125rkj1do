@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
+import { getMaterialDisplayName } from '@/types/dashboard'
 
 interface MaterialSelectorProps {
   selectedMaterial: string
@@ -46,7 +47,7 @@ export const MaterialSelector = ({
           <SelectItem value="all">Todos os materiais</SelectItem>
           {materials.map((material) => (
             <SelectItem key={material} value={material}>
-              {material}
+              {getMaterialDisplayName(material)}
             </SelectItem>
           ))}
         </SelectContent>

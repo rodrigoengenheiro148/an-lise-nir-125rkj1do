@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
+import {
+  AnalysisRecord,
+  METRICS,
+  CompanyEntity,
+  getMaterialDisplayName,
+} from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
@@ -198,7 +203,7 @@ const Index = () => {
                 Dispersão por Parâmetro (LAB vs ANL)
                 {selectedMaterial && (
                   <span className="text-sm font-normal text-zinc-500 ml-2">
-                    - {selectedMaterial}
+                    - {getMaterialDisplayName(selectedMaterial)}
                   </span>
                 )}
               </h2>

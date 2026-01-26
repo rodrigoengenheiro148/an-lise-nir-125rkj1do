@@ -18,12 +18,33 @@ export const DEFAULT_COMPANIES: string[] = [
 
 export const MATERIALS_OPTIONS = [
   'farinha de peixe',
-  'farinha de penas e sangue',
+  'farinha de pena e sangue',
   'farinha de sangue',
   'sebo',
-  'fco',
-  'farinha de visceras',
+  'farinha de carne e osso',
+  'farinha de vísceras',
 ]
+
+export const MATERIAL_DISPLAY_NAMES: Record<string, string> = {
+  'farinha de peixe': 'Farinha de Peixe',
+  'farinha de pena e sangue': 'Farinha de Pena e Sangue',
+  'farinha de penas e sangue': 'Farinha de Pena e Sangue',
+  'farinha de sangue': 'Farinha de Sangue',
+  sebo: 'Sebo',
+  'farinha de carne e osso': 'Farinha de Carne e Osso',
+  fco: 'Farinha de Carne e Osso',
+  'farinha de vísceras': 'Farinha de Vísceras',
+  'farinha de visceras': 'Farinha de Vísceras',
+}
+
+export const getMaterialDisplayName = (material: string) => {
+  if (!material) return ''
+  const lower = material.toLowerCase()
+  return (
+    MATERIAL_DISPLAY_NAMES[lower] ||
+    material.charAt(0).toUpperCase() + material.slice(1)
+  )
+}
 
 export const STATIC_SUBMATERIALS = [
   'Acidez',

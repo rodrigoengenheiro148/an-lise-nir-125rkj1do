@@ -22,6 +22,7 @@ import {
   CompanyEntity,
   MATERIALS_OPTIONS,
   AnalysisRecord,
+  getMaterialDisplayName,
 } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
@@ -153,7 +154,7 @@ export const MetricDataDialog = ({
               <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
                 {MATERIALS_OPTIONS.map((m) => (
                   <SelectItem key={m} value={m}>
-                    {m}
+                    {getMaterialDisplayName(m)}
                   </SelectItem>
                 ))}
               </SelectContent>

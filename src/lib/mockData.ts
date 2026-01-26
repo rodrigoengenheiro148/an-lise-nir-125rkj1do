@@ -1,4 +1,9 @@
-import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
+import {
+  AnalysisRecord,
+  METRICS,
+  CompanyEntity,
+  MATERIALS_OPTIONS,
+} from '@/types/dashboard'
 import { subDays, format } from 'date-fns'
 
 export const MOCK_COMPANIES: CompanyEntity[] = [
@@ -12,21 +17,12 @@ export const MOCK_COMPANIES: CompanyEntity[] = [
   { id: 'mock-4', name: 'Juina', created_at: new Date().toISOString() },
 ]
 
-const MATERIALS = [
-  'farinha de peixe',
-  'farinha de penas e sangue',
-  'farinha de sangue',
-  'sebo',
-  'fco',
-  'farinha de visceras',
-]
-
 const generateMockRecords = (): AnalysisRecord[] => {
   const records: AnalysisRecord[] = []
   const today = new Date()
 
   MOCK_COMPANIES.forEach((company) => {
-    MATERIALS.forEach((material) => {
+    MATERIALS_OPTIONS.forEach((material) => {
       // Generate 15 records per material per company
       for (let i = 0; i < 15; i++) {
         const date = subDays(today, i)
