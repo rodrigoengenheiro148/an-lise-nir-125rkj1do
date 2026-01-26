@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Company,
   AnalysisRecord,
@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company>('')
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('Todos')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [allRecords, setAllRecords] = useState<AnalysisRecord[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
@@ -32,7 +32,6 @@ const Index = () => {
       setAllRecords(records)
       setCompanies(comps)
 
-      // Auto-select first company if none selected or if previously selected one is invalid
       if (
         comps.length > 0 &&
         (!selectedCompany || !comps.find((c) => c.name === selectedCompany))
@@ -52,22 +51,43 @@ const Index = () => {
     return () => unsubscribe()
   }, [])
 
-  // Reset material when company changes
+  const availableMaterials = useMemo(() => {
+    if (!selectedCompany) return []
+    const companyRecords = allRecords.filter(
+      (r) => r.company === selectedCompany,
+    )
+    return Array.from(
+      new Set(
+        companyRecords.map((r) => r.material).filter(Boolean) as string[],
+      ),
+    ).sort()
+  }, [selectedCompany, allRecords])
+
   useEffect(() => {
-    setSelectedMaterial('Todos')
-  }, [selectedCompany])
+    if (availableMaterials.length > 0) {
+      if (!selectedMaterial || !availableMaterials.includes(selectedMaterial)) {
+        setSelectedMaterial(availableMaterials[0])
+      }
+    } else {
+      setSelectedMaterial('')
+    }
+  }, [availableMaterials, selectedMaterial])
 
   useEffect(() => {
     if (selectedCompany) {
       let filtered = allRecords.filter((r) => r.company === selectedCompany)
 
-      if (selectedMaterial && selectedMaterial !== 'Todos') {
+      if (selectedMaterial) {
         filtered = filtered.filter((r) => r.material === selectedMaterial)
+      } else {
+        filtered = []
       }
 
       setFilteredRecords(filtered)
+    } else {
+      setFilteredRecords([])
     }
-  }, [selectedCompany, selectedMaterial, allRecords])
+  }, [selectedCompany, selectedMaterial, allRecords, availableMaterials])
 
   const selectedCompanyId = companies.find(
     (c) => c.name === selectedCompany,
@@ -116,6 +136,7 @@ const Index = () => {
                 <MaterialSelector
                   selected={selectedMaterial}
                   onSelect={setSelectedMaterial}
+                  materials={availableMaterials}
                 />
               </div>
             </div>
@@ -140,7 +161,6 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
-        {/* Key Indicators Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
@@ -184,7 +204,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Metrics Grid Layout */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
             <span className="h-4 w-1 bg-blue-500 rounded-full"></span>

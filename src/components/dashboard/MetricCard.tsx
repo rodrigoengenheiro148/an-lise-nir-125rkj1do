@@ -44,10 +44,8 @@ export const MetricCard = ({
   const [isOpen, setIsOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  // Calculate stats based on created_at descending sort (default)
   const latestRecord = data.length > 0 ? data[0] : null
 
-  // Safely extract values, handling nulls/undefined
   const getVal = (key: string) => {
     if (!latestRecord) return null
     const val = latestRecord[key]
@@ -136,7 +134,14 @@ export const MetricCard = ({
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 p-0 pb-4">
+          <CardContent className="flex-1 p-0 pb-4 relative">
+            {data.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/50 backdrop-blur-[1px] z-10">
+                <span className="text-sm text-zinc-400 font-medium">
+                  Sem dados para exibir
+                </span>
+              </div>
+            )}
             <div className="h-[200px] w-full px-4">
               <MetricEvolutionChart
                 data={data}
