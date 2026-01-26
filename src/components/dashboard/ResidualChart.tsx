@@ -140,11 +140,7 @@ export const ResidualChart = ({
               />
               <ReferenceLine y={0} stroke="#52525b" strokeDasharray="3 3" />
               <Tooltip
-                cursor={{
-                  stroke: '#52525b',
-                  strokeWidth: 1,
-                  strokeDasharray: '4 4',
-                }}
+                cursor={false}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload

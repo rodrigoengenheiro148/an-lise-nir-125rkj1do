@@ -56,8 +56,8 @@ export const MetricScatterChart = ({
       const minX = statistics.min
       const maxX = statistics.max
 
-      // Generate multiple points for the trend line to allow tooltip interaction along the line
-      const steps = 50 // Enough points to make hovering responsive
+      // Generate multiple points for the trend line to allow smooth rendering
+      const steps = 50
       const stepSize = (maxX - minX) / (steps - 1)
 
       trend = Array.from({ length: steps }).map((_, i) => {
@@ -194,15 +194,11 @@ export const MetricScatterChart = ({
                 }}
               />
               <Tooltip
-                cursor={{
-                  stroke: '#52525b',
-                  strokeWidth: 1,
-                  strokeDasharray: '4 4',
-                }}
+                cursor={false}
                 content={({ active, payload }) => {
                   if (!active || !payload || !payload.length) return null
 
-                  // Prioritize point data
+                  // Prioritize point data and ONLY show tooltip for points
                   const pointPayload = payload.find((p) => p.name === 'points')
 
                   if (
@@ -255,46 +251,6 @@ export const MetricScatterChart = ({
                     )
                   }
 
-                  // Fallback to trend line data
-                  const trendPayload = payload.find((p) => p.name === 'trend')
-                  if (trendPayload) {
-                    const trendData = trendPayload.payload
-                    return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
-                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
-                          <span>Tendência Linear</span>
-                          <span className="text-[10px] text-zinc-500 font-normal">
-                            Regressão
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
-                          <span>LAB (X):</span>
-                          <span className="text-right text-zinc-100 font-mono font-medium">
-                            {trendData.x.toFixed(2)} {unit}
-                          </span>
-                          <span>Tendência (Y):</span>
-                          <span
-                            className="text-right font-mono font-medium"
-                            style={{ color: color }}
-                          >
-                            {trendData.y.toFixed(2)} {unit}
-                          </span>
-
-                          <div className="col-span-2 border-t border-zinc-900 my-1"></div>
-
-                          <span>R²:</span>
-                          <span className="text-right text-zinc-300 font-mono">
-                            {stats.r2.toFixed(3)}
-                          </span>
-                          <span>Slope:</span>
-                          <span className="text-right text-zinc-300 font-mono">
-                            {stats.slope.toFixed(3)}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  }
-
                   return null
                 }}
               />
@@ -320,13 +276,9 @@ export const MetricScatterChart = ({
                 stroke="var(--color-trend)"
                 strokeWidth={2}
                 dot={false}
-                activeDot={{
-                  r: 4,
-                  fill: color,
-                  stroke: '#000',
-                  strokeWidth: 2,
-                }}
+                activeDot={false}
                 isAnimationActive={false}
+                tooltipType="none"
               />
             </ComposedChart>
           </ResponsiveContainer>
