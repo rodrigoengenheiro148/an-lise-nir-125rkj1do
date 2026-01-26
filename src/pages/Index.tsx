@@ -7,6 +7,7 @@ import {
 } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
+import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('Todos')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [allRecords, setAllRecords] = useState<AnalysisRecord[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
@@ -50,12 +52,22 @@ const Index = () => {
     return () => unsubscribe()
   }, [])
 
+  // Reset material when company changes
+  useEffect(() => {
+    setSelectedMaterial('Todos')
+  }, [selectedCompany])
+
   useEffect(() => {
     if (selectedCompany) {
-      const filtered = allRecords.filter((r) => r.company === selectedCompany)
+      let filtered = allRecords.filter((r) => r.company === selectedCompany)
+
+      if (selectedMaterial && selectedMaterial !== 'Todos') {
+        filtered = filtered.filter((r) => r.material === selectedMaterial)
+      }
+
       setFilteredRecords(filtered)
     }
-  }, [selectedCompany, allRecords])
+  }, [selectedCompany, selectedMaterial, allRecords])
 
   const selectedCompanyId = companies.find(
     (c) => c.name === selectedCompany,
@@ -92,12 +104,20 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            <div className="text-zinc-950 w-full sm:w-auto">
-              <CompanySelector
-                selected={selectedCompany}
-                onSelect={setSelectedCompany}
-              />
+          <div className="flex flex-col xl:flex-row items-center gap-4 w-full md:w-auto">
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto text-zinc-950">
+              <div className="w-full sm:w-[250px]">
+                <CompanySelector
+                  selected={selectedCompany}
+                  onSelect={setSelectedCompany}
+                />
+              </div>
+              <div className="w-full sm:w-[250px]">
+                <MaterialSelector
+                  selected={selectedMaterial}
+                  onSelect={setSelectedMaterial}
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
