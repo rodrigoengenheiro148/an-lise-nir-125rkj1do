@@ -222,6 +222,15 @@ export const api = {
     )
 
     if (error) throw error
+
+    if (!data) {
+      throw new Error('Nenhum dado recebido da exportação.')
+    }
+
+    if (!(data instanceof Blob)) {
+      throw new Error('Formato de resposta inválido (esperado Blob).')
+    }
+
     return data as Blob
   },
 }

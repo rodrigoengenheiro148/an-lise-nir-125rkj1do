@@ -158,6 +158,10 @@ export function MetricDataDialog({
       // Allow export without companyId (exports all data for the metric)
       const blob = await api.exportMetricData(metricKey, companyId || undefined)
 
+      if (!blob || !(blob instanceof Blob)) {
+        throw new Error('Arquivo de exportação inválido.')
+      }
+
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -169,13 +173,21 @@ export function MetricDataDialog({
       a.download = `Analise_${metricInfo?.label}_${companyName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
+
+      // Remove element and revoke URL to prevent memory leaks
       document.body.removeChild(a)
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+      }, 100)
 
       toast.success('Exportação concluída com sucesso!')
     } catch (error) {
       console.error(error)
-      toast.error('Não há dados para exportar ou ocorreu um erro.')
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Não há dados para exportar ou ocorreu um erro.'
+      toast.error(message)
     } finally {
       setIsExporting(false)
     }
