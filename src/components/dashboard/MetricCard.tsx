@@ -16,9 +16,8 @@ import {
   ScatterChart,
 } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
-import { MetricEvolutionChart } from './MetricEvolutionChart'
-import { MetricHistogram } from './MetricHistogram'
 import { MetricScatterChart } from './MetricScatterChart'
+import { MetricHistogram } from './MetricHistogram'
 import { ResidualScatter } from './ResidualChart'
 import { MetricDataDialog } from './MetricDataDialog'
 import { cn } from '@/lib/utils'
@@ -146,11 +145,12 @@ export const MetricCard = ({
               </div>
             )}
             <div className="h-[200px] w-full px-4">
-              <MetricEvolutionChart
+              <MetricScatterChart
                 data={data}
                 metricKey={metricKey}
                 color={color}
                 unit={unit}
+                compact={true}
               />
             </div>
           </CardContent>

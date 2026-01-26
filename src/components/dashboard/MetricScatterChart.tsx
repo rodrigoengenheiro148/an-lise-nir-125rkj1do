@@ -13,6 +13,7 @@ import {
 import { ChartContainer } from '@/components/ui/chart'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { calculateStats } from '@/lib/stats'
+import { cn } from '@/lib/utils'
 
 interface MetricScatterChartProps {
   data: AnalysisRecord[]
@@ -20,13 +21,16 @@ interface MetricScatterChartProps {
   color: string
   unit: string
   title?: string
+  compact?: boolean
 }
 
 export const MetricScatterChart = ({
   data,
   metricKey,
+  color, // Note: We stick to the standardized "bright blue" for points/trend as requested, ignoring this color for the chart elements themselves to ensure uniformity.
   unit,
   title,
+  compact = false,
 }: MetricScatterChartProps) => {
   // Calculate stats and prepare data for Scatter Plot
   const { points, stats, trendPoints } = useMemo(() => {
@@ -57,12 +61,12 @@ export const MetricScatterChart = ({
     return { points: pts, stats: statistics, trendPoints: trend }
   }, [data, metricKey])
 
-  const chartTitle = title ? `${title} - LAB X NIR` : 'LAB X NIR'
+  const chartTitle = title ? `${title} - LAB X ANL` : 'LAB X ANL'
 
   const chartConfig = {
     points: {
       label: 'Amostra',
-      color: '#22d3ee', // Cyan-400 for glowing effect
+      color: '#22d3ee', // Cyan-400 for glowing effect (Bright Blue)
     },
     trend: {
       label: 'Tendência',
@@ -72,30 +76,55 @@ export const MetricScatterChart = ({
 
   if (points.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-950/50">
+      <div
+        className={cn(
+          'flex h-full items-center justify-center text-sm text-muted-foreground',
+          !compact &&
+            'min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-950/50',
+        )}
+      >
         Sem dados para exibir
       </div>
     )
   }
 
   return (
-    <div className="h-full w-full flex flex-col space-y-2">
-      <div className="flex items-center justify-between px-2">
-        <h4 className="text-sm font-bold text-zinc-100 uppercase tracking-wide">
-          {chartTitle}
-        </h4>
-        <div className="flex gap-4 text-xs font-mono text-zinc-400">
-          <span>R²: {stats.r2.toFixed(3)}</span>
-          <span>Slope: {stats.slope.toFixed(3)}</span>
-          <span>Bias: {stats.bias.toFixed(3)}</span>
+    <div
+      className={cn(
+        'flex flex-col',
+        compact ? 'h-full w-full' : 'h-full w-full space-y-2',
+      )}
+    >
+      {!compact && (
+        <div className="flex items-center justify-between px-2">
+          <h4 className="text-sm font-bold text-zinc-100 uppercase tracking-wide">
+            {chartTitle}
+          </h4>
+          <div className="flex gap-4 text-xs font-mono text-zinc-400">
+            <span>R²: {stats.r2.toFixed(3)}</span>
+            <span>Slope: {stats.slope.toFixed(3)}</span>
+            <span>Bias: {stats.bias.toFixed(3)}</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 min-h-[300px] bg-zinc-950/50 rounded-lg border border-zinc-800 p-4">
+      <div
+        className={cn(
+          'flex-1',
+          compact
+            ? 'min-h-0'
+            : 'min-h-[300px] bg-zinc-950/50 rounded-lg border border-zinc-800 p-4',
+        )}
+      >
         <ChartContainer config={chartConfig} className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              margin={{ top: 20, right: 30, bottom: 20, left: 10 }}
+              margin={{
+                top: 10,
+                right: compact ? 10 : 30,
+                bottom: compact ? 0 : 20,
+                left: compact ? -20 : 10,
+              }}
             >
               <defs>
                 <filter
@@ -130,7 +159,7 @@ export const MetricScatterChart = ({
                 label={{
                   value: `LAB (${unit})`,
                   position: 'insideBottom',
-                  offset: -10,
+                  offset: compact ? -5 : -10,
                   fill: '#a1a1aa',
                   fontSize: 10,
                 }}
@@ -138,17 +167,18 @@ export const MetricScatterChart = ({
               <YAxis
                 type="number"
                 dataKey="y"
-                name="NIR"
+                name="ANL"
                 tickLine={false}
                 axisLine={false}
                 tick={{ fill: '#a1a1aa', fontSize: 10 }}
                 domain={['auto', 'auto']}
                 label={{
-                  value: `NIR (${unit})`,
+                  value: `ANL (${unit})`,
                   angle: -90,
                   position: 'insideLeft',
                   fill: '#a1a1aa',
                   fontSize: 10,
+                  offset: compact ? 10 : 0,
                 }}
               />
               <Tooltip
@@ -164,7 +194,7 @@ export const MetricScatterChart = ({
                     )?.payload
                     if (!dataPoint) return null
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs">
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50">
                         <div className="font-bold text-zinc-100 mb-2">
                           {dataPoint.original.company}
                         </div>
@@ -181,12 +211,19 @@ export const MetricScatterChart = ({
                           <span className="text-right text-zinc-100 font-mono font-medium">
                             {dataPoint.x.toFixed(2)}
                           </span>
-                          <span>NIR:</span>
+                          <span>ANL:</span>
                           <span className="text-right text-cyan-400 font-mono font-medium">
                             {dataPoint.y.toFixed(2)}
                           </span>
-                          <span>Erro:</span>
-                          <span className="text-right text-red-400 font-mono">
+                          <span>Resíduo:</span>
+                          <span
+                            className={cn(
+                              'text-right font-mono',
+                              dataPoint.x - dataPoint.y > 0
+                                ? 'text-green-400'
+                                : 'text-red-400',
+                            )}
+                          >
                             {(dataPoint.x - dataPoint.y).toFixed(2)}
                           </span>
                         </div>
