@@ -221,16 +221,46 @@ export const api = {
       },
     )
 
-    if (error) throw error
+    if (error) {
+      console.error('Export error:', error)
+      // Check for specific status in error context
+      if (error && typeof error === 'object' && 'context' in error) {
+        const status = (error as any).context?.status
+        if (status === 404) {
+          throw new Error(
+            'Não há dados para exportar com os filtros selecionados.',
+          )
+        }
+      }
+      throw error
+    }
 
     if (!data) {
       throw new Error('Nenhum dado recebido da exportação.')
     }
 
-    if (!(data instanceof Blob)) {
-      throw new Error('Formato de resposta inválido (esperado Blob).')
+    // Handle Blob response (check for JSON error inside Blob)
+    if (data instanceof Blob) {
+      if (data.type === 'application/json' || data.type.includes('json')) {
+        const text = await data.text()
+        try {
+          const json = JSON.parse(text)
+          if (json.error) {
+            throw new Error(json.error)
+          }
+        } catch (e) {
+          // ignore parse error
+        }
+        throw new Error('Erro ao exportar: Resposta inválida do servidor.')
+      }
+      return data
     }
 
-    return data as Blob
+    // Handle non-Blob response (unexpected but possible if responseType ignored)
+    if (typeof data === 'object' && (data as any).error) {
+      throw new Error((data as any).error)
+    }
+
+    throw new Error('Formato de resposta inválido (esperado Blob).')
   },
 }
