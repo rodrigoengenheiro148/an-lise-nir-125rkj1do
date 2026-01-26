@@ -1,18 +1,27 @@
 import { useMemo } from 'react'
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Legend } from 'recharts'
+import {
+  ComposedChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Scatter,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartConfig,
 } from '@/components/ui/chart'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { calculateStats } from '@/lib/stats'
 
 interface MetricEvolutionChartProps {
   data: AnalysisRecord[]
   metricKey: MetricKey
-  color: string
+  color: string // Kept for compatibility, but we will use Cyan for the chart as requested
   unit: string
   height?: string | number
 }
@@ -20,44 +29,71 @@ interface MetricEvolutionChartProps {
 export const MetricEvolutionChart = ({
   data,
   metricKey,
-  color,
   unit,
   height = '100%',
 }: MetricEvolutionChartProps) => {
-  const chartData = useMemo(() => {
-    const keyLab = `${metricKey}_lab`
-    const keyAnl = `${metricKey}_anl`
+  const CYAN_COLOR = '#22d3ee' // Cyan-400
 
+  const chartData = useMemo(() => {
     return data
       .map((item) => {
-        const labRaw = item[keyLab]
-        const anlRaw = item[keyAnl]
+        const labRaw = item[`${metricKey}_lab`]
+        const anlRaw = item[`${metricKey}_anl`]
 
-        // Map data points even if one is missing to show available data
+        const lab = typeof labRaw === 'number' ? labRaw : Number(labRaw)
+        const anl = typeof anlRaw === 'number' ? anlRaw : Number(anlRaw)
+
+        // Filter out invalid data points
+        if (isNaN(lab) || isNaN(anl) || lab <= 0 || anl <= 0) {
+          return null
+        }
+
         return {
           id: item.id,
-          date: item.date
-            ? new Date(item.date)
-            : new Date(item.created_at || new Date()),
-          lab: typeof labRaw === 'number' ? labRaw : null,
-          anl: typeof anlRaw === 'number' ? anlRaw : null,
+          lab, // Reference (X)
+          anl, // Predicted (Y)
           company: item.company,
           material: item.material,
         }
       })
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .filter((item): item is NonNullable<typeof item> => item !== null)
   }, [data, metricKey])
 
+  const stats = useMemo(() => {
+    const points = chartData.map((d) => ({ x: d.lab, y: d.anl }))
+    return calculateStats(points)
+  }, [chartData])
+
+  const trendLine = useMemo(() => {
+    if (chartData.length < 2) return []
+    const minX = Math.min(...chartData.map((d) => d.lab))
+    const maxX = Math.max(...chartData.map((d) => d.lab))
+
+    // Add a small buffer to the trend line
+    const buffer = (maxX - minX) * 0.05
+    const x1 = Math.max(0, minX - buffer)
+    const x2 = maxX + buffer
+
+    // y = mx + b
+    const y1 = stats.slope * x1 + stats.intercept
+    const y2 = stats.slope * x2 + stats.intercept
+
+    return [
+      { lab: x1, anl: y1 },
+      { lab: x2, anl: y2 },
+    ]
+  }, [chartData, stats])
+
   const chartConfig = {
+    anl: {
+      label: 'ANL',
+      color: CYAN_COLOR,
+    },
     lab: {
       label: 'LAB',
       color: '#a1a1aa', // zinc-400
     },
-    anl: {
-      label: 'ANL',
-      color: color,
-    },
-  }
+  } satisfies ChartConfig
 
   if (chartData.length === 0) {
     return (
@@ -67,73 +103,78 @@ export const MetricEvolutionChart = ({
     )
   }
 
-  const chartKey = `${metricKey}-${chartData.length}-${chartData[0]?.id || 'empty'}`
-
   return (
     <div className="w-full h-full min-h-[200px]" style={{ height }}>
       <ChartContainer config={chartConfig} className="w-full h-full">
-        <LineChart
-          key={chartKey}
-          data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-          <XAxis
-            dataKey="date"
-            tickFormatter={(date) => format(date, 'dd/MM')}
-            stroke="#666"
-            fontSize={10}
-            tickLine={false}
-            axisLine={false}
-            minTickGap={30}
-          />
-          <YAxis
-            unit={unit}
-            stroke="#666"
-            fontSize={10}
-            tickLine={false}
-            axisLine={false}
-            width={30}
-            domain={['auto', 'auto']}
-          />
-          <ChartTooltip
-            cursor={{ strokeDasharray: '3 3' }}
-            content={
-              <ChartTooltipContent
-                indicator="line"
-                labelFormatter={(label, payload) => {
-                  if (payload && payload.length > 0) {
-                    return format(payload[0].payload.date, "dd 'de' MMMM", {
-                      locale: ptBR,
-                    })
-                  }
-                  return label
-                }}
-              />
-            }
-          />
-          <Legend verticalAlign="top" height={36} />
-          <Line
-            type="monotone"
-            dataKey="lab"
-            stroke="var(--color-lab)"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-            animationDuration={1000}
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey="anl"
-            stroke="var(--color-anl)"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-            animationDuration={1000}
-            connectNulls
-          />
-        </LineChart>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            <XAxis
+              type="number"
+              dataKey="lab"
+              name="LAB"
+              stroke="#666"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              domain={['auto', 'auto']}
+              label={{
+                value: 'LAB (Ref)',
+                position: 'bottom',
+                offset: 0,
+                fill: '#666',
+                fontSize: 10,
+              }}
+            />
+            <YAxis
+              type="number"
+              dataKey="anl"
+              name="ANL"
+              unit={unit}
+              stroke="#666"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              width={30}
+              domain={['auto', 'auto']}
+              label={{
+                value: 'ANL',
+                angle: -90,
+                position: 'insideLeft',
+                fill: '#666',
+                fontSize: 10,
+              }}
+            />
+            <ChartTooltip
+              cursor={{ strokeDasharray: '3 3' }}
+              content={<ChartTooltipContent indicator="dot" />}
+            />
+            <Line
+              data={trendLine}
+              dataKey="anl"
+              stroke={CYAN_COLOR}
+              strokeWidth={2}
+              dot={false}
+              activeDot={false}
+              type="monotone"
+              animationDuration={1000}
+              name="Tendência"
+            />
+            <Scatter
+              data={chartData}
+              name="Amostras"
+              fill={CYAN_COLOR}
+              shape="circle"
+              style={{ filter: 'url(#glow)' }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </ChartContainer>
     </div>
   )

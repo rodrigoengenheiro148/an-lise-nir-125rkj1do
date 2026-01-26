@@ -1,13 +1,5 @@
 import { useMemo, useState } from 'react'
 import {
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Scatter,
-  ComposedChart,
-  Line,
-} from 'recharts'
-import {
   Card,
   CardContent,
   CardHeader,
@@ -25,12 +17,7 @@ import {
 import { Maximize2 } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { calculateStats } from '@/lib/stats'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartConfig,
-} from '@/components/ui/chart'
+import { MetricEvolutionChart } from './MetricEvolutionChart'
 
 interface MetricScatterChartProps {
   title: string
@@ -44,142 +31,23 @@ export const MetricScatterChart = ({
   title,
   data,
   metricKey,
-  color, // kept for compatibility but overridden by standardized style
+  color,
   unit,
 }: MetricScatterChartProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const standardizedColor = '#22d3ee' // Cyan-400 for standardized look
 
-  const chartData = useMemo(() => {
-    return data
+  // Calculate stats for the header display
+  const stats = useMemo(() => {
+    const points = data
       .map((item) => {
         const lab = Number(item[`${metricKey}_lab`] || 0)
         const anl = Number(item[`${metricKey}_anl`] || 0)
-        return {
-          lab, // X
-          anl, // Y
-          company: item.company,
-          material: item.material,
-          date: item.created_at,
-        }
+        return { x: lab, y: anl }
       })
-      .filter((d) => d.lab > 0 && d.anl > 0) // Filter invalid points
-  }, [data, metricKey])
+      .filter((p) => p.x > 0 && p.y > 0)
 
-  const stats = useMemo(() => {
-    // Stats calculation expects x (Reference/LAB) and y (Predicted/ANL)
-    const points = chartData.map((d) => ({ x: d.lab, y: d.anl }))
     return calculateStats(points)
-  }, [chartData])
-
-  const trendLine = useMemo(() => {
-    if (chartData.length < 2) return []
-    const minX = Math.min(...chartData.map((d) => d.lab))
-    const maxX = Math.max(...chartData.map((d) => d.lab))
-
-    // Extend slightly beyond min/max for better visual coverage
-    const x1 = minX
-    const x2 = maxX
-
-    // Calculate y = mx + b (Linear Regression)
-    const y1 = stats.slope * x1 + stats.intercept
-    const y2 = stats.slope * x2 + stats.intercept
-
-    return [
-      { lab: x1, anl: y1 },
-      { lab: x2, anl: y2 },
-    ]
-  }, [chartData, stats])
-
-  const chartConfig = {
-    anl: {
-      label: 'ANL',
-      color: standardizedColor,
-    },
-    lab: {
-      label: 'LAB',
-      color: '#a1a1aa', // Zinc-400
-    },
-    trend: {
-      label: 'Tendência',
-      color: standardizedColor,
-    },
-  } satisfies ChartConfig
-
-  const ChartRender = ({ height = '100%' }: { height?: string | number }) => (
-    <ChartContainer config={chartConfig} className={`w-full min-h-[300px]`}>
-      <ComposedChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="#333"
-          vertical={true}
-          horizontal={true}
-        />
-        <XAxis
-          type="number"
-          dataKey="lab"
-          name="LAB"
-          unit={unit}
-          tickLine={false}
-          axisLine={false}
-          tick={{ fill: '#888', fontSize: 10 }}
-          label={{
-            value: 'LAB (Ref)',
-            position: 'bottom',
-            fill: '#a1a1aa',
-            fontSize: 12,
-            offset: 0,
-            fontWeight: 500,
-          }}
-          domain={['auto', 'auto']}
-        />
-        <YAxis
-          type="number"
-          dataKey="anl"
-          name="ANL"
-          unit={unit}
-          tickLine={false}
-          axisLine={false}
-          tick={{ fill: '#888', fontSize: 10 }}
-          label={{
-            value: 'ANL',
-            angle: -90,
-            position: 'insideLeft',
-            fill: '#a1a1aa',
-            fontSize: 12,
-            fontWeight: 500,
-          }}
-          domain={['auto', 'auto']}
-        />
-        <ChartTooltip
-          cursor={{ strokeDasharray: '3 3', stroke: '#555' }}
-          content={<ChartTooltipContent indicator="dot" />}
-        />
-
-        {/* Linear Regression Trend Line */}
-        <Line
-          data={trendLine}
-          dataKey="anl"
-          stroke={standardizedColor}
-          strokeWidth={2}
-          dot={false}
-          activeDot={false}
-          type="monotone"
-          name="Tendência (Regressão)"
-          animationDuration={1000}
-        />
-
-        {/* ANL vs LAB Points */}
-        <Scatter
-          name="Amostras"
-          data={chartData}
-          fill={standardizedColor}
-          shape="circle"
-          className="glow-point"
-        />
-      </ComposedChart>
-    </ChartContainer>
-  )
+  }, [data, metricKey])
 
   const chartTitle = `${title} - LAB X ANL`
 
@@ -207,7 +75,13 @@ export const MetricScatterChart = ({
           </DialogTrigger>
         </CardHeader>
         <CardContent className="flex-1 p-2 min-h-[300px] relative bg-zinc-950/50">
-          <ChartRender />
+          <MetricEvolutionChart
+            data={data}
+            metricKey={metricKey}
+            color={color}
+            unit={unit}
+            height="100%"
+          />
         </CardContent>
       </Card>
 
@@ -222,7 +96,13 @@ export const MetricScatterChart = ({
           </DialogTitleComponent>
         </DialogHeader>
         <div className="flex-1 w-full min-h-0">
-          <ChartRender height="100%" />
+          <MetricEvolutionChart
+            data={data}
+            metricKey={metricKey}
+            color={color}
+            unit={unit}
+            height="100%"
+          />
         </div>
       </DialogContent>
     </Dialog>

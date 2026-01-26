@@ -159,15 +159,15 @@ export const MetricCard = ({
           </DialogHeader>
           <div className="flex-1 w-full min-h-0 p-4">
             <Tabs
-              defaultValue="evolution"
+              defaultValue="correlation"
               className="w-full h-full flex flex-col"
             >
               <TabsList className="grid w-full grid-cols-3 bg-zinc-900 mb-4 border border-zinc-800">
                 <TabsTrigger
-                  value="evolution"
+                  value="correlation"
                   className="flex items-center gap-2"
                 >
-                  <Activity className="h-4 w-4" /> Tendência
+                  <Activity className="h-4 w-4" /> Correlação
                 </TabsTrigger>
                 <TabsTrigger
                   value="histogram"
@@ -183,7 +183,7 @@ export const MetricCard = ({
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="evolution" className="flex-1 min-h-0">
+              <TabsContent value="correlation" className="flex-1 min-h-0">
                 <MetricEvolutionChart
                   data={data}
                   metricKey={metricKey}
