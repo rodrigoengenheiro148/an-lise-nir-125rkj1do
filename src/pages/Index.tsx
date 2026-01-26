@@ -24,24 +24,34 @@ const Index = () => {
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
-  // 1. Load Companies
-  useEffect(() => {
-    const loadCompanies = async () => {
-      setIsLoadingCompanies(true)
-      try {
-        const data = await api.getCompanies()
-        setCompanies(data)
-        if (data.length > 0 && !selectedCompanyId) {
+  // 1. Fetch Companies
+  const fetchCompanies = useCallback(async () => {
+    setIsLoadingCompanies(true)
+    try {
+      const data = await api.getCompanies()
+      setCompanies(data)
+
+      // Automatically select first company if none selected or if selected one was deleted
+      if (data.length > 0) {
+        if (
+          !selectedCompanyId ||
+          !data.find((c) => c.id === selectedCompanyId)
+        ) {
           setSelectedCompanyId(data[0].id)
         }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setIsLoadingCompanies(false)
+      } else {
+        setSelectedCompanyId('')
       }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoadingCompanies(false)
     }
-    loadCompanies()
-  }, [])
+  }, [selectedCompanyId])
+
+  useEffect(() => {
+    fetchCompanies()
+  }, []) // Initial load
 
   // 2. Ensure Material Selection
   useEffect(() => {
@@ -62,7 +72,12 @@ const Index = () => {
       return
     }
 
-    setIsLoadingRecords(true)
+    // Don't show global loading spinner on realtime update to avoid flickering
+    // Only show if filteredRecords is empty
+    if (filteredRecords.length === 0) {
+      setIsLoadingRecords(true)
+    }
+
     try {
       const records = await api.getCompanyRecords(
         selectedCompanyId,
@@ -75,13 +90,13 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId, selectedMaterial])
+  }, [selectedCompanyId, selectedMaterial]) // Depend on filteredRecords.length is not needed here as we check current state
 
   useEffect(() => {
     fetchRecords()
   }, [fetchRecords])
 
-  // Realtime updates
+  // Realtime updates for Records
   useEffect(() => {
     const unsubscribe = api.subscribeToRecords(() => {
       fetchRecords()
@@ -89,10 +104,18 @@ const Index = () => {
     return () => unsubscribe()
   }, [fetchRecords])
 
+  // Realtime updates for Companies
+  useEffect(() => {
+    const unsubscribe = api.subscribeToCompanies(() => {
+      fetchCompanies()
+    })
+    return () => unsubscribe()
+  }, [fetchCompanies])
+
   const handleCompanyAdded = (newCompany: CompanyEntity) => {
+    // Optimistic update or wait for realtime
     setCompanies((prev) => [...prev, newCompany])
     setSelectedCompanyId(newCompany.id)
-    // selectedMaterial will auto-select via useEffect
   }
 
   const selectedCompanyName = useMemo(

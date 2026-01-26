@@ -8,7 +8,7 @@ import React, {
 import { Company, Sample, AnalysisType } from '@/lib/types'
 import { AnalysisRecord, METRICS } from '@/types/dashboard'
 import { toast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase/client'
+import { api } from '@/services/api'
 
 // Mapping from metric key (DB column prefix) to AnalysisType enum
 const METRIC_TO_TYPE: Record<string, AnalysisType> = {
@@ -57,45 +57,23 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  const fetchCompanies = async () => {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .order('name')
-
-    if (error) {
-      console.error('Error fetching companies:', error)
-      return []
-    }
-    return data.map((c) => ({ id: c.id, name: c.name }))
-  }
-
-  const fetchAnalysisRecords = async () => {
-    const { data, error } = await supabase
-      .from('analysis_records')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching analysis records:', error)
-      return []
-    }
-    return data as unknown as AnalysisRecord[]
-  }
-
   const loadData = async () => {
     setIsLoading(true)
     try {
       const [fetchedCompanies, fetchedRecords] = await Promise.all([
-        fetchCompanies(),
-        fetchAnalysisRecords(),
+        api.getCompanies(),
+        api.getRecords(),
       ])
 
-      setCompanies(fetchedCompanies)
+      const mappedCompanies = fetchedCompanies.map((c) => ({
+        id: c.id,
+        name: c.name,
+      }))
+      setCompanies(mappedCompanies)
       setAnalysisRecords(fetchedRecords)
 
-      if (fetchedCompanies.length > 0 && !selectedCompanyId) {
-        setSelectedCompanyId(fetchedCompanies[0].id)
+      if (mappedCompanies.length > 0 && !selectedCompanyId) {
+        setSelectedCompanyId(mappedCompanies[0].id)
       }
 
       // Convert AnalysisRecords to Samples for backward compatibility
@@ -135,17 +113,33 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  // Initial load
   useEffect(() => {
     loadData()
   }, [])
+
+  // Realtime Subscriptions
+  useEffect(() => {
+    const unsubscribeRecords = api.subscribeToRecords(() => {
+      loadData()
+    })
+
+    const unsubscribeCompanies = api.subscribeToCompanies(() => {
+      loadData()
+    })
+
+    return () => {
+      unsubscribeRecords()
+      unsubscribeCompanies()
+    }
+  }, []) // Empty dependency array means this only runs on mount
 
   const refreshData = () => {
     loadData()
   }
 
   const addSamples = (newSamples: Sample[]) => {
-    // This function is kept for interface compatibility but would ideally post to Supabase
-    // For now, we'll just log it or show a toast that this might not persist properly without backend endpoint
+    // This function is kept for interface compatibility
     toast({
       title: 'Funcionalidade em atualização',
       description: 'Por favor, utilize a importação direta via banco de dados.',

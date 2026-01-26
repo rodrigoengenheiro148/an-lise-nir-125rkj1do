@@ -253,6 +253,21 @@ export const api = {
     }
   },
 
+  subscribeToCompanies: (callback: () => void) => {
+    const subscription = supabase
+      .channel('public:companies')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'companies' },
+        callback,
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(subscription)
+    }
+  },
+
   exportMetricData: async (
     metricKey: string,
     companyId?: string,
