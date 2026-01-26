@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import {
-  Company,
-  AnalysisRecord,
-  METRICS,
-  CompanyEntity,
-} from '@/types/dashboard'
+import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
@@ -15,52 +10,55 @@ import { Activity, TrendingUp, Cloud, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const Index = () => {
-  const [selectedCompany, setSelectedCompany] = useState<Company>('')
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [availableMaterials, setAvailableMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
-  const [loading, setLoading] = useState(true)
+
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
+  const [isLoadingRecords, setIsLoadingRecords] = useState(false)
+
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
-  // Fetch companies on mount
+  // 1. Load Companies
   useEffect(() => {
     const loadCompanies = async () => {
-      let data: CompanyEntity[] = []
+      setIsLoadingCompanies(true)
       try {
-        data = await api.getCompanies()
+        const data = await api.getCompanies()
         setCompanies(data)
-        if (data.length > 0 && !selectedCompany) {
-          setSelectedCompany(data[0].name)
+        if (data.length > 0 && !selectedCompanyId) {
+          setSelectedCompanyId(data[0].id)
         }
       } catch (e) {
         console.error(e)
       } finally {
-        // We only stop loading when we have records, so we don't set loading false here
-        if (data.length === 0) setLoading(false)
+        setIsLoadingCompanies(false)
       }
     }
     loadCompanies()
   }, [])
 
-  const selectedCompanyId = useMemo(
-    () => companies.find((c) => c.name === selectedCompany)?.id,
-    [companies, selectedCompany],
-  )
-
-  // Fetch materials when company changes
+  // 2. Load Materials when Company changes
   useEffect(() => {
     const loadMaterials = async () => {
       if (!selectedCompanyId) {
         setAvailableMaterials([])
+        setSelectedMaterial('')
         return
       }
+
+      setIsLoadingMaterials(true)
       try {
         const mats = await api.getMaterialsByCompany(selectedCompanyId)
         setAvailableMaterials(mats)
 
         // Automatic default selection logic
         if (mats.length > 0) {
+          // If current selection is not in the new list, select the first one
+          // Or if nothing selected, select the first one
           if (!selectedMaterial || !mats.includes(selectedMaterial)) {
             setSelectedMaterial(mats[0])
           }
@@ -71,31 +69,21 @@ const Index = () => {
         console.error(e)
         setAvailableMaterials([])
         setSelectedMaterial('')
+      } finally {
+        setIsLoadingMaterials(false)
       }
     }
     loadMaterials()
   }, [selectedCompanyId])
 
-  // Fetch filtered records when company or material changes
+  // 3. Fetch filtered records when company or material changes
   const fetchRecords = useCallback(async () => {
-    if (!selectedCompanyId) {
+    if (!selectedCompanyId || !selectedMaterial) {
       setFilteredRecords([])
       return
     }
 
-    if (!selectedMaterial && availableMaterials.length > 0) {
-      // Wait for material to be selected by the other effect
-      return
-    }
-
-    // If no materials available, we can't fetch records for a specific material, so empty state
-    if (availableMaterials.length === 0 && selectedCompanyId) {
-      setFilteredRecords([])
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
+    setIsLoadingRecords(true)
     try {
       const records = await api.getFilteredRecords(
         selectedCompanyId,
@@ -106,18 +94,18 @@ const Index = () => {
       console.error(error)
       setFilteredRecords([])
     } finally {
-      setLoading(false)
+      setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId, selectedMaterial, availableMaterials.length])
+  }, [selectedCompanyId, selectedMaterial])
 
   useEffect(() => {
     fetchRecords()
   }, [fetchRecords])
 
+  // Realtime updates
   useEffect(() => {
     const unsubscribe = api.subscribeToRecords(() => {
-      // When database changes, refresh the current view
-      // Need to reload materials too in case new material appeared
+      // Refresh materials in case new one was added
       if (selectedCompanyId) {
         api.getMaterialsByCompany(selectedCompanyId).then((mats) => {
           setAvailableMaterials(mats)
@@ -135,7 +123,17 @@ const Index = () => {
     return () => unsubscribe()
   }, [fetchRecords, selectedCompanyId, selectedMaterial])
 
-  if (loading && companies.length === 0) {
+  const handleCompanyAdded = (newCompany: CompanyEntity) => {
+    setCompanies((prev) => [...prev, newCompany])
+    setSelectedCompanyId(newCompany.id)
+  }
+
+  const selectedCompanyName = useMemo(
+    () => companies.find((c) => c.id === selectedCompanyId)?.name || '',
+    [companies, selectedCompanyId],
+  )
+
+  if (isLoadingCompanies && companies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
         <div className="animate-pulse flex flex-col items-center">
@@ -170,8 +168,11 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto text-zinc-950">
               <div className="w-full sm:w-[250px]">
                 <CompanySelector
-                  selected={selectedCompany}
-                  onSelect={setSelectedCompany}
+                  selectedCompanyId={selectedCompanyId}
+                  companies={companies}
+                  onSelect={setSelectedCompanyId}
+                  onCompanyAdded={handleCompanyAdded}
+                  isLoading={isLoadingCompanies}
                 />
               </div>
               <div className="w-full sm:w-[250px]">
@@ -179,6 +180,7 @@ const Index = () => {
                   selected={selectedMaterial}
                   onSelect={setSelectedMaterial}
                   materials={availableMaterials}
+                  isLoading={isLoadingMaterials}
                 />
               </div>
             </div>
@@ -241,30 +243,54 @@ const Index = () => {
               Empresa Ativa
             </span>
             <span className="text-sm font-medium text-blue-300 mt-1 truncate">
-              {selectedCompany || 'Selecione...'}
+              {selectedCompanyName || 'Selecione...'}
             </span>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
-            <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-            Dispersão por Parâmetro (LAB vs ANL)
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {METRICS.map((metric) => (
-              <MetricCard
-                key={metric.key}
-                title={metric.label}
-                metricKey={metric.key}
-                color={metric.color}
-                unit={metric.unit}
-                data={filteredRecords}
-              />
-            ))}
+        {isLoadingRecords ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-pulse flex flex-col items-center">
+              <Activity className="h-8 w-8 text-blue-500 mb-4 animate-spin" />
+              <span className="text-sm text-zinc-400">Carregando dados...</span>
+            </div>
           </div>
-        </div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="flex items-center justify-center py-20 border border-dashed border-zinc-800 rounded-lg bg-zinc-900/20">
+            <div className="flex flex-col items-center text-center max-w-md p-4">
+              <span className="text-lg font-medium text-zinc-300 mb-2">
+                Sem dados para exibir
+              </span>
+              <p className="text-sm text-zinc-500">
+                {!selectedCompanyId
+                  ? 'Selecione uma empresa para começar.'
+                  : !selectedMaterial
+                    ? 'Esta empresa não possui registros de materiais cadastrados.'
+                    : 'Nenhum registro encontrado para este material.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
+              <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
+              Dispersão por Parâmetro (LAB vs ANL)
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {METRICS.map((metric) => (
+                <MetricCard
+                  key={metric.key}
+                  title={metric.label}
+                  metricKey={metric.key}
+                  color={metric.color}
+                  unit={metric.unit}
+                  data={filteredRecords}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       <EditRecordDialog

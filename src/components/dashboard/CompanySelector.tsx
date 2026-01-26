@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Select,
   SelectContent,
@@ -23,41 +23,32 @@ import { CompanyEntity } from '@/types/dashboard'
 import { toast } from 'sonner'
 
 interface CompanySelectorProps {
-  selected: string
-  onSelect: (company: string) => void
+  selectedCompanyId: string
+  companies: CompanyEntity[]
+  onSelect: (companyId: string) => void
+  onCompanyAdded: (company: CompanyEntity) => void
   placeholder?: string
+  isLoading?: boolean
 }
 
 export const CompanySelector = ({
-  selected,
+  selectedCompanyId,
+  companies,
   onSelect,
+  onCompanyAdded,
   placeholder = 'Selecione...',
+  isLoading = false,
 }: CompanySelectorProps) => {
-  const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [newCompanyName, setNewCompanyName] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-
-  const fetchCompanies = async () => {
-    try {
-      const data = await api.getCompanies()
-      setCompanies(data)
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  useEffect(() => {
-    fetchCompanies()
-  }, [])
+  const [isAdding, setIsAdding] = useState(false)
 
   const handleAddCompany = async () => {
     if (newCompanyName.trim()) {
-      setIsLoading(true)
+      setIsAdding(true)
       try {
         const added = await api.addCompany(newCompanyName.trim())
-        setCompanies((prev) => [...prev, added])
-        onSelect(added.name)
+        onCompanyAdded(added)
         setNewCompanyName('')
         setIsDialogOpen(false)
         toast.success('Empresa adicionada com sucesso!')
@@ -65,7 +56,7 @@ export const CompanySelector = ({
         console.error(e)
         toast.error('Erro ao adicionar empresa.')
       } finally {
-        setIsLoading(false)
+        setIsAdding(false)
       }
     }
   }
@@ -76,13 +67,24 @@ export const CompanySelector = ({
         <span className="text-sm font-medium text-muted-foreground hidden md:inline whitespace-nowrap">
           Empresa:
         </span>
-        <Select value={selected} onValueChange={(val) => onSelect(val)}>
+        <Select
+          value={selectedCompanyId}
+          onValueChange={onSelect}
+          disabled={isLoading || companies.length === 0}
+        >
           <SelectTrigger className="w-full bg-background border-input">
-            <SelectValue placeholder={placeholder} />
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="text-xs">Carregando...</span>
+              </div>
+            ) : (
+              <SelectValue placeholder={placeholder} />
+            )}
           </SelectTrigger>
           <SelectContent>
             {companies.map((company) => (
-              <SelectItem key={company.id} value={company.name}>
+              <SelectItem key={company.id} value={company.id}>
                 {company.name}
               </SelectItem>
             ))}
@@ -120,8 +122,8 @@ export const CompanySelector = ({
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddCompany} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleAddCompany} disabled={isAdding}>
+              {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
             </Button>
           </DialogFooter>
