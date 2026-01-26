@@ -1,13 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import {
   Card,
   CardContent,
@@ -51,7 +43,6 @@ export const MetricDistributionHistogram = ({
   const histogramData = useMemo(() => {
     if (data.length === 0) return []
 
-    // Collect all valid values
     const validData = data.filter((d) => {
       const lab = Number(d[`${metricKey}_lab`] || 0)
       const anl = Number(d[`${metricKey}_anl`] || 0)
@@ -102,6 +93,9 @@ export const MetricDistributionHistogram = ({
         if (bin) bin.anlCount++
       }
     })
+
+    // Sort by sum of counts (highest frequency first) to show most common values first
+    bins.sort((a, b) => b.labCount + b.anlCount - (a.labCount + a.anlCount))
 
     return bins
   }, [data, metricKey])

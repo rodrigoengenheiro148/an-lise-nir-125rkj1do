@@ -1,12 +1,4 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Cell,
-  Tooltip as RechartsTooltip,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
 import { AnalysisRecord, MetricKey, METRICS } from '@/types/dashboard'
 import { useMemo } from 'react'
 import {
@@ -34,7 +26,6 @@ export const ResidualHistogram = ({
       .map((d) => {
         const lab = d[`${metricKey}_lab`]
         const anl = d[`${metricKey}_anl`]
-        // Check for validity (numbers)
         if (typeof lab !== 'number' || typeof anl !== 'number') return null
         return lab - anl
       })
@@ -46,10 +37,8 @@ export const ResidualHistogram = ({
     const max = Math.max(...residuals)
     const binCount = 15
     const range = max - min
-    // Avoid division by zero if all residuals are same
     const step = range === 0 ? 1 : range / binCount
 
-    // Create bins
     const bins = Array.from({ length: binCount }, (_, i) => {
       const start = min + i * step
       const end = start + step
@@ -63,16 +52,17 @@ export const ResidualHistogram = ({
     })
 
     residuals.forEach((v) => {
-      // Find bin
       const bin =
         bins.find((b) => v >= b.start && v < b.end) || bins[bins.length - 1]
-      // Edge case for max value inclusive
       if (v === max) {
         bins[bins.length - 1].count++
       } else if (bin) {
         bin.count++
       }
     })
+
+    // Sort bins descending by count (frequency)
+    bins.sort((a, b) => b.count - a.count)
 
     return bins
   }, [data, metricKey])

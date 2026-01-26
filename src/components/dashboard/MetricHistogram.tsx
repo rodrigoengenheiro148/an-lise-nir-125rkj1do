@@ -1,12 +1,4 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Cell,
-  Tooltip as RechartsTooltip,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
 import { AnalysisRecord, MetricKey, METRICS } from '@/types/dashboard'
 import { useMemo } from 'react'
 import {
@@ -26,8 +18,6 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
   const histogramData = useMemo(() => {
     if (data.length === 0) return []
 
-    // Filtered to use only LAB data as requested
-    // Ensure we handle 0 values correctly if they are valid
     const values = data
       .map((d) => d[`${metricKey}_lab`])
       .filter((v): v is number => typeof v === 'number')
@@ -54,13 +44,15 @@ export const MetricHistogram = ({ data, metricKey }: MetricHistogramProps) => {
     values.forEach((v) => {
       const bin =
         bins.find((b) => v >= b.start && v < b.end) || bins[bins.length - 1]
-      // Handle the exact max case which matches nothing strictly < end except last bin
       if (v === max) {
         bins[bins.length - 1].count++
       } else if (bin) {
         bin.count++
       }
     })
+
+    // Sort bins descending by count (frequency)
+    bins.sort((a, b) => b.count - a.count)
 
     return bins
   }, [data, metricKey])

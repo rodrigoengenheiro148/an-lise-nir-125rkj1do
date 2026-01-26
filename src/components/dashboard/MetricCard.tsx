@@ -162,7 +162,7 @@ export const MetricCard = ({
                   value="evolution"
                   className="flex items-center gap-2"
                 >
-                  <Activity className="h-4 w-4" /> Tendência (Resíduos)
+                  <Activity className="h-4 w-4" /> Tendência (LAB vs ANL)
                 </TabsTrigger>
                 <TabsTrigger
                   value="histogram"

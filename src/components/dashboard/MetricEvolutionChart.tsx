@@ -1,19 +1,11 @@
 import { useMemo } from 'react'
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-} from 'recharts'
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Legend } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { calculateResidue } from '@/lib/calculations'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -41,31 +33,28 @@ export const MetricEvolutionChart = ({
         const labRaw = item[keyLab]
         const anlRaw = item[keyAnl]
 
-        // Strict type check to handle 0 values correctly
-        const hasLab = typeof labRaw === 'number'
-        const hasAnl = typeof anlRaw === 'number'
-
-        if (!hasLab || !hasAnl) return null
-
-        const residue = calculateResidue(labRaw, anlRaw) // LAB - ANL
-
+        // Map data points even if one is missing to show available data
         return {
           id: item.id,
           date: item.date
             ? new Date(item.date)
             : new Date(item.created_at || new Date()),
-          residue,
+          lab: typeof labRaw === 'number' ? labRaw : null,
+          anl: typeof anlRaw === 'number' ? anlRaw : null,
           company: item.company,
           material: item.material,
         }
       })
-      .filter((item) => item !== null && item.residue !== null)
-      .sort((a, b) => a!.date.getTime() - b!.date.getTime()) as any[]
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
   }, [data, metricKey])
 
   const chartConfig = {
-    residue: {
-      label: 'Resíduo',
+    lab: {
+      label: 'LAB',
+      color: '#a1a1aa', // zinc-400
+    },
+    anl: {
+      label: 'ANL',
       color: color,
     },
   }
@@ -77,14 +66,6 @@ export const MetricEvolutionChart = ({
       </div>
     )
   }
-
-  // Calculate domain for Y axis centered on 0 if possible
-  const residuals = chartData.map((d) => d.residue)
-  const minRes = Math.min(...residuals)
-  const maxRes = Math.max(...residuals)
-  const absMax = Math.max(Math.abs(minRes), Math.abs(maxRes))
-  // Add some padding
-  const domainY = [-absMax * 1.2, absMax * 1.2]
 
   const chartKey = `${metricKey}-${chartData.length}-${chartData[0]?.id || 'empty'}`
 
@@ -104,16 +85,16 @@ export const MetricEvolutionChart = ({
             fontSize={10}
             tickLine={false}
             axisLine={false}
+            minTickGap={30}
           />
           <YAxis
-            dataKey="residue"
             unit={unit}
             stroke="#666"
             fontSize={10}
             tickLine={false}
             axisLine={false}
             width={30}
-            domain={domainY}
+            domain={['auto', 'auto']}
           />
           <ChartTooltip
             cursor={{ strokeDasharray: '3 3' }}
@@ -131,17 +112,26 @@ export const MetricEvolutionChart = ({
               />
             }
           />
-
-          <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
-
+          <Legend verticalAlign="top" height={36} />
           <Line
             type="monotone"
-            dataKey="residue"
-            stroke={color}
+            dataKey="lab"
+            stroke="var(--color-lab)"
             strokeWidth={2}
-            dot={{ r: 3, fill: color }}
-            activeDot={{ r: 5 }}
+            dot={false}
+            activeDot={{ r: 4 }}
             animationDuration={1000}
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey="anl"
+            stroke="var(--color-anl)"
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4 }}
+            animationDuration={1000}
+            connectNulls
           />
         </LineChart>
       </ChartContainer>
