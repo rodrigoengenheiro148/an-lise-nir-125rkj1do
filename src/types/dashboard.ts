@@ -18,10 +18,10 @@ export const DEFAULT_COMPANIES: string[] = [
 
 export const MATERIALS_OPTIONS = [
   'farinha de peixe',
-  'farinha de pena e sangue',
+  'farinha de penas e sangue',
   'farinha de sangue',
   'sebo',
-  'farinha de carne e osso',
+  'fco',
   'farinha de visceras',
 ]
 

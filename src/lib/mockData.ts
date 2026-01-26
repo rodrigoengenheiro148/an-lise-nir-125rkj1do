@@ -14,9 +14,11 @@ export const MOCK_COMPANIES: CompanyEntity[] = [
 
 const MATERIALS = [
   'farinha de peixe',
-  'farinha de pena e sangue',
+  'farinha de penas e sangue',
   'farinha de sangue',
   'sebo',
+  'fco',
+  'farinha de visceras',
 ]
 
 const generateMockRecords = (): AnalysisRecord[] => {

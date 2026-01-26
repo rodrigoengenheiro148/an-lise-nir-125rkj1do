@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
+import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('all')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
@@ -58,7 +60,12 @@ const Index = () => {
     setIsLoadingRecords(true)
 
     try {
-      const records = await api.getCompanyRecords(selectedCompanyId)
+      const materialArg =
+        selectedMaterial === 'all' ? undefined : selectedMaterial
+      const records = await api.getCompanyRecords(
+        selectedCompanyId,
+        materialArg,
+      )
       setFilteredRecords(records)
     } catch (error) {
       console.error(error)
@@ -66,7 +73,7 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId])
+  }, [selectedCompanyId, selectedMaterial])
 
   useEffect(() => {
     fetchRecords()
@@ -81,11 +88,6 @@ const Index = () => {
   const handleDataChange = useCallback(async () => {
     fetchRecords()
   }, [fetchRecords])
-
-  const selectedCompanyName = useMemo(
-    () => companies.find((c) => c.id === selectedCompanyId)?.name || '',
-    [companies, selectedCompanyId],
-  )
 
   if (isLoadingCompanies && companies.length === 0) {
     return (
@@ -127,6 +129,13 @@ const Index = () => {
                   }}
                   onCompanyAdded={handleCompanyAdded}
                   isLoading={isLoadingCompanies}
+                />
+              </div>
+              <div className="w-full sm:w-[250px]">
+                <MaterialSelector
+                  selectedMaterial={selectedMaterial}
+                  onSelect={setSelectedMaterial}
+                  disabled={isLoadingCompanies || !selectedCompanyId}
                 />
               </div>
             </div>
