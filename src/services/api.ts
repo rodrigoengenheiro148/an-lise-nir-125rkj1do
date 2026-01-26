@@ -116,29 +116,17 @@ export const api = {
     })
   },
 
-  getCompanyRecords: async (
-    companyId: string,
-    material?: string,
-  ): Promise<AnalysisRecord[]> => {
-    let query = supabase
+  getCompanyRecords: async (companyId: string): Promise<AnalysisRecord[]> => {
+    const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .eq('company_id', companyId)
-
-    if (material) {
-      query = query.eq('material', material)
-    }
-
-    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(10000)
 
     // Fallback to mock data if empty
     if ((!data || data.length === 0) && !error) {
-      const mockRecs = MOCK_RECORDS.filter(
-        (r) =>
-          r.company_id === companyId && (!material || r.material === material),
-      )
+      const mockRecs = MOCK_RECORDS.filter((r) => r.company_id === companyId)
       if (mockRecs.length > 0) return mockRecs
     }
 
@@ -148,28 +136,6 @@ export const api = {
       const comp = (row.companies as any) || { name: 'Unknown' }
       return transformRecordFromDB(row, comp)
     })
-  },
-
-  getMaterialsByCompany: async (companyId: string): Promise<string[]> => {
-    // Check mock data first if using mock company
-    if (companyId.startsWith('mock-')) {
-      const materials = MOCK_RECORDS.filter(
-        (r) => r.company_id === companyId,
-      ).map((r) => r.material!)
-      return Array.from(new Set(materials)).sort()
-    }
-
-    const { data, error } = await supabase
-      .from('analysis_records')
-      .select('material')
-      .eq('company_id', companyId)
-      .not('material', 'is', null)
-      .limit(5000)
-
-    if (error) throw error
-
-    const materials = data?.map((d) => d.material).filter(Boolean) as string[]
-    return Array.from(new Set(materials)).sort()
   },
 
   getUniqueMaterials: async (): Promise<string[]> => {
