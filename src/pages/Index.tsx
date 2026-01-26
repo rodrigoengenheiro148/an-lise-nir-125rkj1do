@@ -137,6 +137,7 @@ const Index = () => {
                 selectedCompanyId={selectedCompanyId}
                 companies={companiesForSelector}
                 onDataChange={handleDataChange}
+                defaultMaterial={selectedMaterial}
               />
 
               <Button

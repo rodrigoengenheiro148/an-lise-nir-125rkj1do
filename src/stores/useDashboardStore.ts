@@ -6,7 +6,7 @@ import React, {
   ReactNode,
 } from 'react'
 import { Company, Sample } from '@/lib/types'
-import { AnalysisRecord } from '@/types/dashboard'
+import { AnalysisRecord, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { toast } from '@/hooks/use-toast'
 import { api } from '@/services/api'
 
@@ -113,23 +113,27 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         const mats = await api.getCompanyMaterials(selectedCompanyId)
         setMaterials(mats)
 
-        // Smart Default Selection
+        // Default Selection Logic:
+        // 1. If we have data for specific materials in DB (mats > 0):
+        //    - If current selection is one of them, keep it.
+        //    - Else, default to the first available material from DB.
+        // 2. If no data in DB for this company:
+        //    - Default to the first option from the static list (MATERIALS_OPTIONS[0]),
+        //      so the user can start adding data for it.
         if (mats.length > 0) {
-          // If previously selected material is in the new list, keep it
-          // Otherwise select the first one to ensure granular analysis
           if (selectedMaterial && mats.includes(selectedMaterial)) {
             // Keep current selection
           } else {
             setSelectedMaterial(mats[0])
           }
         } else {
-          // If no materials available, clear selection
-          setSelectedMaterial('')
+          // No data for this company yet, default to first static option
+          setSelectedMaterial(MATERIALS_OPTIONS[0])
         }
       } catch (error) {
         console.error('Error fetching materials:', error)
         setMaterials([])
-        setSelectedMaterial('')
+        setSelectedMaterial(MATERIALS_OPTIONS[0])
       } finally {
         setIsLoadingMaterials(false)
       }

@@ -28,12 +28,14 @@ interface ManagementMenuProps {
   selectedCompanyId?: string
   companies: CompanyEntity[]
   onDataChange: () => void
+  defaultMaterial?: string
 }
 
 export const ManagementMenu = ({
   selectedCompanyId,
   companies,
   onDataChange,
+  defaultMaterial,
 }: ManagementMenuProps) => {
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -105,6 +107,7 @@ export const ManagementMenu = ({
         open={isImportOpen}
         onOpenChange={setIsImportOpen}
         onImportSuccess={onDataChange}
+        defaultMaterial={defaultMaterial}
       />
 
       <AlertDialog

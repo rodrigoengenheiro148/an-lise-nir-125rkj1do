@@ -16,7 +16,12 @@ import {
   FileSpreadsheet,
   Grid,
 } from 'lucide-react'
-import { CompanyEntity, METRICS } from '@/types/dashboard'
+import {
+  CompanyEntity,
+  METRICS,
+  MATERIALS_OPTIONS,
+  getMaterialDisplayName,
+} from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
 import {
@@ -36,12 +41,14 @@ interface ImportDialogProps {
   onImportSuccess?: () => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  defaultMaterial?: string
 }
 
 export const ImportDialog = ({
   onImportSuccess,
   open,
   onOpenChange,
+  defaultMaterial,
 }: ImportDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = open !== undefined && onOpenChange !== undefined
@@ -53,6 +60,8 @@ export const ImportDialog = ({
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedMetric, setSelectedMetric] = useState<string>('')
+  const [selectedImportMaterial, setSelectedImportMaterial] =
+    useState<string>('')
 
   const [textInput, setTextInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -70,13 +79,19 @@ export const ImportDialog = ({
       setFile(null)
       setIsProcessing(false)
       setSelectedMetric('auto')
+      // Reset material to default from props or first option
+      if (defaultMaterial && MATERIALS_OPTIONS.includes(defaultMaterial)) {
+        setSelectedImportMaterial(defaultMaterial)
+      } else {
+        setSelectedImportMaterial('')
+      }
     }
-  }, [isOpen])
+  }, [isOpen, defaultMaterial])
 
   // Reset results when metric changes
   useEffect(() => {
     setParseResult(null)
-  }, [selectedMetric])
+  }, [selectedMetric, selectedImportMaterial])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -121,12 +136,12 @@ export const ImportDialog = ({
     )?.name
 
     setTimeout(() => {
-      // Reverted to simpler parsing without strict material validation
       const result = parseImportData(
         content,
         defaultCompany,
         companies,
         selectedMetric,
+        selectedImportMaterial, // Pass selected material as default
       )
       setParseResult(result)
       setIsProcessing(false)
@@ -197,13 +212,6 @@ export const ImportDialog = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-zinc-500 px-1">
-                  {selectedMetric === 'bulk_strict'
-                    ? 'Use a ordem: Data, Material, Sub, Métricas (Anl, Lab, Nir)...'
-                    : selectedMetric === 'auto'
-                      ? 'Requer cabeçalhos compatíveis no topo.'
-                      : 'Modo estrito para métrica única (Lab, Anl).'}
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -226,10 +234,39 @@ export const ImportDialog = ({
               </div>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 flex-none">
+              <div className="space-y-2">
+                <Label>Material Padrão (Opcional)</Label>
+                <Select
+                  value={selectedImportMaterial}
+                  onValueChange={setSelectedImportMaterial}
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                    <SelectValue placeholder="Utilizar material da linha ou selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
+                    <SelectItem value=" ">
+                      <span className="text-zinc-500 italic">
+                        Detectar do arquivo (Padrão)
+                      </span>
+                    </SelectItem>
+                    {MATERIALS_OPTIONS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {getMaterialDisplayName(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-zinc-500 px-1">
+                  Usado se o material não for especificado no arquivo.
+                </p>
+              </div>
+            </div>
+
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
-              className="flex-1 flex flex-col overflow-hidden"
+              className="flex-1 flex flex-col overflow-hidden pt-2"
             >
               <TabsList className="grid w-full grid-cols-2 bg-zinc-900 flex-none">
                 <TabsTrigger value="text" className="gap-2">
