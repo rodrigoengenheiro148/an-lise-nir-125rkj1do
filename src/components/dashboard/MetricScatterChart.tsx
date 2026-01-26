@@ -55,10 +55,16 @@ export const MetricScatterChart = ({
     if (statistics.n >= 2) {
       const minX = statistics.min
       const maxX = statistics.max
-      trend = [
-        { x: minX, y: statistics.slope * minX + statistics.intercept },
-        { x: maxX, y: statistics.slope * maxX + statistics.intercept },
-      ]
+
+      // Generate multiple points for the trend line to allow tooltip interaction along the line
+      const steps = 50 // Enough points to make hovering responsive
+      const stepSize = (maxX - minX) / (steps - 1)
+
+      trend = Array.from({ length: steps }).map((_, i) => {
+        const x = minX + i * stepSize
+        const y = statistics.slope * x + statistics.intercept
+        return { x, y }
+      })
     }
 
     return { points: pts, stats: statistics, trendPoints: trend }
@@ -194,17 +200,28 @@ export const MetricScatterChart = ({
                   strokeDasharray: '4 4',
                 }}
                 content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const dataPoint = payload.find(
-                      (p) => p.name === 'points',
-                    )?.payload
-                    if (!dataPoint) return null
+                  if (!active || !payload || !payload.length) return null
+
+                  // Prioritize point data
+                  const pointPayload = payload.find((p) => p.name === 'points')
+
+                  if (
+                    pointPayload &&
+                    pointPayload.payload &&
+                    pointPayload.payload.original
+                  ) {
+                    const dataPoint = pointPayload.payload
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-black p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50">
-                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1">
-                          {dataPoint.original.company}
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
+                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
+                          <span className="truncate max-w-[150px]">
+                            {dataPoint.original.company}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-normal">
+                            Amostra
+                          </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-zinc-400">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
                           <span>Data:</span>
                           <span className="text-right text-zinc-300">
                             {dataPoint.original.date
@@ -215,14 +232,14 @@ export const MetricScatterChart = ({
                           </span>
                           <span>LAB (Ref):</span>
                           <span className="text-right text-zinc-100 font-mono font-medium">
-                            {dataPoint.x.toFixed(2)}
+                            {dataPoint.x.toFixed(2)} {unit}
                           </span>
                           <span>NIR (Pred):</span>
                           <span
                             className="text-right font-mono font-medium"
                             style={{ color: color }}
                           >
-                            {dataPoint.y.toFixed(2)}
+                            {dataPoint.y.toFixed(2)} {unit}
                           </span>
                           <span>Resíduo:</span>
                           <span
@@ -237,6 +254,47 @@ export const MetricScatterChart = ({
                       </div>
                     )
                   }
+
+                  // Fallback to trend line data
+                  const trendPayload = payload.find((p) => p.name === 'trend')
+                  if (trendPayload) {
+                    const trendData = trendPayload.payload
+                    return (
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
+                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
+                          <span>Tendência Linear</span>
+                          <span className="text-[10px] text-zinc-500 font-normal">
+                            Regressão
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
+                          <span>LAB (X):</span>
+                          <span className="text-right text-zinc-100 font-mono font-medium">
+                            {trendData.x.toFixed(2)} {unit}
+                          </span>
+                          <span>Tendência (Y):</span>
+                          <span
+                            className="text-right font-mono font-medium"
+                            style={{ color: color }}
+                          >
+                            {trendData.y.toFixed(2)} {unit}
+                          </span>
+
+                          <div className="col-span-2 border-t border-zinc-900 my-1"></div>
+
+                          <span>R²:</span>
+                          <span className="text-right text-zinc-300 font-mono">
+                            {stats.r2.toFixed(3)}
+                          </span>
+                          <span>Slope:</span>
+                          <span className="text-right text-zinc-300 font-mono">
+                            {stats.slope.toFixed(3)}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return null
                 }}
               />
@@ -262,7 +320,12 @@ export const MetricScatterChart = ({
                 stroke="var(--color-trend)"
                 strokeWidth={2}
                 dot={false}
-                activeDot={false}
+                activeDot={{
+                  r: 4,
+                  fill: color,
+                  stroke: '#000',
+                  strokeWidth: 2,
+                }}
                 isAnimationActive={false}
               />
             </ComposedChart>
