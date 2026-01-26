@@ -156,6 +156,20 @@ export const METRICS: {
   },
 ]
 
+export const BULK_IMPORT_ORDER: MetricKey[] = [
+  'acidity',
+  'calcium',
+  'etherExtract',
+  'fco',
+  'mineralMatter',
+  'moisture',
+  'peroxide',
+  'phosphorus',
+  'protein',
+  'proteinDigestibility',
+  'sodium',
+]
+
 export interface AnalysisRecord {
   id: string
   company: Company

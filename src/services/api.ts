@@ -188,6 +188,15 @@ export const api = {
     if (error) throw error
   },
 
+  deleteCompanyRecords: async (companyId: string) => {
+    const { error } = await supabase
+      .from('analysis_records')
+      .delete()
+      .eq('company_id', companyId)
+
+    if (error) throw error
+  },
+
   deleteAllRecords: async () => {
     const { error } = await supabase
       .from('analysis_records')
@@ -226,7 +235,6 @@ export const api = {
 
     if (error) {
       console.error('Export error:', error)
-      // Check for specific status in error context
       if (error && typeof error === 'object' && 'context' in error) {
         // @ts-expect-error
         const status = error.context?.status
@@ -248,7 +256,6 @@ export const api = {
     if (data instanceof Blob) {
       blob = data
     } else if (data instanceof ArrayBuffer) {
-      // Fallback if data comes as ArrayBuffer despite responseType: 'blob'
       blob = new Blob([data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
@@ -257,8 +264,6 @@ export const api = {
       throw new Error('Formato de resposta inválido (esperado Arquivo/Blob).')
     }
 
-    // Check if data is a JSON object (if responseType 'blob' was ignored or fallback occurred)
-    // or if the blob content is actually a JSON error from the server
     if (blob.type.includes('application/json') || blob.type.includes('json')) {
       const text = await blob.text()
       try {
@@ -269,9 +274,6 @@ export const api = {
       } catch (e) {
         // ignore parse error if it's not valid json
       }
-      // If it's JSON content type but we are here, it's not the expected excel file
-      // We might throw here if we are strict, but sometimes content-type might be wrong.
-      // However, for this app, we expect xlsx content type or error.
     }
 
     return blob

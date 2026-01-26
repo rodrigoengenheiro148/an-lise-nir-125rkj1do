@@ -1,4 +1,4 @@
-import { AnalysisRecord, METRICS } from '@/types/dashboard'
+import { AnalysisRecord, METRICS, BULK_IMPORT_ORDER } from '@/types/dashboard'
 import { parse, isValid, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -23,13 +23,13 @@ const normalize = (str: string) =>
     .trim()
 
 // Removed 'nir' to stop mapping it automatically
-const METRIC_SUFFIXES = ['lab', 'anl']
+const METRIC_SUFFIXES = ['lab', 'anl', 'nir']
 
 export const parseImportData = (
   content: string,
   defaultCompany?: string,
   existingCompanies: { name: string; id: string }[] = [],
-  targetMetric?: string, // The key of the selected metric (e.g., 'moisture') or 'auto'
+  targetMetric?: string, // The key of the selected metric, 'auto', or 'bulk_strict'
 ): ParseResult => {
   const rows = content
     .split(/\r?\n/)
@@ -71,11 +71,26 @@ export const parseImportData = (
 
   // Strategy Determination
   let useStrictMetricMapping = false
+  let isBulkStrict = targetMetric === 'bulk_strict'
   let dataStartIndex = 1
   let headerMap: HeaderMap[] = []
 
   // Check if we should use strict mapping (Data Mode) vs Header Mode
-  if (targetMetric && targetMetric !== 'auto') {
+  if (isBulkStrict) {
+    // Bulk Strict Mode: Assumes specific column order
+    // Order: Date, Material, SubMaterial, then Metrics (ANL, LAB, NIR)
+    dataStartIndex = 0
+    // Try to detect if first row is header
+    const firstCols = parseRow(firstRow)
+    const normFirst = normalize(firstCols[0])
+    if (
+      normFirst === 'data' ||
+      normFirst === 'date' ||
+      normFirst.includes('material')
+    ) {
+      dataStartIndex = 1
+    }
+  } else if (targetMetric && targetMetric !== 'auto') {
     const headers = parseRow(firstRow)
     const knownHeaders = [
       'material',
@@ -124,7 +139,7 @@ export const parseImportData = (
     }
   }
 
-  if (!useStrictMetricMapping) {
+  if (!useStrictMetricMapping && !isBulkStrict) {
     const headers = parseRow(rows[0])
 
     headers.forEach((h, index) => {
@@ -184,7 +199,7 @@ export const parseImportData = (
         return
       }
 
-      // Auto-detection logic
+      // Auto-detection logic (All metrics or 'auto')
       for (const metric of METRICS) {
         const metricName = normalize(metric.label)
         const metricKey = normalize(metric.key)
@@ -225,11 +240,60 @@ export const parseImportData = (
     let hasError = false
     let rowErrorPrefix = `Linha ${i + 1}: `
 
-    if (useStrictMetricMapping && targetMetric) {
-      // Robust strict mapping logic
-      let currentCols = cols
+    if (isBulkStrict) {
+      // Strict Order: Date, Material, SubMaterial
+      // Then Metrics: Acidity, Calcium, EtherExtract, FCO, MineralMatter, Moisture, Peroxide, Phosphorus, Protein, ProteinDigestibility, Sodium
+      // Each Metric: ANL, LAB, NIR
 
-      // Handle space-separated single column issue if applicable
+      let colIdx = 0
+      const getCol = () => {
+        const val = cols[colIdx]
+        colIdx++
+        return val
+      }
+
+      // Date
+      const dateStr = getCol()
+      if (dateStr) {
+        let parsedDate: Date | null = null
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          parsedDate = parse(dateStr, 'yyyy-MM-dd', new Date())
+        } else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+          parsedDate = parse(dateStr, 'dd/MM/yyyy', new Date(), {
+            locale: ptBR,
+          })
+        }
+        if (parsedDate && isValid(parsedDate)) {
+          record.date = format(parsedDate, 'yyyy-MM-dd')
+        }
+      }
+
+      // Material & SubMaterial
+      record.material = getCol()
+      record.submaterial = getCol()
+
+      // Metrics
+      BULK_IMPORT_ORDER.forEach((metricKey) => {
+        const anl = getCol()
+        const lab = getCol()
+        const nir = getCol()
+
+        const parseNum = (v: string | undefined) => {
+          if (!v) return undefined
+          const clean = v.replace(/\s/g, '').replace(',', '.')
+          const n = parseFloat(clean)
+          return isNaN(n) ? undefined : n
+        }
+
+        if (anl) record[`${metricKey}_anl`] = parseNum(anl)
+        if (lab) record[`${metricKey}_lab`] = parseNum(lab)
+        if (nir) record[`${metricKey}_nir`] = parseNum(nir)
+      })
+
+      record.company = defaultCompany
+    } else if (useStrictMetricMapping && targetMetric) {
+      // Robust strict mapping logic (Single Metric)
+      let currentCols = cols
       if (
         currentCols.length === 1 &&
         separator === ',' &&
@@ -268,7 +332,6 @@ export const parseImportData = (
         )
         hasError = true
       }
-
       record.company = defaultCompany
     } else {
       // Standard Header Mapping
@@ -282,21 +345,15 @@ export const parseImportData = (
           } else if (map.field === 'submaterial') {
             record.submaterial = val
           } else if (map.field === 'date') {
-            // Try to parse date
             const dateStr = val.trim()
             let parsedDate: Date | null = null
-
-            // Try ISO/Hyphen (yyyy-MM-dd)
             if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
               parsedDate = parse(dateStr, 'yyyy-MM-dd', new Date())
-            }
-            // Try Slash (dd/MM/yyyy)
-            else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+            } else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
               parsedDate = parse(dateStr, 'dd/MM/yyyy', new Date(), {
                 locale: ptBR,
               })
             }
-
             if (parsedDate && isValid(parsedDate)) {
               record.date = format(parsedDate, 'yyyy-MM-dd')
             }
@@ -309,7 +366,6 @@ export const parseImportData = (
           }
         }
       })
-
       if (!record.company && defaultCompany) {
         record.company = defaultCompany
       }
@@ -320,7 +376,6 @@ export const parseImportData = (
       errors.push(`${rowErrorPrefix}Empresa não identificada.`)
       hasError = true
     } else {
-      // Validate if company exists in list
       const matched = existingCompanies.find(
         (c) =>
           normalize(c.name) === normalize(record.company) ||

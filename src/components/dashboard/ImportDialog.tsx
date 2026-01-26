@@ -7,7 +7,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -35,10 +34,21 @@ import { calculateResidue, formatResidue } from '@/lib/calculations'
 
 interface ImportDialogProps {
   onImportSuccess?: () => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false)
+export const ImportDialog = ({
+  onImportSuccess,
+  open,
+  onOpenChange,
+}: ImportDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = open !== undefined && onOpenChange !== undefined
+
+  const isOpen = isControlled ? open : internalOpen
+  const setIsOpen = isControlled ? onOpenChange : setInternalOpen
+
   const [activeTab, setActiveTab] = useState('text')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
@@ -59,11 +69,11 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
       setTextInput('')
       setFile(null)
       setIsProcessing(false)
-      setSelectedMetric('') // Reset metric selection
+      setSelectedMetric('auto') // Default to auto/bulk friendly
     }
   }, [isOpen])
 
-  // Reset results when metric changes to avoid stale validation
+  // Reset results when metric changes
   useEffect(() => {
     setParseResult(null)
   }, [selectedMetric])
@@ -71,13 +81,13 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
-      setParseResult(null) // Reset previous results
+      setParseResult(null)
     }
   }
 
   const processImport = async () => {
     if (!selectedMetric) {
-      toast.error('Selecione uma métrica alvo.')
+      toast.error('Selecione uma métrica ou modo de importação.')
       return
     }
 
@@ -122,13 +132,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
       if (result.validCount === 0 && result.errors.length > 0) {
         toast.error('Nenhum registro válido encontrado. Verifique os erros.')
       } else if (result.validCount > 0) {
-        const metricName =
-          selectedMetric === 'auto'
-            ? 'Automaticamente'
-            : METRICS.find((m) => m.key === selectedMetric)?.label
-        toast.success(
-          `${result.validCount} registros identificados. (Métrica: ${metricName})`,
-        )
+        toast.success(`${result.validCount} registros identificados.`)
       }
     }, 100)
   }
@@ -154,21 +158,11 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-          <Upload className="h-4 w-4" />
-          Importar Dados
-        </Button>
-      </DialogTrigger>
       <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Copie e cole dados do Excel ou carregue um arquivo CSV.
-            <br />
-            <span className="text-xs text-zinc-500">
-              Colunas esperadas: Data, Empresa, Material, Submaterial, LAB, ANL.
-            </span>
+            Importação em massa via Excel ou CSV.
           </DialogDescription>
         </DialogHeader>
 
@@ -176,18 +170,23 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
           <div className="space-y-4 py-4 flex-1 overflow-hidden flex flex-col">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-none">
               <div className="space-y-2">
-                <Label>Métrica Alvo (Obrigatório)</Label>
+                <Label>Modo de Importação</Label>
                 <Select
                   value={selectedMetric}
                   onValueChange={setSelectedMetric}
                 >
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
-                    <SelectValue placeholder="Selecione a Métrica..." />
+                    <SelectValue placeholder="Selecione o Modo..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
                     <SelectItem value="auto">
                       <span className="font-bold">
                         Automático (Detectar cabeçalhos)
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="bulk_strict">
+                      <span className="font-bold text-emerald-500">
+                        Template Completo (Bulk Import)
                       </span>
                     </SelectItem>
                     {METRICS.map((m) => (
@@ -197,14 +196,13 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedMetric && selectedMetric !== 'auto' && (
-                  <p className="text-[10px] text-zinc-400 px-1">
-                    <span className="text-emerald-500 font-medium">
-                      Modo Estrito:
-                    </span>{' '}
-                    Colar dados diretos: LAB (Col 1), ANL (Col 2).
-                  </p>
-                )}
+                <p className="text-[10px] text-zinc-500 px-1">
+                  {selectedMetric === 'bulk_strict'
+                    ? 'Use a ordem: Data, Material, Sub, Métricas (Anl, Lab, Nir)...'
+                    : selectedMetric === 'auto'
+                      ? 'Requer cabeçalhos compatíveis no topo.'
+                      : 'Modo estrito para métrica única (Lab, Anl).'}
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -262,9 +260,6 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                       <span className="font-medium">
                         Clique para selecionar CSV
                       </span>
-                      <span className="text-xs">
-                        Suporta .csv (Separado por vírgula ou ponto-e-vírgula)
-                      </span>
                     </div>
                   )}
                   <input
@@ -279,15 +274,8 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
 
               <TabsContent value="text" className="flex-1 pt-2 overflow-hidden">
                 <div className="flex flex-col h-full gap-2">
-                  <Label className="text-zinc-400">
-                    Cole os dados aqui (Ctrl+V)
-                  </Label>
                   <Textarea
-                    placeholder={
-                      selectedMetric && selectedMetric !== 'auto'
-                        ? 'Exemplo:\nData Material 10.5 10.2\n25/01/2026 MaterialB 11.0 10.8'
-                        : 'Cole aqui as células copiadas do Excel...'
-                    }
+                    placeholder="Cole aqui as células copiadas do Excel (Ctrl+V)..."
                     className="flex-1 bg-zinc-900 border-zinc-800 font-mono text-xs resize-none"
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
@@ -352,14 +340,15 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                         <span>Data</span>
                         <span>Empresa</span>
                         <span>Material</span>
-                        <span className="text-right">
-                          Valores (Lab | Anl | Res)
-                        </span>
+                        <span className="text-right">Valores</span>
                       </div>
                       {parseResult.records.slice(0, 50).map((rec, i) => {
-                        // Calculate residues if metric selected
-                        let valuesDisplay = ''
-                        if (selectedMetric && selectedMetric !== 'auto') {
+                        let valuesDisplay = '...'
+                        if (
+                          selectedMetric &&
+                          selectedMetric !== 'auto' &&
+                          selectedMetric !== 'bulk_strict'
+                        ) {
                           const lab = rec[`${selectedMetric}_lab`] as
                             | number
                             | undefined
@@ -388,9 +377,8 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                             <span className="truncate text-zinc-400">
                               {rec.material}
                             </span>
-                            {/* Preview mapped value for selected metric */}
                             <span className="text-zinc-500 font-mono text-right">
-                              {valuesDisplay || '...'}
+                              {valuesDisplay}
                             </span>
                           </div>
                         )
@@ -412,11 +400,6 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
               <Button
                 onClick={processImport}
                 disabled={isProcessing || !selectedMetric}
-                title={
-                  !selectedMetric
-                    ? 'Selecione uma métrica alvo para continuar'
-                    : ''
-                }
               >
                 {isProcessing ? 'Processando...' : 'Processar Dados'}
               </Button>
