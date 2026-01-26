@@ -263,8 +263,8 @@ export const DataManagementTable = ({
                   const anlKey = `${m.key}_anl`
                   const labVal = record[labKey]
                   const anlVal = record[anlKey]
-                  // Per requirements: Residuo = ANL - LAB
-                  const residue = calculateResidue(anlVal, labVal)
+                  // Residuo = LAB - ANL
+                  const residue = calculateResidue(labVal, anlVal)
 
                   return (
                     <Fragment key={m.key}>

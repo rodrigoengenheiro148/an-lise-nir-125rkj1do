@@ -20,7 +20,8 @@ const normalize = (str: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
 
-const METRIC_SUFFIXES = ['lab', 'nir', 'anl']
+// Removed 'nir' to stop mapping it automatically
+const METRIC_SUFFIXES = ['lab', 'anl']
 
 export const parseImportData = (
   content: string,
@@ -84,7 +85,6 @@ export const parseImportData = (
       'cliente',
       'lab',
       'anl',
-      'nir',
       'valor',
       'resultado',
       'value',
@@ -239,38 +239,18 @@ export const parseImportData = (
         .filter((n) => !isNaN(n))
 
       if (numericValues.length >= 2) {
-        if (numericValues.length === 2) {
-          record[`${targetMetric}_lab`] = numericValues[0]
-          record[`${targetMetric}_anl`] = numericValues[1]
-          // Find material in string columns
-          const stringColIndex = colTypes.indexOf('string')
-          if (stringColIndex !== -1) {
-            record.material = currentCols[stringColIndex]
-          }
-        } else if (numericValues.length >= 3) {
-          // If 3 numbers provided, map to Lab, Nir, Anl to support full range
-          // Heuristic: If we have exactly 3 numbers in a row, it likely matches the full spectrum
-          if (numericValues.length === 3) {
-            record[`${targetMetric}_lab`] = numericValues[0]
-            record[`${targetMetric}_nir`] = numericValues[1]
-            record[`${targetMetric}_anl`] = numericValues[2]
-          } else {
-            // Fallback for messy rows or IDs:
-            if (colTypes[0] === 'string') {
-              // Pattern: Mat, Lab, Anl (ignore extra numbers or take first 2)
-              record.material = currentCols[0]
-              record[`${targetMetric}_lab`] = numericValues[0]
-              record[`${targetMetric}_anl`] = numericValues[1]
-            } else {
-              // Pattern: ID, Lab, Anl
-              record[`${targetMetric}_lab`] = numericValues[1]
-              record[`${targetMetric}_anl`] = numericValues[2]
-            }
-          }
+        // Strict mapping: 1st number = LAB, 2nd number = ANL
+        record[`${targetMetric}_lab`] = numericValues[0]
+        record[`${targetMetric}_anl`] = numericValues[1]
+
+        // Find material in string columns if available
+        const stringColIndex = colTypes.indexOf('string')
+        if (stringColIndex !== -1) {
+          record.material = currentCols[stringColIndex]
         }
       } else {
         errors.push(
-          `${rowErrorPrefix}É necessário pelo menos dois valores numéricos.`,
+          `${rowErrorPrefix}É necessário pelo menos dois valores numéricos (LAB e ANL).`,
         )
         hasError = true
       }

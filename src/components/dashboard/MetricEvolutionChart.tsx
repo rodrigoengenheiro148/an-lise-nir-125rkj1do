@@ -1,12 +1,11 @@
 import { useMemo } from 'react'
 import {
-  ComposedChart,
+  LineChart,
   Line,
   CartesianGrid,
   XAxis,
   YAxis,
-  Scatter,
-  ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import {
@@ -14,6 +13,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
+import { calculateResidue } from '@/lib/calculations'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface MetricEvolutionChartProps {
   data: AnalysisRecord[]
@@ -31,7 +33,6 @@ export const MetricEvolutionChart = ({
   height = '100%',
 }: MetricEvolutionChartProps) => {
   const chartData = useMemo(() => {
-    // Optimization: Only process needed fields
     const keyLab = `${metricKey}_lab`
     const keyAnl = `${metricKey}_anl`
 
@@ -44,27 +45,27 @@ export const MetricEvolutionChart = ({
         const hasLab = typeof labRaw === 'number'
         const hasAnl = typeof anlRaw === 'number'
 
-        // For correlation chart (LAB vs ANL), we need both values
         if (!hasLab || !hasAnl) return null
+
+        const residue = calculateResidue(labRaw, anlRaw) // LAB - ANL
 
         return {
           id: item.id,
-          lab: Number(labRaw),
-          anl: Number(anlRaw),
+          date: item.date
+            ? new Date(item.date)
+            : new Date(item.created_at || new Date()),
+          residue,
           company: item.company,
           material: item.material,
         }
       })
-      .filter((item) => item !== null) as any[]
+      .filter((item) => item !== null && item.residue !== null)
+      .sort((a, b) => a!.date.getTime() - b!.date.getTime()) as any[]
   }, [data, metricKey])
 
   const chartConfig = {
-    lab: {
-      label: 'LAB',
-      color: '#52525b', // Zinc-600
-    },
-    anl: {
-      label: 'ANL',
+    residue: {
+      label: 'Resíduo',
       color: color,
     },
   }
@@ -77,85 +78,72 @@ export const MetricEvolutionChart = ({
     )
   }
 
-  // Calculate domain for better visualization
-  const maxVal = Math.max(...chartData.map((d) => Math.max(d.lab, d.anl)))
-  const domainMax = Math.ceil(maxVal * 1.1)
+  // Calculate domain for Y axis centered on 0 if possible
+  const residuals = chartData.map((d) => d.residue)
+  const minRes = Math.min(...residuals)
+  const maxRes = Math.max(...residuals)
+  const absMax = Math.max(Math.abs(minRes), Math.abs(maxRes))
+  // Add some padding
+  const domainY = [-absMax * 1.2, absMax * 1.2]
 
-  // Unique key to force re-render when data length or metric changes, preventing stuck charts
   const chartKey = `${metricKey}-${chartData.length}-${chartData[0]?.id || 'empty'}`
 
   return (
     <div className="w-full h-full min-h-[200px]" style={{ height }}>
       <ChartContainer config={chartConfig} className="w-full h-full">
-        <ComposedChart
+        <LineChart
           key={chartKey}
           data={chartData}
           margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#333" />
           <XAxis
-            type="number"
-            dataKey="lab"
-            name="LAB"
-            unit={unit}
+            dataKey="date"
+            tickFormatter={(date) => format(date, 'dd/MM')}
             stroke="#666"
             fontSize={10}
             tickLine={false}
             axisLine={false}
-            domain={[0, domainMax]}
-            label={{
-              value: 'LAB (Ref)',
-              position: 'bottom',
-              offset: -5,
-              fontSize: 10,
-              fill: '#666',
-            }}
           />
           <YAxis
-            type="number"
-            dataKey="anl"
-            name="ANL"
+            dataKey="residue"
             unit={unit}
             stroke="#666"
             fontSize={10}
             tickLine={false}
             axisLine={false}
-            domain={[0, domainMax]}
             width={30}
-            label={{
-              value: 'ANL',
-              angle: -90,
-              position: 'insideLeft',
-              fontSize: 10,
-              fill: '#666',
-            }}
+            domain={domainY}
           />
           <ChartTooltip
             cursor={{ strokeDasharray: '3 3' }}
-            content={<ChartTooltipContent indicator="dot" />}
+            content={
+              <ChartTooltipContent
+                indicator="line"
+                labelFormatter={(label, payload) => {
+                  if (payload && payload.length > 0) {
+                    return format(payload[0].payload.date, "dd 'de' MMMM", {
+                      locale: ptBR,
+                    })
+                  }
+                  return label
+                }}
+              />
+            }
           />
 
-          {/* Reference Line Y = X */}
+          <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
+
           <Line
-            dataKey="lab"
-            stroke="var(--color-lab)"
-            strokeDasharray="3 3"
-            strokeWidth={1}
-            dot={false}
-            activeDot={false}
-            legendType="none"
-            name="Referência"
-            isAnimationActive={false} // Disable animation for reference line stability
+            type="monotone"
+            dataKey="residue"
+            stroke={color}
+            strokeWidth={2}
+            dot={{ r: 3, fill: color }}
+            activeDot={{ r: 5 }}
+            animationDuration={1000}
           />
-
-          <Scatter
-            name="Amostras"
-            dataKey="anl"
-            fill="var(--color-anl)"
-            fillOpacity={0.6}
-            isAnimationActive={true}
-          />
-        </ComposedChart>
+        </LineChart>
       </ChartContainer>
     </div>
   )

@@ -10,14 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Upload,
-  CheckCircle,
-  XCircle,
-  FileSpreadsheet,
-  AlertTriangle,
-  ArrowRight,
-} from 'lucide-react'
+import { Upload, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react'
 import { CompanyEntity, METRICS } from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
@@ -85,13 +78,15 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
 
     if (activeTab === 'file') {
       if (!file) {
-        toast.error('Selecione um arquivo CSV.')
+        toast.error('Selecione um arquivo.')
         return
       }
       try {
         content = await file.text()
       } catch (e) {
-        toast.error('Erro ao ler arquivo.')
+        toast.error(
+          'Erro ao ler arquivo. Certifique-se que é um arquivo de texto válido (CSV).',
+        )
         return
       }
     } else {
@@ -198,7 +193,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                       Modo Estrito:
                     </span>{' '}
                     Dados sem cabeçalho serão mapeados como: Col 1 = LAB, Col 2
-                    = ANL.
+                    = ANL. (Colunas extras serão ignoradas)
                   </p>
                 )}
               </div>

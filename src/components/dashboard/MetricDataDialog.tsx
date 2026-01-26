@@ -47,6 +47,7 @@ import {
   STATIC_SUBMATERIALS,
   METRICS,
 } from '@/types/dashboard'
+import { calculateResidue, formatResidue } from '@/lib/calculations'
 
 const numberRefinement = (val?: string) => {
   if (!val) return true
@@ -59,10 +60,6 @@ const formSchema = z.object({
   submaterial: z.string().optional(),
   date: z.date({ required_error: 'Data é obrigatória' }),
   labValue: z
-    .string()
-    .optional()
-    .refine(numberRefinement, 'Deve ser um número válido'),
-  nirValue: z
     .string()
     .optional()
     .refine(numberRefinement, 'Deve ser um número válido'),
@@ -97,10 +94,15 @@ export function MetricDataDialog({
       material: '',
       submaterial: '',
       labValue: '',
-      nirValue: '',
       anlValue: '',
     },
   })
+
+  // Watch values for live residue calculation
+  const labVal = form.watch('labValue')
+  const anlVal = form.watch('anlValue')
+
+  const currentResidue = calculateResidue(labVal, anlVal)
 
   useEffect(() => {
     if (open) {
@@ -111,7 +113,6 @@ export function MetricDataDialog({
         submaterial: '',
         date: new Date(),
         labValue: '',
-        nirValue: '',
         anlValue: '',
       })
     }
@@ -135,7 +136,6 @@ export function MetricDataDialog({
 
       // Set metric specific values
       record[`${metricKey}_lab`] = parseNumber(values.labValue)
-      record[`${metricKey}_nir`] = parseNumber(values.nirValue)
       record[`${metricKey}_anl`] = parseNumber(values.anlValue)
 
       await api.createRecord(record)
@@ -155,7 +155,6 @@ export function MetricDataDialog({
 
     setIsExporting(true)
     try {
-      // Allow export without companyId (exports all data for the metric)
       const blob = await api.exportMetricData(metricKey, companyId || undefined)
 
       if (!blob || !(blob instanceof Blob)) {
@@ -174,7 +173,6 @@ export function MetricDataDialog({
       document.body.appendChild(a)
       a.click()
 
-      // Remove element and revoke URL to prevent memory leaks
       document.body.removeChild(a)
       setTimeout(() => {
         window.URL.revokeObjectURL(url)
@@ -342,7 +340,7 @@ export function MetricDataDialog({
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4 pt-2">
+            <div className="grid grid-cols-3 gap-4 pt-2 items-end">
               <FormField
                 control={form.control}
                 name="labValue"
@@ -350,25 +348,6 @@ export function MetricDataDialog({
                   <FormItem>
                     <FormLabel className="text-zinc-400">
                       LAB ({metricInfo?.unit})
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="0.00"
-                        className="bg-zinc-900 border-zinc-700 font-mono"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="nirValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-zinc-400">
-                      NIR ({metricInfo?.unit})
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -400,6 +379,14 @@ export function MetricDataDialog({
                   </FormItem>
                 )}
               />
+              <div className="flex flex-col gap-2 pb-2">
+                <span className="text-sm font-medium text-zinc-400">
+                  Resíduo
+                </span>
+                <div className="h-10 flex items-center justify-center bg-zinc-900/50 border border-zinc-800 rounded-md font-mono text-sm text-zinc-300">
+                  {formatResidue(currentResidue)}
+                </div>
+              </div>
             </div>
 
             <DialogFooter className="pt-4 sm:justify-between">

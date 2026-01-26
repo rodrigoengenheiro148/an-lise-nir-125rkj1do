@@ -126,14 +126,12 @@ export const EditRecordDialog = ({
         METRICS.forEach((m) => {
           const keyLab = `${m.key}_lab`
           const keyAnl = `${m.key}_anl`
-          const keyNir = `${m.key}_nir`
+          // removed nir check
 
           if (formData[keyLab] !== initialData[keyLab])
             updates[keyLab] = formData[keyLab]
           if (formData[keyAnl] !== initialData[keyAnl])
             updates[keyAnl] = formData[keyAnl]
-          if (formData[keyNir] !== initialData[keyNir])
-            updates[keyNir] = formData[keyNir]
         })
 
         // If there are changes, update.
@@ -272,7 +270,7 @@ export const EditRecordDialog = ({
                 <div className="h-px bg-zinc-800 flex-1" />
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {METRICS.map((metric) => (
                   <div
                     key={metric.key}
@@ -294,7 +292,7 @@ export const EditRecordDialog = ({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1.5">
                         <Label className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">
                           LAB
@@ -308,21 +306,6 @@ export const EditRecordDialog = ({
                             handleChange(`${metric.key}_lab`, e.target.value)
                           }
                           className="bg-zinc-950 border-zinc-800 font-mono text-zinc-100 h-8 text-xs focus:border-zinc-600"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-purple-500/70 uppercase tracking-wider">
-                          NIR
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          value={formData[`${metric.key}_nir`] ?? ''}
-                          onChange={(e) =>
-                            handleChange(`${metric.key}_nir`, e.target.value)
-                          }
-                          className="bg-zinc-950 border-zinc-800 font-mono text-purple-400 h-8 text-xs focus:border-purple-900"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -344,7 +327,17 @@ export const EditRecordDialog = ({
                         <Label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">
                           Resíduo
                         </Label>
-                        <div className="flex items-center justify-center h-8 bg-zinc-900/50 border border-zinc-800/50 rounded-md font-mono text-xs text-zinc-500">
+                        <div
+                          className={cn(
+                            'flex items-center justify-center h-8 bg-zinc-900/50 border border-zinc-800/50 rounded-md font-mono text-xs',
+                            calculateResidue(
+                              formData[`${metric.key}_lab`],
+                              formData[`${metric.key}_anl`],
+                            ) === null
+                              ? 'text-zinc-500'
+                              : 'text-zinc-300',
+                          )}
+                        >
                           {formatResidue(
                             calculateResidue(
                               formData[`${metric.key}_lab`],

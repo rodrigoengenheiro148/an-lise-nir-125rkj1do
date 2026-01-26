@@ -16,6 +16,7 @@ import { ResidualHistogram } from './ResidualHistogram'
 import { MetricDataDialog } from './MetricDataDialog'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { calculateResidue } from '@/lib/calculations'
 
 interface MetricCardProps {
   title: string
@@ -36,7 +37,6 @@ export const MetricCard = ({
 }: MetricCardProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const isAcidity = metricKey === 'acidity'
 
   // Calculate stats based on created_at descending sort (default)
   const latestRecord = data.length > 0 ? data[0] : null
@@ -50,10 +50,8 @@ export const MetricCard = ({
 
   const latestLab = getVal(`${metricKey}_lab`)
   const latestAnl = getVal(`${metricKey}_anl`)
-  const latestNir = getVal(`${metricKey}_nir`)
 
-  const latestResidual =
-    latestLab !== null && latestAnl !== null ? latestLab - latestAnl : null
+  const latestResidual = calculateResidue(latestLab, latestAnl)
 
   return (
     <>
@@ -116,28 +114,18 @@ export const MetricCard = ({
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-zinc-500">
-                  {isAcidity ? 'Resíd.' : 'NIR'}
-                </span>
+                <span className="text-zinc-500">Resíduo</span>
                 <span
                   className={cn(
                     'font-mono font-medium',
-                    isAcidity
-                      ? latestResidual !== null
-                        ? Math.abs(latestResidual) > 0.5
-                          ? 'text-red-400'
-                          : 'text-green-400'
-                        : 'text-zinc-400'
+                    latestResidual !== null
+                      ? Math.abs(latestResidual) > 0.5
+                        ? 'text-red-400'
+                        : 'text-green-400'
                       : 'text-zinc-400',
                   )}
                 >
-                  {isAcidity
-                    ? latestResidual !== null
-                      ? latestResidual.toFixed(2)
-                      : '-'
-                    : latestNir !== null
-                      ? latestNir.toFixed(2)
-                      : '-'}
+                  {latestResidual !== null ? latestResidual.toFixed(2) : '-'}
                 </span>
               </div>
             </div>
@@ -174,7 +162,7 @@ export const MetricCard = ({
                   value="evolution"
                   className="flex items-center gap-2"
                 >
-                  <Activity className="h-4 w-4" /> Evolução (LAB vs ANL)
+                  <Activity className="h-4 w-4" /> Tendência (Resíduos)
                 </TabsTrigger>
                 <TabsTrigger
                   value="histogram"
@@ -186,7 +174,7 @@ export const MetricCard = ({
                   value="residuals"
                   className="flex items-center gap-2"
                 >
-                  <BarChart2 className="h-4 w-4" /> Resíduos
+                  <BarChart2 className="h-4 w-4" /> Dist. Resíduos
                 </TabsTrigger>
               </TabsList>
 

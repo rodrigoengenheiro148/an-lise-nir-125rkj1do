@@ -53,20 +53,21 @@ export const MetricScatterChart = ({
     return data
       .map((item) => {
         const lab = Number(item[`${metricKey}_lab`] || 0)
-        const nir = Number(item[`${metricKey}_nir`] || 0)
+        const anl = Number(item[`${metricKey}_anl`] || 0)
         return {
-          lab,
-          nir,
+          lab, // X
+          anl, // Y
           company: item.company,
           material: item.material,
           date: item.created_at,
         }
       })
-      .filter((d) => d.lab > 0 && d.nir > 0) // Filter invalid points
+      .filter((d) => d.lab > 0 && d.anl > 0) // Filter invalid points
   }, [data, metricKey])
 
   const stats = useMemo(() => {
-    const points = chartData.map((d) => ({ x: d.lab, y: d.nir }))
+    // Stats calculation expects x (Reference/LAB) and y (Predicted/ANL)
+    const points = chartData.map((d) => ({ x: d.lab, y: d.anl }))
     return calculateStats(points)
   }, [chartData])
 
@@ -79,23 +80,21 @@ export const MetricScatterChart = ({
     const x1 = minX * 0.95
     const x2 = maxX * 1.05
 
-    const y1 = stats.slope * x1 + stats.intercept
-    const y2 = stats.slope * x2 + stats.intercept
-
+    // Ideal line y = x
     return [
-      { lab: x1, nir: y1 },
-      { lab: x2, nir: y2 },
+      { lab: x1, anl: x1 },
+      { lab: x2, anl: x2 },
     ]
-  }, [chartData, stats])
+  }, [chartData])
 
   const chartConfig = {
-    nir: {
-      label: 'NIR',
-      color: 'hsl(var(--chart-1))',
+    anl: {
+      label: 'ANL',
+      color: color,
     },
     lab: {
       label: 'LAB',
-      color: 'hsl(var(--chart-2))',
+      color: '#888',
     },
   } satisfies ChartConfig
 
@@ -112,7 +111,7 @@ export const MetricScatterChart = ({
           axisLine={false}
           tick={{ fill: '#888', fontSize: 10 }}
           label={{
-            value: 'LAB',
+            value: 'LAB (Ref)',
             position: 'bottom',
             fill: '#888',
             fontSize: 12,
@@ -122,14 +121,14 @@ export const MetricScatterChart = ({
         />
         <YAxis
           type="number"
-          dataKey="nir"
-          name="NIR"
+          dataKey="anl"
+          name="ANL"
           unit={unit}
           tickLine={false}
           axisLine={false}
           tick={{ fill: '#888', fontSize: 10 }}
           label={{
-            value: 'NIR',
+            value: 'ANL',
             angle: -90,
             position: 'insideLeft',
             fill: '#888',
@@ -142,24 +141,25 @@ export const MetricScatterChart = ({
           content={<ChartTooltipContent indicator="dot" />}
         />
 
-        {/* Trend Line */}
+        {/* Reference Line Y=X */}
         <Line
           data={trendLine}
-          dataKey="nir"
-          stroke="#9ca3af" // Light gray
-          strokeWidth={2}
+          dataKey="anl"
+          stroke="#52525b" // Zinc-600
+          strokeWidth={1}
+          strokeDasharray="5 5"
           dot={false}
           activeDot={false}
           type="monotone"
-          name="Tendência"
+          name="Referência (Ideal)"
           animationDuration={1000}
         />
 
-        {/* NIR vs LAB Points */}
+        {/* ANL vs LAB Points */}
         <Scatter
           name="Amostras"
           data={chartData}
-          fill="#4fc3f7" // Light blue from requirement
+          fill={color}
           shape="circle"
           className="glow-point"
         />

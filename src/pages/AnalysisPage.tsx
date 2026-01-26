@@ -63,7 +63,7 @@ export default function AnalysisPage() {
                 Análise Avançada
               </h1>
               <p className="text-zinc-400 text-sm">
-                Comparação NIR vs LAB e Distribuição de Resíduos
+                Comparação LAB vs ANL e Distribuição de Resíduos
               </p>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function AnalysisPage() {
               <TabsTrigger value="scatter">
                 {isResidueAnalysis
                   ? 'Distribuição (LAB vs ANL)'
-                  : 'Dispersão (NIR vs LAB)'}
+                  : 'Correlação (LAB vs ANL)'}
               </TabsTrigger>
               <TabsTrigger value="residual">Histograma de Resíduos</TabsTrigger>
             </TabsList>
@@ -135,7 +135,7 @@ export default function AnalysisPage() {
                 <h2 className="text-lg font-semibold text-zinc-200">
                   {isResidueAnalysis
                     ? 'Distribuição de Frequência'
-                    : 'Correlação NIR vs LAB'}
+                    : 'Correlação LAB vs ANL'}
                 </h2>
                 <span className="text-xs text-zinc-500">
                   {filteredRecords.length} amostras filtradas
