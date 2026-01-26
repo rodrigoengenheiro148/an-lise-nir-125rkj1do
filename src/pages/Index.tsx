@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import {
-  AnalysisRecord,
-  METRICS,
-  CompanyEntity,
-  MATERIALS_OPTIONS,
-} from '@/types/dashboard'
+import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
-import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
@@ -16,13 +10,10 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
-  const [materials, setMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
-  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
@@ -57,36 +48,7 @@ const Index = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 2. Fetch Materials when Company Changes
-  useEffect(() => {
-    const loadMaterials = async () => {
-      if (!selectedCompanyId) {
-        setMaterials([])
-        setSelectedMaterial('')
-        return
-      }
-
-      setIsLoadingMaterials(true)
-      try {
-        const mats = await api.getMaterialsByCompany(selectedCompanyId)
-        setMaterials(mats)
-
-        // Reset material selection when company changes
-        // If the previously selected material exists in the new company's materials, we could keep it,
-        // but for now we default to "All" (empty string)
-        setSelectedMaterial('')
-      } catch (error) {
-        console.error('Error loading materials:', error)
-        setMaterials([])
-      } finally {
-        setIsLoadingMaterials(false)
-      }
-    }
-
-    loadMaterials()
-  }, [selectedCompanyId])
-
-  // 3. Fetch filtered records
+  // 2. Fetch filtered records
   const fetchRecords = useCallback(async () => {
     if (!selectedCompanyId) {
       setFilteredRecords([])
@@ -96,10 +58,7 @@ const Index = () => {
     setIsLoadingRecords(true)
 
     try {
-      const records = await api.getCompanyRecords(
-        selectedCompanyId,
-        selectedMaterial || undefined,
-      )
+      const records = await api.getCompanyRecords(selectedCompanyId)
       setFilteredRecords(records)
     } catch (error) {
       console.error(error)
@@ -107,7 +66,7 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId, selectedMaterial])
+  }, [selectedCompanyId])
 
   useEffect(() => {
     fetchRecords()
@@ -118,18 +77,10 @@ const Index = () => {
     setSelectedCompanyId(newCompany.id)
   }
 
-  // Refresh materials when data changes (e.g. after add/import)
+  // Refresh data when changes occur
   const handleDataChange = useCallback(async () => {
     fetchRecords()
-    if (selectedCompanyId) {
-      try {
-        const mats = await api.getMaterialsByCompany(selectedCompanyId)
-        setMaterials(mats)
-      } catch (e) {
-        console.error(e)
-      }
-    }
-  }, [fetchRecords, selectedCompanyId])
+  }, [fetchRecords])
 
   const selectedCompanyName = useMemo(
     () => companies.find((c) => c.id === selectedCompanyId)?.name || '',
@@ -178,15 +129,6 @@ const Index = () => {
                   isLoading={isLoadingCompanies}
                 />
               </div>
-              <div className="w-full sm:w-[250px]">
-                <MaterialSelector
-                  selectedMaterial={selectedMaterial}
-                  materials={materials}
-                  onSelect={setSelectedMaterial}
-                  disabled={!selectedCompanyId}
-                  isLoading={isLoadingMaterials}
-                />
-              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -210,10 +152,10 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
-              Amostras (Filtradas)
+              Amostras (Total)
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-white">
@@ -243,15 +185,6 @@ const Index = () => {
               Modo Clássico (No Sync)
             </span>
           </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
-            <span className="text-xs text-zinc-500 uppercase font-mono">
-              Material Ativo
-            </span>
-            <span className="text-sm font-medium text-blue-300 mt-1 truncate">
-              {selectedMaterial ||
-                (selectedCompanyId ? 'Todos os Materiais' : '-')}
-            </span>
-          </div>
         </div>
 
         {isLoadingRecords ? (
@@ -268,15 +201,6 @@ const Index = () => {
                 <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
                 Dispersão por Parâmetro (LAB vs ANL)
               </h2>
-              {selectedMaterial ? (
-                <span className="text-xs px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400">
-                  Filtro: {selectedMaterial}
-                </span>
-              ) : (
-                <span className="text-xs px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400">
-                  Filtro: Todos os Materiais
-                </span>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
@@ -289,7 +213,6 @@ const Index = () => {
                   unit={metric.unit}
                   data={filteredRecords}
                   selectedCompanyId={selectedCompanyId}
-                  selectedMaterial={selectedMaterial}
                 />
               ))}
             </div>
@@ -304,7 +227,6 @@ const Index = () => {
         mode="add"
         onSuccess={handleDataChange}
         defaultCompanyId={selectedCompanyId}
-        defaultMaterial={selectedMaterial}
       />
     </div>
   )

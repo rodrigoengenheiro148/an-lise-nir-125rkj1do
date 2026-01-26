@@ -32,7 +32,6 @@ interface MetricCardProps {
   data: AnalysisRecord[]
   className?: string
   selectedCompanyId?: string
-  selectedMaterial?: string
 }
 
 export const MetricCard = ({
@@ -43,7 +42,6 @@ export const MetricCard = ({
   data,
   className,
   selectedCompanyId,
-  selectedMaterial,
 }: MetricCardProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -220,7 +218,6 @@ export const MetricCard = ({
         onOpenChange={setIsAddDialogOpen}
         onSuccess={() => {}}
         defaultCompanyId={selectedCompanyId}
-        defaultMaterial={selectedMaterial}
       />
     </>
   )
