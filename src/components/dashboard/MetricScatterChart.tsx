@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle as DialogTitleComponent,
 } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Maximize2 } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { calculateStats } from '@/lib/stats'
@@ -27,9 +28,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Label,
 } from 'recharts'
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
+import { ChartContainer } from '@/components/ui/chart'
+import useDashboardStore from '@/stores/useDashboardStore'
 
 interface MetricScatterChartProps {
   title: string
@@ -46,13 +47,27 @@ export const MetricScatterChart = ({
   unit,
 }: MetricScatterChartProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const { selectedCompanyId, selectedMaterial } = useDashboardStore()
 
-  // Calculate stats and prepare data
+  // Filter data based on global selection
+  const filteredData = useMemo(() => {
+    return data.filter((item) => {
+      const matchCompany =
+        !selectedCompanyId || item.company_id === selectedCompanyId
+      const matchMaterial =
+        !selectedMaterial ||
+        (item.material &&
+          item.material.toLowerCase() === selectedMaterial.toLowerCase())
+      return matchCompany && matchMaterial
+    })
+  }, [data, selectedCompanyId, selectedMaterial])
+
+  // Calculate stats and prepare data for Scatter Plot
   const { points, stats, trendPoints } = useMemo(() => {
-    const pts = data
+    const pts = filteredData
       .map((item) => {
         const lab = Number(item[`${metricKey}_lab`])
-        const anl = Number(item[`${metricKey}_anl`]) // Using ANL as Y axis per existing logic, could be NIR
+        const anl = Number(item[`${metricKey}_anl`])
         return {
           x: lab,
           y: anl,
@@ -74,7 +89,7 @@ export const MetricScatterChart = ({
     }
 
     return { points: pts, stats: statistics, trendPoints: trend }
-  }, [data, metricKey])
+  }, [filteredData, metricKey])
 
   const chartTitle = `${title} - LAB X NIR`
 
@@ -241,19 +256,73 @@ export const MetricScatterChart = ({
         </CardContent>
       </Card>
 
-      <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
-        <DialogHeader>
-          <DialogTitleComponent className="flex gap-4 items-baseline uppercase">
-            <span>{chartTitle}</span>
-            <span className="text-sm font-normal text-zinc-400 lowercase normal-case">
-              R²: {stats.r2.toFixed(4)} | Slope: {stats.slope.toFixed(4)} |
-              Intercept: {stats.intercept.toFixed(4)} | Bias:{' '}
-              {stats.bias.toFixed(4)} | SEP: {stats.sep.toFixed(4)}
-            </span>
-          </DialogTitleComponent>
-        </DialogHeader>
-        <div className="flex-1 w-full min-h-0 p-4">
-          <ChartRender height="100%" />
+      <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100 p-0 overflow-hidden">
+        <div className="flex flex-col h-full">
+          <DialogHeader className="p-6 pb-2 border-b border-zinc-800">
+            <DialogTitleComponent className="flex gap-4 items-baseline uppercase">
+              <span className="text-xl font-bold">{title}</span>
+              <span className="text-sm font-normal text-zinc-400">
+                Visualização Detalhada
+              </span>
+            </DialogTitleComponent>
+          </DialogHeader>
+
+          <Tabs defaultValue="correlation" className="flex-1 flex flex-col">
+            <div className="px-6 border-b border-zinc-800 bg-zinc-950/50">
+              <TabsList className="bg-transparent h-12 p-0 gap-6">
+                <TabsTrigger
+                  value="correlation"
+                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-white px-0 font-medium transition-none"
+                >
+                  Correlação
+                </TabsTrigger>
+                <TabsTrigger
+                  value="histogram"
+                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-white px-0 font-medium transition-none"
+                >
+                  Histograma (LAB)
+                </TabsTrigger>
+                <TabsTrigger
+                  value="residuals"
+                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-white px-0 font-medium transition-none"
+                >
+                  Dispersão Resíduos
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <div className="flex-1 p-6 min-h-0 bg-zinc-950">
+              <TabsContent
+                value="correlation"
+                className="h-full m-0 data-[state=active]:flex flex-col"
+              >
+                <div className="mb-4 text-xs font-mono text-zinc-400 flex gap-4">
+                  <span>R²: {stats.r2.toFixed(4)}</span>
+                  <span>Slope: {stats.slope.toFixed(4)}</span>
+                  <span>Intercept: {stats.intercept.toFixed(4)}</span>
+                  <span>Bias: {stats.bias.toFixed(4)}</span>
+                  <span>SEP: {stats.sep.toFixed(4)}</span>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <ChartRender height="100%" />
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="histogram"
+                className="h-full m-0 flex items-center justify-center text-zinc-500"
+              >
+                Em desenvolvimento
+              </TabsContent>
+
+              <TabsContent
+                value="residuals"
+                className="h-full m-0 flex items-center justify-center text-zinc-500"
+              >
+                Em desenvolvimento
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
