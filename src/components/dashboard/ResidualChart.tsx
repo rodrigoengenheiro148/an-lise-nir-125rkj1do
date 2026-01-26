@@ -8,7 +8,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Cell,
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { ChartContainer } from '@/components/ui/chart'
@@ -164,3 +163,5 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
     </div>
   )
 }
+
+export const ResidualScatter = ResidualChart
