@@ -105,3 +105,5 @@ export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
     </ChartContainer>
   )
 }
+
+export const ResidualScatter = ResidualChart
