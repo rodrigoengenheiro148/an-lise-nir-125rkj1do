@@ -27,11 +27,15 @@ const METRIC_TO_TYPE: Record<string, AnalysisType> = {
 
 interface DashboardState {
   companies: Company[]
+  materials: string[]
   samples: Sample[]
   analysisRecords: AnalysisRecord[]
   selectedCompanyId: string
+  selectedMaterial: string
   selectedDateRange: { from: Date | undefined; to: Date | undefined }
   setSelectedCompanyId: (id: string) => void
+  setSelectedMaterial: (material: string) => void
+  setMaterials: (materials: string[]) => void
   setDateRange: (range: {
     from: Date | undefined
     to: Date | undefined
@@ -39,15 +43,18 @@ interface DashboardState {
   addSamples: (newSamples: Sample[]) => void
   refreshData: () => void
   isLoading: boolean
+  isLoadingMaterials: boolean
 }
 
 const DashboardContext = createContext<DashboardState | undefined>(undefined)
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [companies, setCompanies] = useState<Company[]>([])
+  const [materials, setMaterials] = useState<string[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [selectedDateRange, setDateRange] = useState<{
     from: Date | undefined
     to: Date | undefined
@@ -56,51 +63,24 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     to: undefined,
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [fetchedCompanies, fetchedRecords] = await Promise.all([
-        api.getCompanies(),
-        api.getRecords(),
-      ])
+      // We only fetch companies here initially. Records are fetched based on filters in the page or explicitly refreshed.
+      // However, to maintain backward compatibility with current implementation if it expects some initial data:
+      const fetchedCompanies = await api.getCompanies()
 
       const mappedCompanies = fetchedCompanies.map((c) => ({
         id: c.id,
         name: c.name,
       }))
       setCompanies(mappedCompanies)
-      setAnalysisRecords(fetchedRecords)
 
       if (mappedCompanies.length > 0 && !selectedCompanyId) {
         setSelectedCompanyId(mappedCompanies[0].id)
       }
-
-      // Convert AnalysisRecords to Samples for backward compatibility
-      const newSamples: Sample[] = []
-      fetchedRecords.forEach((record) => {
-        METRICS.forEach((metric) => {
-          const labVal = record[`${metric.key}_lab`]
-          const nirVal = record[`${metric.key}_nir`]
-
-          if (
-            labVal !== undefined &&
-            labVal !== null &&
-            nirVal !== undefined &&
-            nirVal !== null
-          ) {
-            newSamples.push({
-              id: `${record.id}-${metric.key}`,
-              companyId: record.company_id || '',
-              date: record.created_at || new Date().toISOString(),
-              analysisType: METRIC_TO_TYPE[metric.key],
-              labValue: Number(labVal),
-              nirValue: Number(nirVal),
-            })
-          }
-        })
-      })
-      setSamples(newSamples)
     } catch (error) {
       console.error('Failed to load data', error)
       toast({
@@ -113,7 +93,46 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  // Initial load only - Removed realtime subscriptions
+  // Fetch materials when company changes
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      if (!selectedCompanyId) {
+        setMaterials([])
+        setSelectedMaterial('')
+        return
+      }
+
+      setIsLoadingMaterials(true)
+      try {
+        const mats = await api.getCompanyMaterials(selectedCompanyId)
+        setMaterials(mats)
+
+        // Smart Default Selection
+        if (mats.length > 0) {
+          // If previously selected material is in the new list, keep it
+          // Otherwise select the first one
+          if (selectedMaterial && mats.includes(selectedMaterial)) {
+            // Keep current selection
+          } else {
+            setSelectedMaterial(mats[0])
+          }
+        } else {
+          setSelectedMaterial('')
+        }
+      } catch (error) {
+        console.error('Error fetching materials:', error)
+        setMaterials([])
+        setSelectedMaterial('')
+      } finally {
+        setIsLoadingMaterials(false)
+      }
+    }
+
+    fetchMaterials()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId])
+
+  // Initial load
   useEffect(() => {
     loadData()
   }, [])
@@ -134,15 +153,20 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     {
       value: {
         companies,
+        materials,
         samples,
         analysisRecords,
         selectedCompanyId,
+        selectedMaterial,
         selectedDateRange,
         setSelectedCompanyId,
+        setSelectedMaterial,
+        setMaterials,
         setDateRange,
         addSamples,
         refreshData,
         isLoading,
+        isLoadingMaterials,
       },
     },
     children,

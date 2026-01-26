@@ -8,77 +8,27 @@ import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
 import { Activity, TrendingUp, Cloud, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import useDashboardStore from '@/stores/useDashboardStore'
 
 const Index = () => {
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
-  const [companies, setCompanies] = useState<CompanyEntity[]>([])
-  const [materials, setMaterials] = useState<string[]>([])
-  const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
+  const {
+    selectedCompanyId,
+    setSelectedCompanyId,
+    selectedMaterial,
+    setSelectedMaterial,
+    materials,
+    companies: storeCompanies,
+    isLoading: isStoreLoading,
+    isLoadingMaterials,
+    refreshData,
+  } = useDashboardStore()
 
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
-  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
+  // Local state for filtered records to avoid storing massive data in context if not needed globally yet
+  const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
-  // 1. Fetch Companies (One-time load)
-  useEffect(() => {
-    const loadCompanies = async () => {
-      setIsLoadingCompanies(true)
-      try {
-        const data = await api.getCompanies()
-        setCompanies(data)
-
-        // Automatically select first company if none selected or if selected one was deleted
-        if (data.length > 0) {
-          if (
-            !selectedCompanyId ||
-            !data.find((c) => c.id === selectedCompanyId)
-          ) {
-            setSelectedCompanyId(data[0].id)
-          }
-        } else {
-          setSelectedCompanyId('')
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setIsLoadingCompanies(false)
-      }
-    }
-
-    loadCompanies()
-    // Intentionally running once on mount or when selectedCompanyId changes is handled by the initial selection logic
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // 2. Fetch Materials for Company
-  useEffect(() => {
-    const fetchMaterials = async () => {
-      if (!selectedCompanyId) {
-        setMaterials([])
-        setSelectedMaterial('')
-        return
-      }
-
-      setIsLoadingMaterials(true)
-      try {
-        const mats = await api.getCompanyMaterials(selectedCompanyId)
-        setMaterials(mats)
-        // Reset material selection when company changes
-        setSelectedMaterial('')
-      } catch (error) {
-        console.error('Error fetching materials:', error)
-        setMaterials([])
-      } finally {
-        setIsLoadingMaterials(false)
-      }
-    }
-
-    fetchMaterials()
-  }, [selectedCompanyId])
-
-  // 3. Fetch filtered records
+  // Fetch filtered records when Company or Material changes
   const fetchRecords = useCallback(async () => {
     if (!selectedCompanyId) {
       setFilteredRecords([])
@@ -105,17 +55,19 @@ const Index = () => {
     fetchRecords()
   }, [fetchRecords])
 
-  const handleCompanyAdded = (newCompany: CompanyEntity) => {
-    setCompanies((prev) => [...prev, newCompany])
+  const handleCompanyAdded = (newCompany: any) => {
+    // Refresh store data to include new company
+    refreshData()
     setSelectedCompanyId(newCompany.id)
   }
 
   // Refresh data when changes occur
   const handleDataChange = useCallback(async () => {
     fetchRecords()
+    // Also trigger a refresh of store data if needed, but fetchRecords handles the view
   }, [fetchRecords])
 
-  if (isLoadingCompanies && companies.length === 0) {
+  if (isStoreLoading && storeCompanies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
         <div className="animate-pulse flex flex-col items-center">
@@ -125,6 +77,13 @@ const Index = () => {
       </div>
     )
   }
+
+  // Convert store companies to CompanyEntity type expected by selector
+  const companiesForSelector: CompanyEntity[] = storeCompanies.map((c) => ({
+    id: c.id,
+    name: c.name,
+    created_at: new Date().toISOString(), // Placeholder as store types might differ slightly
+  }))
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">
@@ -149,12 +108,12 @@ const Index = () => {
               <div className="w-full sm:w-[250px]">
                 <CompanySelector
                   selectedCompanyId={selectedCompanyId}
-                  companies={companies}
+                  companies={companiesForSelector}
                   onSelect={(id) => {
                     setSelectedCompanyId(id)
                   }}
                   onCompanyAdded={handleCompanyAdded}
-                  isLoading={isLoadingCompanies}
+                  isLoading={isStoreLoading}
                 />
               </div>
               <div className="w-full sm:w-[250px]">
@@ -171,7 +130,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <ManagementMenu
                 selectedCompanyId={selectedCompanyId}
-                companies={companies}
+                companies={companiesForSelector}
                 onDataChange={handleDataChange}
               />
 
@@ -245,19 +204,32 @@ const Index = () => {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-              {METRICS.map((metric) => (
-                <MetricCard
-                  key={metric.key}
-                  title={metric.label}
-                  metricKey={metric.key}
-                  color={metric.color}
-                  unit={metric.unit}
-                  data={filteredRecords}
-                  selectedCompanyId={selectedCompanyId}
-                />
-              ))}
-            </div>
+            {filteredRecords.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 border border-zinc-800 rounded-lg bg-zinc-900/20">
+                <Cloud className="h-12 w-12 text-zinc-600 mb-4" />
+                <h3 className="text-lg font-medium text-zinc-400">
+                  Sem dados para exibir
+                </h3>
+                <p className="text-zinc-500 max-w-sm text-center mt-2">
+                  Não há registros para a combinação de Empresa e Material
+                  selecionada.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                {METRICS.map((metric) => (
+                  <MetricCard
+                    key={metric.key}
+                    title={metric.label}
+                    metricKey={metric.key}
+                    color={metric.color}
+                    unit={metric.unit}
+                    data={filteredRecords}
+                    selectedCompanyId={selectedCompanyId}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
