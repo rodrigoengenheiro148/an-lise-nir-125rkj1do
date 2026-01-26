@@ -77,13 +77,9 @@ export const api = {
       .select('*')
       .order('name')
 
-    // Fallback to mock data if empty or error (reverting to stable state)
-    if (error || !data || data.length === 0) {
-      console.warn(
-        'Using Mock Data for Companies due to empty DB or error',
-        error,
-      )
-      return MOCK_COMPANIES
+    if (error) {
+      console.error('Error fetching companies:', error)
+      return []
     }
     return data || []
   },
@@ -105,9 +101,9 @@ export const api = {
       .order('created_at', { ascending: false })
       .limit(10000)
 
-    if (error || !data || data.length === 0) {
-      // Return mock records if no data found
-      return MOCK_RECORDS
+    if (error) {
+      console.error('Error fetching records:', error)
+      return []
     }
 
     return (data || []).map((row) => {
@@ -128,21 +124,16 @@ export const api = {
       .limit(10000)
 
     if (material) {
-      query = query.eq('material', material)
+      // Use ilike for case-insensitive matching to ensure we catch all records regardless of casing
+      query = query.ilike('material', material)
     }
 
     const { data, error } = await query
 
-    // Fallback to mock data if empty
-    if ((!data || data.length === 0) && !error) {
-      let mockRecs = MOCK_RECORDS.filter((r) => r.company_id === companyId)
-      if (material) {
-        mockRecs = mockRecs.filter((r) => r.material === material)
-      }
-      if (mockRecs.length > 0) return mockRecs
+    if (error) {
+      console.error('Error fetching company records:', error)
+      throw error
     }
-
-    if (error) throw error
 
     return (data || []).map((row) => {
       const comp = (row.companies as any) || { name: 'Unknown' }
@@ -157,17 +148,10 @@ export const api = {
       .eq('company_id', companyId)
       .limit(10000)
 
-    // Fallback to mock if error or empty (to maintain consistency with getCompanyRecords)
-    if (error || !data || data.length === 0) {
-      const mockRecs = MOCK_RECORDS.filter((r) => r.company_id === companyId)
-      if (mockRecs.length > 0) {
-        return Array.from(
-          new Set(mockRecs.map((r) => r.material).filter(Boolean) as string[]),
-        ).sort()
-      }
+    if (error) {
+      console.error('Error fetching company materials:', error)
+      return []
     }
-
-    if (error) throw error
 
     return Array.from(
       new Set(data?.map((d) => d.material).filter(Boolean) as string[]),

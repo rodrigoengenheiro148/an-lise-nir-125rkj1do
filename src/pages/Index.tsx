@@ -69,8 +69,9 @@ const Index = () => {
   // Refresh data when changes occur
   const handleDataChange = useCallback(async () => {
     fetchRecords()
-    // Also trigger a refresh of store data if needed, but fetchRecords handles the view
-  }, [fetchRecords])
+    // Also trigger a refresh of store data to ensure material lists etc are up to date
+    refreshData()
+  }, [fetchRecords, refreshData])
 
   if (isStoreLoading && storeCompanies.length === 0) {
     return (
@@ -184,7 +185,7 @@ const Index = () => {
               <Cloud className="h-3 w-3 text-zinc-500" /> Status
             </span>
             <span className="text-sm font-medium text-zinc-300 mt-1">
-              Modo Clássico (No Sync)
+              Sincronizado (Supabase)
             </span>
           </div>
         </div>

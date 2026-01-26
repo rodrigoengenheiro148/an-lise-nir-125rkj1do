@@ -31,18 +31,20 @@ export const MetricEvolutionChart = ({
 }: MetricEvolutionChartProps) => {
   const chartData = useMemo(() => {
     return data
-      .filter((r) => r.date)
       .map((r) => {
         const lab = r[`${metricKey}_lab`]
         const anl = r[`${metricKey}_anl`]
+        // Fallback to created_at if date is missing
+        const dateStr = r.date || r.created_at?.split('T')[0]
+
         return {
-          date: r.date,
+          date: dateStr,
           lab: typeof lab === 'number' ? lab : null,
           anl: typeof anl === 'number' ? anl : null,
-          timestamp: r.date ? new Date(r.date).getTime() : 0,
+          timestamp: dateStr ? new Date(dateStr).getTime() : 0,
         }
       })
-      .filter((d) => d.lab !== null || d.anl !== null)
+      .filter((d) => (d.lab !== null || d.anl !== null) && d.date)
       .sort((a, b) => a.timestamp - b.timestamp)
   }, [data, metricKey])
 

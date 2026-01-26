@@ -79,7 +79,7 @@ export const EditRecordDialog = ({
         const initial = {
           material: defaultMaterial || '',
           submaterial: '',
-          date: null,
+          date: new Date().toISOString().split('T')[0], // Default to today for new records
           company_id: defaultCompanyId || '',
         }
         setFormData(initial)
@@ -99,6 +99,10 @@ export const EditRecordDialog = ({
     }
     if (!formData.material) {
       toast.error('Informe o material.')
+      return
+    }
+    if (!formData.date) {
+      toast.error('Informe a data.')
       return
     }
 

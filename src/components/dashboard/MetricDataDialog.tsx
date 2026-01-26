@@ -82,6 +82,10 @@ export const MetricDataDialog = ({
       toast.error('Selecione um material.')
       return
     }
+    if (!formData.date) {
+      toast.error('Informe a data.')
+      return
+    }
 
     setSubmitting(true)
     try {

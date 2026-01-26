@@ -113,23 +113,48 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         const mats = await api.getCompanyMaterials(selectedCompanyId)
         setMaterials(mats)
 
-        // Default Selection Logic:
-        // 1. If we have data for specific materials in DB (mats > 0):
-        //    - If current selection is one of them, keep it.
-        //    - Else, default to the first available material from DB.
-        // 2. If no data in DB for this company:
-        //    - Default to the first option from the static list (MATERIALS_OPTIONS[0]),
-        //      so the user can start adding data for it.
-        if (mats.length > 0) {
-          if (selectedMaterial && mats.includes(selectedMaterial)) {
-            // Keep current selection
-          } else {
-            setSelectedMaterial(mats[0])
+        // Robust Selection Logic:
+        // 1. Try to find the currently selected material in the fetched materials (case-insensitive)
+        // 2. Or, try to find it in the static options
+        // 3. Default to the first static option if all else fails
+
+        let nextMaterial = selectedMaterial
+
+        // If we have a selection, check if it's still valid or if we should switch
+        if (selectedMaterial) {
+          const existsInDb = mats.some(
+            (m) => m.toLowerCase() === selectedMaterial.toLowerCase(),
+          )
+          if (!existsInDb && mats.length > 0) {
+            // If current selection is NOT in DB, but DB has other materials, maybe switch?
+            // However, user might want to add new data for 'selectedMaterial'.
+            // So we don't force switch unless it's completely invalid.
+            // Actually, keeping the selection is fine as long as it is in MATERIALS_OPTIONS
           }
-        } else {
-          // No data for this company yet, default to first static option
-          setSelectedMaterial(MATERIALS_OPTIONS[0])
         }
+
+        // If no selection, or if we want to ensure a valid default
+        if (!nextMaterial) {
+          if (mats.length > 0) {
+            // Prefer a material that exists in DB and is also in OPTIONS (to normalize casing)
+            const validMat = MATERIALS_OPTIONS.find((opt) =>
+              mats.some((dbMat) => dbMat.toLowerCase() === opt.toLowerCase()),
+            )
+            nextMaterial = validMat || mats[0] // fallback to raw DB value if no match
+          } else {
+            nextMaterial = MATERIALS_OPTIONS[0]
+          }
+        }
+
+        // Ensure normalization to lowercase if it matches an option
+        const normalized = MATERIALS_OPTIONS.find(
+          (opt) => opt.toLowerCase() === nextMaterial.toLowerCase(),
+        )
+        if (normalized) {
+          nextMaterial = normalized
+        }
+
+        setSelectedMaterial(nextMaterial)
       } catch (error) {
         console.error('Error fetching materials:', error)
         setMaterials([])
