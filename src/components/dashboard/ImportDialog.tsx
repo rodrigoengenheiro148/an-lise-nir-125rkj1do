@@ -10,7 +10,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { Upload, CheckCircle, XCircle, FileSpreadsheet } from 'lucide-react'
+import {
+  Upload,
+  CheckCircle,
+  XCircle,
+  FileSpreadsheet,
+  Grid,
+} from 'lucide-react'
 import { CompanyEntity, METRICS } from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
@@ -25,6 +31,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { parseImportData, ParseResult } from '@/lib/import-utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { calculateResidue, formatResidue } from '@/lib/calculations'
 
 interface ImportDialogProps {
   onImportSuccess?: () => void
@@ -32,7 +39,7 @@ interface ImportDialogProps {
 
 export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('file')
+  const [activeTab, setActiveTab] = useState('text')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedMetric, setSelectedMetric] = useState<string>('')
@@ -157,14 +164,17 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Carregue um arquivo CSV ou cole dados do Excel. Selecione a métrica
-            alvo para mapear os dados corretamente.
+            Copie e cole dados do Excel ou carregue um arquivo CSV.
+            <br />
+            <span className="text-xs text-zinc-500">
+              Colunas esperadas: Data, Empresa, Material, Submaterial, LAB, ANL.
+            </span>
           </DialogDescription>
         </DialogHeader>
 
         {!parseResult ? (
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4 py-4 flex-1 overflow-hidden flex flex-col">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-none">
               <div className="space-y-2">
                 <Label>Métrica Alvo (Obrigatório)</Label>
                 <Select
@@ -192,8 +202,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                     <span className="text-emerald-500 font-medium">
                       Modo Estrito:
                     </span>{' '}
-                    Dados sem cabeçalho serão mapeados como: Col 1 = LAB, Col 2
-                    = ANL. (Colunas extras serão ignoradas)
+                    Colar dados diretos: LAB (Col 1), ANL (Col 2).
                   </p>
                 )}
               </div>
@@ -221,14 +230,20 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
-              className="w-full"
+              className="flex-1 flex flex-col overflow-hidden"
             >
-              <TabsList className="grid w-full grid-cols-2 bg-zinc-900">
-                <TabsTrigger value="file">Arquivo CSV</TabsTrigger>
-                <TabsTrigger value="text">Colar Texto / Excel</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-900 flex-none">
+                <TabsTrigger value="text" className="gap-2">
+                  <Grid className="h-4 w-4" />
+                  Planilha / Excel
+                </TabsTrigger>
+                <TabsTrigger value="file" className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Arquivo CSV
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="file" className="space-y-4 pt-4">
+              <TabsContent value="file" className="space-y-4 pt-4 flex-none">
                 <div
                   className="border-2 border-dashed border-zinc-800 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-900/50 hover:border-zinc-700 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
@@ -262,17 +277,22 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="text" className="space-y-4 pt-4">
-                <Textarea
-                  placeholder={
-                    selectedMetric && selectedMetric !== 'auto'
-                      ? 'Cole aqui os dados...\nExemplo:\nMaterialA 10.5 10.2\nMaterialB 11.0 10.8\n\n(Onde 1º valor = LAB e 2º valor = ANL)'
-                      : 'Cole aqui as células copiadas do Excel...'
-                  }
-                  className="min-h-[200px] bg-zinc-900 border-zinc-800 font-mono text-xs"
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                />
+              <TabsContent value="text" className="flex-1 pt-2 overflow-hidden">
+                <div className="flex flex-col h-full gap-2">
+                  <Label className="text-zinc-400">
+                    Cole os dados aqui (Ctrl+V)
+                  </Label>
+                  <Textarea
+                    placeholder={
+                      selectedMetric && selectedMetric !== 'auto'
+                        ? 'Exemplo:\nData Material 10.5 10.2\n25/01/2026 MaterialB 11.0 10.8'
+                        : 'Cole aqui as células copiadas do Excel...'
+                    }
+                    className="flex-1 bg-zinc-900 border-zinc-800 font-mono text-xs resize-none"
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>
@@ -328,31 +348,53 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
                       Pré-visualização (Primeiros 50):
                     </h4>
                     <div className="grid gap-1">
-                      {parseResult.records.slice(0, 50).map((rec, i) => (
-                        <div
-                          key={i}
-                          className="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50 items-center"
-                        >
-                          <span className="truncate text-zinc-300 font-medium">
-                            {rec.company}
-                          </span>
-                          <span className="truncate text-zinc-400">
-                            {rec.material}
-                          </span>
-                          {/* Preview mapped value for selected metric */}
-                          {selectedMetric && selectedMetric !== 'auto' && (
-                            <span className="text-zinc-500 font-mono">
-                              {rec[`${selectedMetric}_lab`] !== undefined
-                                ? `LAB: ${rec[`${selectedMetric}_lab`]}`
-                                : ''}
-                              {' | '}
-                              {rec[`${selectedMetric}_anl`] !== undefined
-                                ? `ANL: ${rec[`${selectedMetric}_anl`]}`
-                                : ''}
+                      <div className="grid grid-cols-[80px_1fr_1fr_auto] gap-2 text-xs font-bold text-zinc-500 px-2 uppercase">
+                        <span>Data</span>
+                        <span>Empresa</span>
+                        <span>Material</span>
+                        <span className="text-right">
+                          Valores (Lab | Anl | Res)
+                        </span>
+                      </div>
+                      {parseResult.records.slice(0, 50).map((rec, i) => {
+                        // Calculate residues if metric selected
+                        let valuesDisplay = ''
+                        if (selectedMetric && selectedMetric !== 'auto') {
+                          const lab = rec[`${selectedMetric}_lab`] as
+                            | number
+                            | undefined
+                          const anl = rec[`${selectedMetric}_anl`] as
+                            | number
+                            | undefined
+                          const res = calculateResidue(lab, anl)
+                          if (lab !== undefined || anl !== undefined) {
+                            valuesDisplay = `${lab ?? '-'} | ${anl ?? '-'} | Res: ${formatResidue(res)}`
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={i}
+                            className="grid grid-cols-[80px_1fr_1fr_auto] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50 items-center hover:bg-zinc-800/50"
+                          >
+                            <span className="text-zinc-400 font-mono truncate">
+                              {rec.date
+                                ? rec.date.split('-').reverse().join('/')
+                                : '-'}
                             </span>
-                          )}
-                        </div>
-                      ))}
+                            <span className="truncate text-zinc-300 font-medium">
+                              {rec.company}
+                            </span>
+                            <span className="truncate text-zinc-400">
+                              {rec.material}
+                            </span>
+                            {/* Preview mapped value for selected metric */}
+                            <span className="text-zinc-500 font-mono text-right">
+                              {valuesDisplay || '...'}
+                            </span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -361,7 +403,7 @@ export const ImportDialog = ({ onImportSuccess }: ImportDialogProps) => {
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 mt-auto pt-4 border-t border-zinc-800">
           {!parseResult ? (
             <>
               <Button variant="ghost" onClick={() => setIsOpen(false)}>

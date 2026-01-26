@@ -251,16 +251,24 @@ export const api = {
         } catch (e) {
           // ignore parse error
         }
-        throw new Error('Erro ao exportar: Resposta inválida do servidor.')
+        // If it was valid JSON but not an error, or if parsing failed, we fall through
+        // But typically JSON response with Blob type means error in this context
       }
       return data
     }
 
-    // Handle non-Blob response (unexpected but possible if responseType ignored)
-    if (typeof data === 'object' && (data as any).error) {
-      throw new Error((data as any).error)
+    // Check if data is a JSON object (if responseType 'blob' was ignored or fallback occurred)
+    if (typeof data === 'object' && !Array.isArray(data) && data !== null) {
+      if ((data as any).error) {
+        throw new Error((data as any).error)
+      }
     }
 
-    throw new Error('Formato de resposta inválido (esperado Blob).')
+    // Fallback: If we got here, we have data but it's not a Blob and not an explicit error
+    // It might be that invoke returns the parsed body for application/json even with responseType: 'blob'
+    // but the edge function returns a Buffer for files.
+    // If we have an unexpected object, throw informative error.
+    console.error('Unexpected export data format:', data)
+    throw new Error('Formato de resposta inválido (esperado Arquivo/Blob).')
   },
 }

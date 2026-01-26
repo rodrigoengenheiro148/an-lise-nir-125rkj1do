@@ -1,4 +1,6 @@
 import { AnalysisRecord, METRICS } from '@/types/dashboard'
+import { parse, isValid, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export interface ParseResult {
   records: AnalysisRecord[]
@@ -9,7 +11,7 @@ export interface ParseResult {
 
 export interface HeaderMap {
   index: number
-  field: 'material' | 'submaterial' | 'company' | string // string for metric keys like 'acidity_lab'
+  field: 'material' | 'submaterial' | 'company' | 'date' | string // string for metric keys like 'acidity_lab'
 }
 
 // Helper to normalize strings for comparison (remove accents, lowercase)
@@ -89,6 +91,9 @@ export const parseImportData = (
       'resultado',
       'value',
       'result',
+      'data',
+      'date',
+      'data da analise',
       ...METRICS.flatMap((m) => [
         normalize(m.label),
         normalize(m.key),
@@ -140,6 +145,15 @@ export const parseImportData = (
       }
       if (norm === 'empresa' || norm === 'company' || norm === 'cliente') {
         headerMap.push({ index, field: 'company' })
+        return
+      }
+      if (
+        norm === 'data' ||
+        norm === 'date' ||
+        norm === 'data da analise' ||
+        norm === 'data analise'
+      ) {
+        headerMap.push({ index, field: 'date' })
         return
       }
 
@@ -267,6 +281,25 @@ export const parseImportData = (
             record.material = val
           } else if (map.field === 'submaterial') {
             record.submaterial = val
+          } else if (map.field === 'date') {
+            // Try to parse date
+            const dateStr = val.trim()
+            let parsedDate: Date | null = null
+
+            // Try ISO/Hyphen (yyyy-MM-dd)
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              parsedDate = parse(dateStr, 'yyyy-MM-dd', new Date())
+            }
+            // Try Slash (dd/MM/yyyy)
+            else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+              parsedDate = parse(dateStr, 'dd/MM/yyyy', new Date(), {
+                locale: ptBR,
+              })
+            }
+
+            if (parsedDate && isValid(parsedDate)) {
+              record.date = format(parsedDate, 'yyyy-MM-dd')
+            }
           } else {
             const cleanVal = val.replace(/\s/g, '').replace(',', '.')
             const num = parseFloat(cleanVal)
