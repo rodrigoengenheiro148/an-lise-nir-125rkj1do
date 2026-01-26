@@ -76,67 +76,75 @@ export const MetricHistogram = ({
 
   if (histogramData.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full items-center justify-center text-sm text-zinc-500 min-h-[300px] border border-zinc-800 rounded-lg bg-black">
         Sem dados para exibir
       </div>
     )
   }
 
   return (
-    <ChartContainer config={chartConfig} className="h-full w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={histogramData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
-          <XAxis
-            dataKey="id"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={10}
-            style={{ fontSize: '10px' }}
-            tickFormatter={(value) => {
-              const bucket = histogramData.find((b) => b.id === value)
-              return bucket ? bucket.label : ''
-            }}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            allowDecimals={false}
-            style={{ fontSize: '10px' }}
-            width={30}
-          />
-          <Tooltip
-            content={<ChartTooltipContent hideLabel={false} />}
-            labelFormatter={(value, payload) => {
-              if (payload && payload.length > 0 && payload[0].payload) {
-                return payload[0].payload.label
-              }
-              const bucket = histogramData.find((b) => b.id === value)
-              return bucket ? bucket.label : value
-            }}
-          />
-          <Bar
-            dataKey="count"
-            fill={color}
-            fillOpacity={0.6}
-            radius={[4, 4, 0, 0]}
-            name="Frequência"
-            barSize={32}
-          />
-          <Line
-            type="monotone"
-            dataKey="count"
-            stroke={color}
-            strokeWidth={2}
-            dot={{ r: 3, fill: color, strokeWidth: 0 }}
-            activeDot={{ r: 5, strokeWidth: 0 }}
-            name="Tendência"
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartContainer>
+    <div className="h-full w-full bg-black rounded-lg border border-zinc-800 p-4 shadow-sm">
+      <ChartContainer config={chartConfig} className="h-full w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={histogramData}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="#333"
+              strokeOpacity={0.6}
+            />
+            <XAxis
+              dataKey="id"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              style={{ fontSize: '10px', fill: '#71717a' }}
+              tickFormatter={(value) => {
+                const bucket = histogramData.find((b) => b.id === value)
+                return bucket ? bucket.label : ''
+              }}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              allowDecimals={false}
+              style={{ fontSize: '10px', fill: '#71717a' }}
+              width={30}
+            />
+            <Tooltip
+              content={<ChartTooltipContent hideLabel={false} />}
+              cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+              labelFormatter={(value, payload) => {
+                if (payload && payload.length > 0 && payload[0].payload) {
+                  return payload[0].payload.label
+                }
+                const bucket = histogramData.find((b) => b.id === value)
+                return bucket ? bucket.label : value
+              }}
+            />
+            <Bar
+              dataKey="count"
+              fill={color}
+              fillOpacity={0.8}
+              radius={[4, 4, 0, 0]}
+              name="Frequência"
+              barSize={32}
+            />
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke={color}
+              strokeWidth={2}
+              dot={{ r: 3, fill: color, strokeWidth: 0 }}
+              activeDot={{ r: 5, strokeWidth: 0 }}
+              name="Tendência"
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
   )
 }

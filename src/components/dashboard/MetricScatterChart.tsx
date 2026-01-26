@@ -81,9 +81,9 @@ export const MetricScatterChart = ({
     return (
       <div
         className={cn(
-          'flex h-full items-center justify-center text-sm text-zinc-400',
+          'flex h-full items-center justify-center text-sm text-zinc-500',
           !compact &&
-            'min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-900',
+            'min-h-[300px] border border-zinc-800 rounded-lg bg-black',
         )}
       >
         Sem dados para exibir
@@ -103,7 +103,7 @@ export const MetricScatterChart = ({
           <h4 className="text-lg font-bold text-zinc-200 uppercase tracking-wide text-center">
             {chartTitle}
           </h4>
-          <div className="flex justify-center gap-6 text-xs font-mono text-zinc-400 bg-zinc-950/30 py-1 rounded">
+          <div className="flex justify-center gap-6 text-xs font-mono text-zinc-400 bg-zinc-900/50 py-1 rounded border border-zinc-800">
             <span>R²: {stats.r2.toFixed(3)}</span>
             <span>Slope: {stats.slope.toFixed(3)}</span>
             <span>Bias: {stats.bias.toFixed(3)}</span>
@@ -117,7 +117,7 @@ export const MetricScatterChart = ({
           'flex-1',
           compact
             ? 'min-h-0'
-            : 'min-h-[400px] bg-[#27272a] rounded-lg border border-zinc-700 p-4 shadow-xl',
+            : 'min-h-[400px] bg-black rounded-lg border border-zinc-800 p-4 shadow-sm',
         )}
       >
         <ChartContainer config={chartConfig} className="h-full w-full">
@@ -138,7 +138,7 @@ export const MetricScatterChart = ({
                   width="200%"
                   height="200%"
                 >
-                  <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                  <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
                   <feMerge>
                     <feMergeNode in="coloredBlur" />
                     <feMergeNode in="SourceGraphic" />
@@ -147,8 +147,8 @@ export const MetricScatterChart = ({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#52525b"
-                strokeOpacity={0.4}
+                stroke="#333"
+                strokeOpacity={0.6}
                 vertical={true}
                 horizontal={true}
               />
@@ -156,15 +156,15 @@ export const MetricScatterChart = ({
                 type="number"
                 dataKey="x"
                 name="LAB"
-                tickLine={{ stroke: '#71717a' }}
-                axisLine={{ stroke: '#71717a' }}
-                tick={{ fill: '#e4e4e7', fontSize: 11 }}
+                tickLine={{ stroke: '#52525b' }}
+                axisLine={{ stroke: '#52525b' }}
+                tick={{ fill: '#71717a', fontSize: 11 }}
                 domain={['auto', 'auto']}
                 label={{
                   value: 'LAB',
                   position: 'insideBottom',
                   offset: -10,
-                  fill: '#e4e4e7',
+                  fill: '#a1a1aa',
                   fontSize: 12,
                   fontWeight: 600,
                 }}
@@ -173,15 +173,15 @@ export const MetricScatterChart = ({
                 type="number"
                 dataKey="y"
                 name="NIR"
-                tickLine={{ stroke: '#71717a' }}
-                axisLine={{ stroke: '#71717a' }}
-                tick={{ fill: '#e4e4e7', fontSize: 11 }}
+                tickLine={{ stroke: '#52525b' }}
+                axisLine={{ stroke: '#52525b' }}
+                tick={{ fill: '#71717a', fontSize: 11 }}
                 domain={['auto', 'auto']}
                 label={{
                   value: 'NIR',
                   angle: -90,
                   position: 'insideLeft',
-                  fill: '#e4e4e7',
+                  fill: '#a1a1aa',
                   fontSize: 12,
                   fontWeight: 600,
                   offset: 0,
@@ -189,7 +189,7 @@ export const MetricScatterChart = ({
               />
               <Tooltip
                 cursor={{
-                  stroke: '#a1a1aa',
+                  stroke: '#52525b',
                   strokeWidth: 1,
                   strokeDasharray: '4 4',
                 }}
@@ -200,8 +200,8 @@ export const MetricScatterChart = ({
                     )?.payload
                     if (!dataPoint) return null
                     return (
-                      <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 shadow-xl text-xs z-50">
-                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-800 pb-1">
+                      <div className="rounded-lg border border-zinc-800 bg-black p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50">
+                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1">
                           {dataPoint.original.company}
                         </div>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-zinc-400">
@@ -227,10 +227,8 @@ export const MetricScatterChart = ({
                           <span>Resíduo:</span>
                           <span
                             className={cn(
-                              'text-right font-mono',
-                              dataPoint.x - dataPoint.y > 0
-                                ? 'text-green-400'
-                                : 'text-red-400',
+                              'text-right font-mono font-bold',
+                              'text-red-500',
                             )}
                           >
                             {(dataPoint.x - dataPoint.y).toFixed(2)}
@@ -248,14 +246,12 @@ export const MetricScatterChart = ({
                 fill="var(--color-points)"
                 shape="circle"
                 style={{ filter: `url(#glow-${safeFilterId})` }}
-                stroke="#ffffff"
-                strokeWidth={1}
-                strokeOpacity={0.5}
+                strokeWidth={0}
               >
                 {points.map((entry, index) => (
                   <Cell
                     key={entry.original.id || `cell-${index}`}
-                    fill="var(--color-points)"
+                    fill={color}
                   />
                 ))}
               </Scatter>
@@ -264,7 +260,7 @@ export const MetricScatterChart = ({
                 data={trendPoints}
                 dataKey="y"
                 stroke="var(--color-trend)"
-                strokeWidth={2.5}
+                strokeWidth={2}
                 dot={false}
                 activeDot={false}
                 isAnimationActive={false}

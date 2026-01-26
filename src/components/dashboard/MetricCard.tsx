@@ -63,28 +63,25 @@ export const MetricCard = ({
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <Card
-          className={cn(
-            'flex flex-col border-zinc-800 bg-zinc-950/50',
-            className,
-          )}
+          className={cn('flex flex-col border-zinc-800 bg-black', className)}
         >
-          <CardHeader className="pb-2 pt-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-zinc-100">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center justify-between mb-2">
+              <CardTitle className="flex items-center gap-2 text-lg font-bold text-zinc-100">
                 <span
-                  className="h-3 w-1 rounded-full"
+                  className="h-4 w-1 rounded-full"
                   style={{ backgroundColor: color }}
                 />
                 {title}
               </CardTitle>
               <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 mr-1">
+                <span className="text-xs font-mono text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-md">
                   {unit}
                 </span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-zinc-500 hover:text-blue-400"
+                  className="h-8 w-8 text-zinc-500 hover:text-blue-400 hover:bg-zinc-900"
                   onClick={() => setIsAddDialogOpen(true)}
                   title="Adicionar Dados"
                 >
@@ -94,7 +91,7 @@ export const MetricCard = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-zinc-500 hover:text-white"
+                    className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-zinc-900"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </Button>
@@ -102,32 +99,34 @@ export const MetricCard = ({
               </div>
             </div>
 
-            <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-              <div className="flex flex-col">
-                <span className="text-zinc-500">LAB (Ref)</span>
-                <span className="font-mono font-medium text-zinc-200">
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
+                  LAB (Ref)
+                </span>
+                <span className="font-mono font-bold text-lg text-white">
                   {latestLab !== null ? latestLab.toFixed(2) : '-'}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-zinc-500">ANL</span>
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
+                  ANL
+                </span>
                 <span
-                  className="font-mono font-medium"
+                  className="font-mono font-bold text-lg"
                   style={{ color: color }}
                 >
                   {latestAnl !== null ? latestAnl.toFixed(2) : '-'}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-zinc-500">Resíduo</span>
+              <div className="flex flex-col gap-1">
+                <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
+                  Resíduo
+                </span>
                 <span
                   className={cn(
-                    'font-mono font-medium',
-                    latestResidual !== null
-                      ? Math.abs(latestResidual) > 0.5
-                        ? 'text-red-400'
-                        : 'text-green-400'
-                      : 'text-zinc-400',
+                    'font-mono font-bold text-lg',
+                    latestResidual !== null ? 'text-red-500' : 'text-zinc-600',
                   )}
                 >
                   {latestResidual !== null ? latestResidual.toFixed(2) : '-'}
@@ -136,15 +135,15 @@ export const MetricCard = ({
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 p-0 pb-4 relative">
+          <CardContent className="flex-1 p-0 pb-2 relative">
             {data.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/50 backdrop-blur-[1px] z-10">
-                <span className="text-sm text-zinc-400 font-medium">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[1px] z-10">
+                <span className="text-sm text-zinc-500 font-medium">
                   Sem dados para exibir
                 </span>
               </div>
             )}
-            <div className="h-[200px] w-full px-4">
+            <div className="h-[200px] w-full px-2">
               <MetricScatterChart
                 data={data}
                 metricKey={metricKey}
@@ -156,7 +155,7 @@ export const MetricCard = ({
           </CardContent>
         </Card>
 
-        <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
+        <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-black border-zinc-800 text-zinc-100">
           <DialogHeader>
             <DialogTitle className="flex gap-4 items-baseline uppercase">
               <span>{title}</span>
@@ -173,19 +172,19 @@ export const MetricCard = ({
               <TabsList className="grid w-full grid-cols-3 bg-zinc-900 mb-4 border border-zinc-800">
                 <TabsTrigger
                   value="correlation"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
                 >
                   <Activity className="h-4 w-4" /> Correlação
                 </TabsTrigger>
                 <TabsTrigger
                   value="histogram"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
                 >
                   <BarChart2 className="h-4 w-4" /> Histograma (LAB)
                 </TabsTrigger>
                 <TabsTrigger
                   value="residuals"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
                 >
                   <ScatterChart className="h-4 w-4" /> Dispersão Resíduos
                 </TabsTrigger>

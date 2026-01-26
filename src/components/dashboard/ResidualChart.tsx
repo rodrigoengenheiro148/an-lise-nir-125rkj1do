@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { ChartContainer } from '@/components/ui/chart'
+import { cn } from '@/lib/utils'
 
 interface ResidualChartProps {
   data: AnalysisRecord[]
@@ -52,13 +53,13 @@ export const ResidualChart = ({
   const chartConfig = {
     residue: {
       label: 'Resíduo',
-      color: '#22d3ee', // Cyan-400
+      color: '#f87171', // Red-400
     },
   }
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-400 min-h-[300px] border border-zinc-800 rounded-lg bg-zinc-900">
+      <div className="flex h-full items-center justify-center text-sm text-zinc-500 min-h-[300px] border border-zinc-800 rounded-lg bg-black">
         Sem dados para exibir
       </div>
     )
@@ -74,12 +75,12 @@ export const ResidualChart = ({
         <h4 className="text-lg font-bold text-zinc-200 uppercase tracking-wide text-center">
           {chartTitle}
         </h4>
-        <div className="flex justify-center text-xs font-mono text-zinc-400 bg-zinc-950/30 py-1 rounded w-fit mx-auto px-4">
+        <div className="flex justify-center text-xs font-mono text-zinc-400 bg-zinc-900/50 border border-zinc-800 py-1 rounded w-fit mx-auto px-4">
           N: {chartData.length}
         </div>
       </div>
 
-      <div className="flex-1 min-h-[400px] bg-[#27272a] rounded-lg border border-zinc-700 p-4 shadow-xl">
+      <div className="flex-1 min-h-[400px] bg-black rounded-lg border border-zinc-800 p-4 shadow-sm">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
@@ -91,7 +92,7 @@ export const ResidualChart = ({
                   width="200%"
                   height="200%"
                 >
-                  <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                  <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
                   <feMerge>
                     <feMergeNode in="coloredBlur" />
                     <feMergeNode in="SourceGraphic" />
@@ -100,22 +101,22 @@ export const ResidualChart = ({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#52525b"
-                strokeOpacity={0.4}
+                stroke="#333"
+                strokeOpacity={0.6}
               />
               <XAxis
                 type="number"
                 dataKey="x"
                 name="LAB"
-                tickLine={{ stroke: '#71717a' }}
-                axisLine={{ stroke: '#71717a' }}
-                tick={{ fill: '#e4e4e7', fontSize: 11 }}
+                tickLine={{ stroke: '#52525b' }}
+                axisLine={{ stroke: '#52525b' }}
+                tick={{ fill: '#71717a', fontSize: 11 }}
                 domain={['auto', 'auto']}
                 label={{
                   value: 'LAB',
                   position: 'insideBottom',
                   offset: -10,
-                  fill: '#e4e4e7',
+                  fill: '#a1a1aa',
                   fontSize: 12,
                   fontWeight: 600,
                 }}
@@ -124,23 +125,23 @@ export const ResidualChart = ({
                 type="number"
                 dataKey="y"
                 name="Resíduo"
-                tickLine={{ stroke: '#71717a' }}
-                axisLine={{ stroke: '#71717a' }}
-                tick={{ fill: '#e4e4e7', fontSize: 11 }}
+                tickLine={{ stroke: '#52525b' }}
+                axisLine={{ stroke: '#52525b' }}
+                tick={{ fill: '#71717a', fontSize: 11 }}
                 domain={domainY}
                 label={{
                   value: 'Resíduo (LAB - NIR)',
                   angle: -90,
                   position: 'insideLeft',
-                  fill: '#e4e4e7',
+                  fill: '#a1a1aa',
                   fontSize: 12,
                   fontWeight: 600,
                 }}
               />
-              <ReferenceLine y={0} stroke="#a1a1aa" strokeDasharray="3 3" />
+              <ReferenceLine y={0} stroke="#52525b" strokeDasharray="3 3" />
               <Tooltip
                 cursor={{
-                  stroke: '#a1a1aa',
+                  stroke: '#52525b',
                   strokeWidth: 1,
                   strokeDasharray: '4 4',
                 }}
@@ -148,8 +149,8 @@ export const ResidualChart = ({
                   if (active && payload && payload.length) {
                     const data = payload[0].payload
                     return (
-                      <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-3 shadow-xl text-xs">
-                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-800 pb-1">
+                      <div className="rounded-lg border border-zinc-800 bg-black p-3 shadow-xl text-xs ring-1 ring-zinc-800/50">
+                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1">
                           {data.original.company}
                         </div>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-zinc-400">
@@ -167,7 +168,10 @@ export const ResidualChart = ({
                           </span>
                           <span>Resíduo:</span>
                           <span
-                            className={`text-right font-mono font-medium ${data.y >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                            className={cn(
+                              'text-right font-mono font-bold',
+                              'text-red-500',
+                            )}
                           >
                             {data.y > 0 ? '+' : ''}
                             {data.y.toFixed(3)}
@@ -182,11 +186,9 @@ export const ResidualChart = ({
               <Scatter
                 name="Resíduo"
                 data={chartData}
-                fill="var(--color-residue)"
+                fill="#ef4444"
                 style={{ filter: `url(#glow-residue-${safeFilterId})` }}
-                stroke="#ffffff"
-                strokeWidth={1}
-                strokeOpacity={0.5}
+                strokeWidth={0}
               />
             </ScatterChart>
           </ResponsiveContainer>
