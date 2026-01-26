@@ -12,15 +12,15 @@ import {
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { calculateResidue } from '@/lib/calculations'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
-import { format, parseISO, isValid } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-interface ResidualScatterProps {
+interface ResidualChartProps {
   data: AnalysisRecord[]
   metricKey: MetricKey
 }
 
-export const ResidualScatter = ({ data, metricKey }: ResidualScatterProps) => {
+export const ResidualChart = ({ data, metricKey }: ResidualChartProps) => {
   const scatterData = useMemo(() => {
     return data
       .filter((r) => r.date)
