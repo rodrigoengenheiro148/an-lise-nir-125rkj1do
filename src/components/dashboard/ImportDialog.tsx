@@ -16,7 +16,7 @@ import {
   FileSpreadsheet,
   Grid,
 } from 'lucide-react'
-import { CompanyEntity, METRICS } from '@/types/dashboard'
+import { CompanyEntity, METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
 import {
@@ -53,6 +53,7 @@ export const ImportDialog = ({
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedMetric, setSelectedMetric] = useState<string>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
 
   const [textInput, setTextInput] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -70,6 +71,7 @@ export const ImportDialog = ({
       setFile(null)
       setIsProcessing(false)
       setSelectedMetric('auto') // Default to auto/bulk friendly
+      setSelectedMaterial('')
     }
   }, [isOpen])
 
@@ -126,6 +128,7 @@ export const ImportDialog = ({
         defaultCompany,
         companies,
         selectedMetric,
+        selectedMaterial,
       )
       setParseResult(result)
       setIsProcessing(false)
@@ -168,7 +171,7 @@ export const ImportDialog = ({
 
         {!parseResult ? (
           <div className="space-y-4 py-4 flex-1 overflow-hidden flex flex-col">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-none">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-none">
               <div className="space-y-2">
                 <Label>Modo de Importação</Label>
                 <Select
@@ -218,6 +221,30 @@ export const ImportDialog = ({
                     {companies.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Material Padrão (Opcional)</Label>
+                <Select
+                  value={selectedMaterial}
+                  onValueChange={(val) =>
+                    setSelectedMaterial(val === 'no_selection' ? '' : val)
+                  }
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                    <SelectValue placeholder="Selecione caso falte..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
+                    <SelectItem value="no_selection">
+                      <span className="text-zinc-500 italic">Nenhum</span>
+                    </SelectItem>
+                    {MATERIALS_OPTIONS.map((mat) => (
+                      <SelectItem key={mat} value={mat}>
+                        {mat.charAt(0).toUpperCase() + mat.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>

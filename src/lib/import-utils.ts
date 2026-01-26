@@ -30,6 +30,7 @@ export const parseImportData = (
   defaultCompany?: string,
   existingCompanies: { name: string; id: string }[] = [],
   targetMetric?: string, // The key of the selected metric, 'auto', or 'bulk_strict'
+  defaultMaterial?: string,
 ): ParseResult => {
   const rows = content
     .split(/\r?\n/)
@@ -393,7 +394,11 @@ export const parseImportData = (
     }
 
     if (!record.material) {
-      record.material = 'Desconhecido'
+      if (defaultMaterial) {
+        record.material = defaultMaterial
+      } else {
+        record.material = 'Desconhecido'
+      }
     }
 
     if (!hasError) {
