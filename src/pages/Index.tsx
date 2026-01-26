@@ -18,82 +18,123 @@ const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company>('')
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
-  const [allRecords, setAllRecords] = useState<AnalysisRecord[]>([])
+  const [availableMaterials, setAvailableMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [records, comps] = await Promise.all([
-        api.getRecords(),
-        api.getCompanies(),
-      ])
-      setAllRecords(records)
-      setCompanies(comps)
-
-      if (
-        comps.length > 0 &&
-        (!selectedCompany || !comps.find((c) => c.name === selectedCompany))
-      ) {
-        setSelectedCompany(comps[0].name)
+  // Fetch companies on mount
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const data = await api.getCompanies()
+        setCompanies(data)
+        if (data.length > 0 && !selectedCompany) {
+          setSelectedCompany(data[0].name)
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        // We only stop loading when we have records, so we don't set loading false here
+        if (data.length === 0) setLoading(false)
       }
+    }
+    loadCompanies()
+  }, [])
+
+  const selectedCompanyId = useMemo(
+    () => companies.find((c) => c.name === selectedCompany)?.id,
+    [companies, selectedCompany],
+  )
+
+  // Fetch materials when company changes
+  useEffect(() => {
+    const loadMaterials = async () => {
+      if (!selectedCompanyId) {
+        setAvailableMaterials([])
+        return
+      }
+      try {
+        const mats = await api.getMaterialsByCompany(selectedCompanyId)
+        setAvailableMaterials(mats)
+
+        // Automatic default selection logic
+        if (mats.length > 0) {
+          if (!selectedMaterial || !mats.includes(selectedMaterial)) {
+            setSelectedMaterial(mats[0])
+          }
+        } else {
+          setSelectedMaterial('')
+        }
+      } catch (e) {
+        console.error(e)
+        setAvailableMaterials([])
+        setSelectedMaterial('')
+      }
+    }
+    loadMaterials()
+  }, [selectedCompanyId])
+
+  // Fetch filtered records when company or material changes
+  const fetchRecords = useCallback(async () => {
+    if (!selectedCompanyId) {
+      setFilteredRecords([])
+      return
+    }
+
+    if (!selectedMaterial && availableMaterials.length > 0) {
+      // Wait for material to be selected by the other effect
+      return
+    }
+
+    // If no materials available, we can't fetch records for a specific material, so empty state
+    if (availableMaterials.length === 0 && selectedCompanyId) {
+      setFilteredRecords([])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    try {
+      const records = await api.getFilteredRecords(
+        selectedCompanyId,
+        selectedMaterial,
+      )
+      setFilteredRecords(records)
     } catch (error) {
       console.error(error)
+      setFilteredRecords([])
     } finally {
       setLoading(false)
     }
-  }, [selectedCompany])
+  }, [selectedCompanyId, selectedMaterial, availableMaterials.length])
 
   useEffect(() => {
-    fetchData()
-    const unsubscribe = api.subscribeToRecords(fetchData)
+    fetchRecords()
+  }, [fetchRecords])
+
+  useEffect(() => {
+    const unsubscribe = api.subscribeToRecords(() => {
+      // When database changes, refresh the current view
+      // Need to reload materials too in case new material appeared
+      if (selectedCompanyId) {
+        api.getMaterialsByCompany(selectedCompanyId).then((mats) => {
+          setAvailableMaterials(mats)
+          // If we didn't have a material selected and now we do, select it
+          if (
+            mats.length > 0 &&
+            (!selectedMaterial || !mats.includes(selectedMaterial))
+          ) {
+            setSelectedMaterial(mats[0])
+          }
+        })
+      }
+      fetchRecords()
+    })
     return () => unsubscribe()
-  }, [])
+  }, [fetchRecords, selectedCompanyId, selectedMaterial])
 
-  const availableMaterials = useMemo(() => {
-    if (!selectedCompany) return []
-    const companyRecords = allRecords.filter(
-      (r) => r.company === selectedCompany,
-    )
-    return Array.from(
-      new Set(
-        companyRecords.map((r) => r.material).filter(Boolean) as string[],
-      ),
-    ).sort()
-  }, [selectedCompany, allRecords])
-
-  useEffect(() => {
-    if (availableMaterials.length > 0) {
-      if (!selectedMaterial || !availableMaterials.includes(selectedMaterial)) {
-        setSelectedMaterial(availableMaterials[0])
-      }
-    } else {
-      setSelectedMaterial('')
-    }
-  }, [availableMaterials, selectedMaterial])
-
-  useEffect(() => {
-    if (selectedCompany) {
-      let filtered = allRecords.filter((r) => r.company === selectedCompany)
-
-      if (selectedMaterial) {
-        filtered = filtered.filter((r) => r.material === selectedMaterial)
-      } else {
-        filtered = []
-      }
-
-      setFilteredRecords(filtered)
-    } else {
-      setFilteredRecords([])
-    }
-  }, [selectedCompany, selectedMaterial, allRecords, availableMaterials])
-
-  const selectedCompanyId = companies.find(
-    (c) => c.name === selectedCompany,
-  )?.id
-
-  if (loading) {
+  if (loading && companies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
         <div className="animate-pulse flex flex-col items-center">
@@ -145,7 +186,7 @@ const Index = () => {
               <ManagementMenu
                 selectedCompanyId={selectedCompanyId}
                 companies={companies}
-                onDataChange={fetchData}
+                onDataChange={fetchRecords}
               />
 
               <Button
@@ -230,7 +271,7 @@ const Index = () => {
         onOpenChange={setIsAddRecordOpen}
         record={null}
         mode="add"
-        onSuccess={fetchData}
+        onSuccess={fetchRecords}
       />
     </div>
   )
