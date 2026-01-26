@@ -4,6 +4,7 @@ import {
   METRICS,
   CompanyEntity,
   getMaterialDisplayName,
+  MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
@@ -21,7 +22,6 @@ const Index = () => {
     setSelectedCompanyId,
     selectedMaterial,
     setSelectedMaterial,
-    materials,
     companies: storeCompanies,
     isLoading: isStoreLoading,
     isLoadingMaterials,
@@ -124,7 +124,7 @@ const Index = () => {
               <div className="w-full sm:w-[250px]">
                 <MaterialSelector
                   selectedMaterial={selectedMaterial}
-                  materials={materials}
+                  materials={MATERIALS_OPTIONS}
                   onSelect={setSelectedMaterial}
                   isLoading={isLoadingMaterials}
                   disabled={!selectedCompanyId}
@@ -233,6 +233,7 @@ const Index = () => {
         mode="add"
         onSuccess={handleDataChange}
         defaultCompanyId={selectedCompanyId}
+        defaultMaterial={selectedMaterial}
       />
     </div>
   )

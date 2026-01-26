@@ -16,13 +16,14 @@ export const DEFAULT_COMPANIES: string[] = [
   'Varzea',
 ]
 
+// Updated to match Acceptance Criteria strictly
 export const MATERIALS_OPTIONS = [
   'farinha de peixe',
   'farinha de pena e sangue',
   'farinha de sangue',
   'sebo',
   'farinha de carne e osso',
-  'farinha de vísceras',
+  'farinha de visceras',
 ]
 
 export const MATERIAL_DISPLAY_NAMES: Record<string, string> = {
