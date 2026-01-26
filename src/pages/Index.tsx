@@ -53,12 +53,15 @@ const Index = () => {
       try {
         const data = await api.getMaterialsByCompany(selectedCompanyId)
         setMaterials(data)
-        // Default to first material if available
-        if (data.length > 0) {
-          setSelectedMaterial(data[0])
-        } else {
-          setSelectedMaterial('')
-        }
+
+        // Smart selection logic:
+        // 1. If previous material exists in new company, keep it
+        // 2. Else if materials exist, select first one
+        // 3. Else clear selection
+        setSelectedMaterial((prev) => {
+          if (prev && data.includes(prev)) return prev
+          return data.length > 0 ? data[0] : ''
+        })
       } catch (e) {
         console.error(e)
         setMaterials([])
@@ -153,8 +156,7 @@ const Index = () => {
                   companies={companies}
                   onSelect={(id) => {
                     setSelectedCompanyId(id)
-                    setSelectedMaterial('') // Reset material on company change
-                    setMaterials([])
+                    // Note: selectedMaterial logic is handled in useEffect
                   }}
                   onCompanyAdded={handleCompanyAdded}
                   isLoading={isLoadingCompanies}
