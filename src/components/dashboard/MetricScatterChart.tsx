@@ -44,10 +44,11 @@ export const MetricScatterChart = ({
   title,
   data,
   metricKey,
-  color,
+  color, // kept for compatibility but overridden by standardized style
   unit,
 }: MetricScatterChartProps) => {
   const [isOpen, setIsOpen] = useState(false)
+  const standardizedColor = '#22d3ee' // Cyan-400 for standardized look
 
   const chartData = useMemo(() => {
     return data
@@ -72,36 +73,48 @@ export const MetricScatterChart = ({
   }, [chartData])
 
   const trendLine = useMemo(() => {
-    if (chartData.length === 0) return []
+    if (chartData.length < 2) return []
     const minX = Math.min(...chartData.map((d) => d.lab))
     const maxX = Math.max(...chartData.map((d) => d.lab))
 
-    // Extend slightly beyond min/max for better visual
-    const x1 = minX * 0.95
-    const x2 = maxX * 1.05
+    // Extend slightly beyond min/max for better visual coverage
+    const x1 = minX
+    const x2 = maxX
 
-    // Ideal line y = x
+    // Calculate y = mx + b (Linear Regression)
+    const y1 = stats.slope * x1 + stats.intercept
+    const y2 = stats.slope * x2 + stats.intercept
+
     return [
-      { lab: x1, anl: x1 },
-      { lab: x2, anl: x2 },
+      { lab: x1, anl: y1 },
+      { lab: x2, anl: y2 },
     ]
-  }, [chartData])
+  }, [chartData, stats])
 
   const chartConfig = {
     anl: {
       label: 'ANL',
-      color: color,
+      color: standardizedColor,
     },
     lab: {
       label: 'LAB',
-      color: '#888',
+      color: '#a1a1aa', // Zinc-400
+    },
+    trend: {
+      label: 'Tendência',
+      color: standardizedColor,
     },
   } satisfies ChartConfig
 
   const ChartRender = ({ height = '100%' }: { height?: string | number }) => (
     <ChartContainer config={chartConfig} className={`w-full min-h-[300px]`}>
       <ComposedChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#333"
+          vertical={true}
+          horizontal={true}
+        />
         <XAxis
           type="number"
           dataKey="lab"
@@ -113,9 +126,10 @@ export const MetricScatterChart = ({
           label={{
             value: 'LAB (Ref)',
             position: 'bottom',
-            fill: '#888',
+            fill: '#a1a1aa',
             fontSize: 12,
             offset: 0,
+            fontWeight: 500,
           }}
           domain={['auto', 'auto']}
         />
@@ -131,27 +145,27 @@ export const MetricScatterChart = ({
             value: 'ANL',
             angle: -90,
             position: 'insideLeft',
-            fill: '#888',
+            fill: '#a1a1aa',
             fontSize: 12,
+            fontWeight: 500,
           }}
           domain={['auto', 'auto']}
         />
         <ChartTooltip
-          cursor={{ strokeDasharray: '3 3' }}
+          cursor={{ strokeDasharray: '3 3', stroke: '#555' }}
           content={<ChartTooltipContent indicator="dot" />}
         />
 
-        {/* Reference Line Y=X */}
+        {/* Linear Regression Trend Line */}
         <Line
           data={trendLine}
           dataKey="anl"
-          stroke="#52525b" // Zinc-600
-          strokeWidth={1}
-          strokeDasharray="5 5"
+          stroke={standardizedColor}
+          strokeWidth={2}
           dot={false}
           activeDot={false}
           type="monotone"
-          name="Referência (Ideal)"
+          name="Tendência (Regressão)"
           animationDuration={1000}
         />
 
@@ -159,7 +173,7 @@ export const MetricScatterChart = ({
         <Scatter
           name="Amostras"
           data={chartData}
-          fill={color}
+          fill={standardizedColor}
           shape="circle"
           className="glow-point"
         />
@@ -167,17 +181,19 @@ export const MetricScatterChart = ({
     </ChartContainer>
   )
 
+  const chartTitle = `${title} - LAB X ANL`
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <Card className="flex flex-col h-full border-zinc-800 bg-zinc-950 text-zinc-100 shadow-md group">
         <CardHeader className="p-4 pb-2 border-b border-zinc-800 flex flex-row items-start justify-between space-y-0">
           <div>
             <CardTitle className="text-lg font-bold text-zinc-100 uppercase tracking-wide font-display">
-              {title}
+              {chartTitle}
             </CardTitle>
             <CardDescription className="text-xs text-zinc-400 font-mono mt-1">
-              R²: {stats.r2.toFixed(3)} | Bias: {stats.bias.toFixed(3)} | SEP:{' '}
-              {stats.sep.toFixed(3)}
+              R²: {stats.r2.toFixed(3)} | Slope: {stats.slope.toFixed(3)} |
+              Bias: {stats.bias.toFixed(3)}
             </CardDescription>
           </div>
           <DialogTrigger asChild>
@@ -190,7 +206,7 @@ export const MetricScatterChart = ({
             </Button>
           </DialogTrigger>
         </CardHeader>
-        <CardContent className="flex-1 p-2 min-h-[300px] relative">
+        <CardContent className="flex-1 p-2 min-h-[300px] relative bg-zinc-950/50">
           <ChartRender />
         </CardContent>
       </Card>
@@ -198,7 +214,7 @@ export const MetricScatterChart = ({
       <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-zinc-100">
         <DialogHeader>
           <DialogTitleComponent className="flex gap-4 items-baseline uppercase">
-            <span>{title}</span>
+            <span>{chartTitle}</span>
             <span className="text-sm font-normal text-zinc-400 lowercase normal-case">
               R²: {stats.r2.toFixed(4)} | Slope: {stats.slope.toFixed(4)} |
               Bias: {stats.bias.toFixed(4)} | SEP: {stats.sep.toFixed(4)}
