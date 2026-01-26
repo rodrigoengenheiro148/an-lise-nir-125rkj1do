@@ -18,9 +18,11 @@ const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
+  const [materials, setMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
@@ -55,19 +57,36 @@ const Index = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 2. Ensure Material Selection
+  // 2. Fetch Materials when Company Changes
   useEffect(() => {
-    if (selectedCompanyId) {
-      // If no material selected, or selected not in options, default to first option
-      if (!selectedMaterial || !MATERIALS_OPTIONS.includes(selectedMaterial)) {
-        setSelectedMaterial(MATERIALS_OPTIONS[0])
+    const loadMaterials = async () => {
+      if (!selectedCompanyId) {
+        setMaterials([])
+        setSelectedMaterial('')
+        return
       }
-    } else {
-      setSelectedMaterial('')
-    }
-  }, [selectedCompanyId, selectedMaterial])
 
-  // 3. Fetch filtered records (Reverted to simple fetch logic without realtime listeners)
+      setIsLoadingMaterials(true)
+      try {
+        const mats = await api.getMaterialsByCompany(selectedCompanyId)
+        setMaterials(mats)
+
+        // Reset material selection when company changes
+        // If the previously selected material exists in the new company's materials, we could keep it,
+        // but for now we default to "All" (empty string)
+        setSelectedMaterial('')
+      } catch (error) {
+        console.error('Error loading materials:', error)
+        setMaterials([])
+      } finally {
+        setIsLoadingMaterials(false)
+      }
+    }
+
+    loadMaterials()
+  }, [selectedCompanyId])
+
+  // 3. Fetch filtered records
   const fetchRecords = useCallback(async () => {
     if (!selectedCompanyId) {
       setFilteredRecords([])
@@ -98,6 +117,19 @@ const Index = () => {
     setCompanies((prev) => [...prev, newCompany])
     setSelectedCompanyId(newCompany.id)
   }
+
+  // Refresh materials when data changes (e.g. after add/import)
+  const handleDataChange = useCallback(async () => {
+    fetchRecords()
+    if (selectedCompanyId) {
+      try {
+        const mats = await api.getMaterialsByCompany(selectedCompanyId)
+        setMaterials(mats)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }, [fetchRecords, selectedCompanyId])
 
   const selectedCompanyName = useMemo(
     () => companies.find((c) => c.id === selectedCompanyId)?.name || '',
@@ -149,9 +181,10 @@ const Index = () => {
               <div className="w-full sm:w-[250px]">
                 <MaterialSelector
                   selectedMaterial={selectedMaterial}
-                  materials={MATERIALS_OPTIONS}
+                  materials={materials}
                   onSelect={setSelectedMaterial}
                   disabled={!selectedCompanyId}
+                  isLoading={isLoadingMaterials}
                 />
               </div>
             </div>
@@ -160,7 +193,7 @@ const Index = () => {
               <ManagementMenu
                 selectedCompanyId={selectedCompanyId}
                 companies={companies}
-                onDataChange={fetchRecords}
+                onDataChange={handleDataChange}
               />
 
               <Button
@@ -215,7 +248,8 @@ const Index = () => {
               Material Ativo
             </span>
             <span className="text-sm font-medium text-blue-300 mt-1 truncate">
-              {selectedMaterial || (selectedCompanyId ? 'Geral' : '-')}
+              {selectedMaterial ||
+                (selectedCompanyId ? 'Todos os Materiais' : '-')}
             </span>
           </div>
         </div>
@@ -234,9 +268,13 @@ const Index = () => {
                 <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
                 Dispersão por Parâmetro (LAB vs ANL)
               </h2>
-              {selectedMaterial && (
+              {selectedMaterial ? (
                 <span className="text-xs px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400">
                   Filtro: {selectedMaterial}
+                </span>
+              ) : (
+                <span className="text-xs px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400">
+                  Filtro: Todos os Materiais
                 </span>
               )}
             </div>
@@ -264,7 +302,7 @@ const Index = () => {
         onOpenChange={setIsAddRecordOpen}
         record={null}
         mode="add"
-        onSuccess={fetchRecords}
+        onSuccess={handleDataChange}
         defaultCompanyId={selectedCompanyId}
         defaultMaterial={selectedMaterial}
       />
