@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AnalysisRecord, METRICS, CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
+import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
@@ -10,12 +11,14 @@ import { Button } from '@/components/ui/button'
 
 const Index = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
+  const [materials, setMaterials] = useState<string[]>([])
   const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
 
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(true)
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
-
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
   // 1. Load Companies
@@ -37,7 +40,36 @@ const Index = () => {
     loadCompanies()
   }, [])
 
-  // 2. Fetch filtered records when company changes
+  // 2. Load Materials when Company Changes
+  useEffect(() => {
+    const loadMaterials = async () => {
+      if (!selectedCompanyId) {
+        setMaterials([])
+        setSelectedMaterial('')
+        return
+      }
+
+      setIsLoadingMaterials(true)
+      try {
+        const data = await api.getMaterialsByCompany(selectedCompanyId)
+        setMaterials(data)
+        // Default to first material if available
+        if (data.length > 0) {
+          setSelectedMaterial(data[0])
+        } else {
+          setSelectedMaterial('')
+        }
+      } catch (e) {
+        console.error(e)
+        setMaterials([])
+      } finally {
+        setIsLoadingMaterials(false)
+      }
+    }
+    loadMaterials()
+  }, [selectedCompanyId])
+
+  // 3. Fetch filtered records
   const fetchRecords = useCallback(async () => {
     if (!selectedCompanyId) {
       setFilteredRecords([])
@@ -46,7 +78,10 @@ const Index = () => {
 
     setIsLoadingRecords(true)
     try {
-      const records = await api.getCompanyRecords(selectedCompanyId)
+      const records = await api.getCompanyRecords(
+        selectedCompanyId,
+        selectedMaterial || undefined,
+      )
       setFilteredRecords(records)
     } catch (error) {
       console.error(error)
@@ -54,7 +89,7 @@ const Index = () => {
     } finally {
       setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId])
+  }, [selectedCompanyId, selectedMaterial])
 
   useEffect(() => {
     fetchRecords()
@@ -71,6 +106,7 @@ const Index = () => {
   const handleCompanyAdded = (newCompany: CompanyEntity) => {
     setCompanies((prev) => [...prev, newCompany])
     setSelectedCompanyId(newCompany.id)
+    setSelectedMaterial('')
   }
 
   const selectedCompanyName = useMemo(
@@ -115,9 +151,22 @@ const Index = () => {
                 <CompanySelector
                   selectedCompanyId={selectedCompanyId}
                   companies={companies}
-                  onSelect={setSelectedCompanyId}
+                  onSelect={(id) => {
+                    setSelectedCompanyId(id)
+                    setSelectedMaterial('') // Reset material on company change
+                    setMaterials([])
+                  }}
                   onCompanyAdded={handleCompanyAdded}
                   isLoading={isLoadingCompanies}
+                />
+              </div>
+              <div className="w-full sm:w-[250px]">
+                <MaterialSelector
+                  selectedMaterial={selectedMaterial}
+                  materials={materials}
+                  onSelect={setSelectedMaterial}
+                  isLoading={isLoadingMaterials}
+                  disabled={!selectedCompanyId || isLoadingCompanies}
                 />
               </div>
             </div>
@@ -145,7 +194,7 @@ const Index = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
-              Amostras (Total)
+              Amostras (Filtradas)
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-white">
@@ -177,10 +226,10 @@ const Index = () => {
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
             <span className="text-xs text-zinc-500 uppercase font-mono">
-              Empresa Ativa
+              Material Ativo
             </span>
             <span className="text-sm font-medium text-blue-300 mt-1 truncate">
-              {selectedCompanyName || 'Selecione...'}
+              {selectedMaterial || (selectedCompanyId ? 'Geral' : '-')}
             </span>
           </div>
         </div>
@@ -201,16 +250,25 @@ const Index = () => {
               <p className="text-sm text-zinc-500">
                 {!selectedCompanyId
                   ? 'Selecione uma empresa para começar.'
-                  : 'Nenhum registro encontrado para esta empresa.'}
+                  : !selectedMaterial && materials.length > 0
+                    ? 'Selecione um material.'
+                    : 'Nenhum registro encontrado para esta combinação.'}
               </p>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
-              <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-              Dispersão por Parâmetro (LAB vs ANL)
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
+                <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
+                Dispersão por Parâmetro (LAB vs ANL)
+              </h2>
+              {selectedMaterial && (
+                <span className="text-xs px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-zinc-400">
+                  Filtro: {selectedMaterial}
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
               {METRICS.map((metric) => (

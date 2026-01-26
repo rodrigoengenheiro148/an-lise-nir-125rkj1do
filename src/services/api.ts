@@ -31,7 +31,6 @@ const transformRecordFromDB = (
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
-    // Return undefined if null to handle missing values correctly
     record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? undefined
     record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? undefined
     record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? undefined
@@ -46,13 +45,12 @@ const transformRecordToDB = (
 ) => {
   const dbRow: any = {
     company_id: companyId,
-    date: record.date || null, // Allow date to be saved
+    date: record.date || null,
     material: record.material,
     sub_material: record.submaterial,
   }
 
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
-    // Helper to safely parse float
     const parseVal = (val: any) => {
       if (val === undefined || val === null || val === '') return null
       const num = parseFloat(String(val).replace(',', '.'))
@@ -63,7 +61,6 @@ const transformRecordToDB = (
     const nir = parseVal(record[`${appKey}_nir`])
     const anl = parseVal(record[`${appKey}_anl`])
 
-    // Only add if not undefined (to allow partial updates if needed, though usually full record)
     if (lab !== undefined) dbRow[`${dbPrefix}_lab`] = lab
     if (nir !== undefined) dbRow[`${dbPrefix}_nir`] = nir
     if (anl !== undefined) dbRow[`${dbPrefix}_anl`] = anl
@@ -93,8 +90,6 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
-    // Fetches records ordered by creation date descending
-    // Increased limit to 10000 to prevent data cutoff on dashboard
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
@@ -109,11 +104,20 @@ export const api = {
     })
   },
 
-  getCompanyRecords: async (companyId: string): Promise<AnalysisRecord[]> => {
-    const { data, error } = await supabase
+  getCompanyRecords: async (
+    companyId: string,
+    material?: string,
+  ): Promise<AnalysisRecord[]> => {
+    let query = supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .eq('company_id', companyId)
+
+    if (material) {
+      query = query.eq('material', material)
+    }
+
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(10000)
 
@@ -125,8 +129,22 @@ export const api = {
     })
   },
 
+  getMaterialsByCompany: async (companyId: string): Promise<string[]> => {
+    // Fetches distinct materials for a company
+    const { data, error } = await supabase
+      .from('analysis_records')
+      .select('material')
+      .eq('company_id', companyId)
+      .not('material', 'is', null)
+      .limit(5000)
+
+    if (error) throw error
+
+    const materials = data?.map((d) => d.material).filter(Boolean) as string[]
+    return Array.from(new Set(materials)).sort()
+  },
+
   getUniqueMaterials: async (): Promise<string[]> => {
-    // Increased limit to 10000 to ensure we get all materials
     const { data, error } = await supabase
       .from('analysis_records')
       .select('material')
@@ -134,11 +152,9 @@ export const api = {
 
     if (error) throw error
 
-    // Deduplicate and sort
-    const unique = Array.from(
+    return Array.from(
       new Set(data?.map((d) => d.material).filter(Boolean) as string[]),
     ).sort()
-    return unique
   },
 
   saveRecords: async (records: AnalysisRecord[]) => {
@@ -249,49 +265,7 @@ export const api = {
       },
     )
 
-    if (error) {
-      console.error('Export error:', error)
-      if (error && typeof error === 'object' && 'context' in error) {
-        // @ts-expect-error
-        const status = error.context?.status
-        if (status === 404) {
-          throw new Error(
-            'Não há dados para exportar com os filtros selecionados.',
-          )
-        }
-      }
-      throw new Error('Falha na exportação dos dados. Tente novamente.')
-    }
-
-    if (!data) {
-      throw new Error('Nenhum dado recebido da exportação.')
-    }
-
-    let blob: Blob
-
-    if (data instanceof Blob) {
-      blob = data
-    } else if (data instanceof ArrayBuffer) {
-      blob = new Blob([data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      })
-    } else {
-      console.error('Unexpected export data format:', data)
-      throw new Error('Formato de resposta inválido (esperado Arquivo/Blob).')
-    }
-
-    if (blob.type.includes('application/json') || blob.type.includes('json')) {
-      const text = await blob.text()
-      try {
-        const json = JSON.parse(text)
-        if (json.error) {
-          throw new Error(json.error)
-        }
-      } catch (e) {
-        // ignore parse error if it's not valid json
-      }
-    }
-
-    return blob
+    if (error) throw error
+    return data
   },
 }
