@@ -29,8 +29,8 @@ export const MaterialSelector = ({
         Material:
       </span>
       <Select
-        value={selectedMaterial || 'all'}
-        onValueChange={(value) => onSelect(value === 'all' ? '' : value)}
+        value={selectedMaterial}
+        onValueChange={onSelect}
         disabled={disabled || isLoading}
       >
         <SelectTrigger className="w-full bg-background border-input">
@@ -40,16 +40,20 @@ export const MaterialSelector = ({
               <span className="text-xs">Carregando...</span>
             </div>
           ) : (
-            <SelectValue placeholder="Todos os materiais" />
+            <SelectValue placeholder="Selecione o material" />
           )}
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos os materiais</SelectItem>
           {materials.map((material) => (
             <SelectItem key={material} value={material}>
               {getMaterialDisplayName(material)}
             </SelectItem>
           ))}
+          {materials.length === 0 && !isLoading && (
+            <div className="p-2 text-sm text-muted-foreground text-center">
+              Sem materiais
+            </div>
+          )}
         </SelectContent>
       </Select>
     </div>

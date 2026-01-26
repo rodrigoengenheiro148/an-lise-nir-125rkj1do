@@ -5,25 +5,10 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react'
-import { Company, Sample, AnalysisType } from '@/lib/types'
-import { AnalysisRecord, METRICS } from '@/types/dashboard'
+import { Company, Sample } from '@/lib/types'
+import { AnalysisRecord } from '@/types/dashboard'
 import { toast } from '@/hooks/use-toast'
 import { api } from '@/services/api'
-
-// Mapping from metric key (DB column prefix) to AnalysisType enum
-const METRIC_TO_TYPE: Record<string, AnalysisType> = {
-  acidity: 'ACIDEZ',
-  moisture: 'UMIDADE',
-  fco: 'FCO',
-  protein: 'PROTEINA',
-  phosphorus: 'FOSFORO',
-  mineralMatter: 'MATERIA_MINERAL',
-  peroxide: 'PEROXIDO',
-  etherExtract: 'EXTRATO_ETEREO',
-  proteinDigestibility: 'DIG_PROTEICA',
-  calcium: 'CALCIO',
-  sodium: 'SODIO',
-}
 
 interface DashboardState {
   companies: Company[]
@@ -48,13 +33,25 @@ interface DashboardState {
 
 const DashboardContext = createContext<DashboardState | undefined>(undefined)
 
+const STORAGE_KEYS = {
+  COMPANY_ID: 'dashboard_selected_company_id',
+  MATERIAL: 'dashboard_selected_material',
+}
+
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [companies, setCompanies] = useState<Company[]>([])
   const [materials, setMaterials] = useState<string[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
+
+  // Initialize state from localStorage if available
+  const [selectedCompanyId, setSelectedCompanyIdState] = useState<string>(
+    () => localStorage.getItem(STORAGE_KEYS.COMPANY_ID) || '',
+  )
+  const [selectedMaterial, setSelectedMaterialState] = useState<string>(
+    () => localStorage.getItem(STORAGE_KEYS.MATERIAL) || '',
+  )
+
   const [selectedDateRange, setDateRange] = useState<{
     from: Date | undefined
     to: Date | undefined
@@ -65,11 +62,19 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
+  const setSelectedCompanyId = (id: string) => {
+    localStorage.setItem(STORAGE_KEYS.COMPANY_ID, id)
+    setSelectedCompanyIdState(id)
+  }
+
+  const setSelectedMaterial = (material: string) => {
+    localStorage.setItem(STORAGE_KEYS.MATERIAL, material)
+    setSelectedMaterialState(material)
+  }
+
   const loadData = async () => {
     setIsLoading(true)
     try {
-      // We only fetch companies here initially. Records are fetched based on filters in the page or explicitly refreshed.
-      // However, to maintain backward compatibility with current implementation if it expects some initial data:
       const fetchedCompanies = await api.getCompanies()
 
       const mappedCompanies = fetchedCompanies.map((c) => ({
@@ -78,6 +83,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       }))
       setCompanies(mappedCompanies)
 
+      // If no company selected (and none persisted), select the first one
       if (mappedCompanies.length > 0 && !selectedCompanyId) {
         setSelectedCompanyId(mappedCompanies[0].id)
       }
@@ -110,13 +116,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         // Smart Default Selection
         if (mats.length > 0) {
           // If previously selected material is in the new list, keep it
-          // Otherwise select the first one
+          // Otherwise select the first one to ensure granular analysis
           if (selectedMaterial && mats.includes(selectedMaterial)) {
             // Keep current selection
           } else {
             setSelectedMaterial(mats[0])
           }
         } else {
+          // If no materials available, clear selection
           setSelectedMaterial('')
         }
       } catch (error) {

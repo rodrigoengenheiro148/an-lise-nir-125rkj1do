@@ -209,32 +209,19 @@ const Index = () => {
               </h2>
             </div>
 
-            {filteredRecords.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 border border-zinc-800 rounded-lg bg-zinc-900/20">
-                <Cloud className="h-12 w-12 text-zinc-600 mb-4" />
-                <h3 className="text-lg font-medium text-zinc-400">
-                  Sem dados para exibir
-                </h3>
-                <p className="text-zinc-500 max-w-sm text-center mt-2">
-                  Não há registros para a combinação de Empresa e Material
-                  selecionada.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {METRICS.map((metric) => (
-                  <MetricCard
-                    key={metric.key}
-                    title={metric.label}
-                    metricKey={metric.key}
-                    color={metric.color}
-                    unit={metric.unit}
-                    data={filteredRecords}
-                    selectedCompanyId={selectedCompanyId}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {METRICS.map((metric) => (
+                <MetricCard
+                  key={metric.key}
+                  title={metric.label}
+                  metricKey={metric.key}
+                  color={metric.color}
+                  unit={metric.unit}
+                  data={filteredRecords}
+                  selectedCompanyId={selectedCompanyId}
+                />
+              ))}
+            </div>
           </div>
         )}
       </main>
