@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useId } from 'react'
 import {
   ComposedChart,
   Line,
@@ -27,11 +27,14 @@ interface MetricScatterChartProps {
 export const MetricScatterChart = ({
   data,
   metricKey,
-  color, // Note: We stick to the standardized "bright blue" for points/trend as requested, ignoring this color for the chart elements themselves to ensure uniformity.
+  color,
   unit,
   title,
   compact = false,
 }: MetricScatterChartProps) => {
+  const filterId = useId()
+  const safeFilterId = filterId.replace(/:/g, '')
+
   // Calculate stats and prepare data for Scatter Plot
   const { points, stats, trendPoints } = useMemo(() => {
     const pts = data
@@ -66,11 +69,11 @@ export const MetricScatterChart = ({
   const chartConfig = {
     points: {
       label: 'Amostra',
-      color: '#22d3ee', // Cyan-400 for glowing effect (Bright Blue)
+      color: color,
     },
     trend: {
       label: 'Tendência',
-      color: '#0e7490', // Cyan-700
+      color: color,
     },
   }
 
@@ -128,7 +131,7 @@ export const MetricScatterChart = ({
             >
               <defs>
                 <filter
-                  id="glow"
+                  id={`glow-${safeFilterId}`}
                   height="300%"
                   width="300%"
                   x="-100%"
@@ -207,12 +210,15 @@ export const MetricScatterChart = ({
                                 ).toLocaleDateString()
                               : '-'}
                           </span>
-                          <span>LAB:</span>
+                          <span>LAB (Ref):</span>
                           <span className="text-right text-zinc-100 font-mono font-medium">
                             {dataPoint.x.toFixed(2)}
                           </span>
-                          <span>ANL:</span>
-                          <span className="text-right text-cyan-400 font-mono font-medium">
+                          <span>ANL/NIR:</span>
+                          <span
+                            className="text-right font-mono font-medium"
+                            style={{ color: color }}
+                          >
                             {dataPoint.y.toFixed(2)}
                           </span>
                           <span>Resíduo:</span>
@@ -238,7 +244,7 @@ export const MetricScatterChart = ({
                 data={points}
                 fill="var(--color-points)"
                 shape="circle"
-                style={{ filter: 'url(#glow)' }}
+                style={{ filter: `url(#glow-${safeFilterId})` }}
               >
                 {points.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill="var(--color-points)" />
