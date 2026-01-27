@@ -34,6 +34,8 @@ import { CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import useDashboardStore from '@/stores/useDashboardStore'
+import { PasswordProtectionDialog } from './PasswordProtectionDialog'
 
 interface ManagementMenuProps {
   selectedCompanyId?: string
@@ -48,6 +50,10 @@ export const ManagementMenu = ({
   onDataChange,
   defaultMaterial,
 }: ManagementMenuProps) => {
+  const { isAdminUnlocked } = useDashboardStore()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false)
+
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -56,6 +62,18 @@ export const ManagementMenu = ({
   const [password, setPassword] = useState('')
 
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId)
+
+  const handleAdminClick = (e: React.MouseEvent) => {
+    if (!isAdminUnlocked) {
+      e.preventDefault()
+      setIsPasswordOpen(true)
+    } else {
+      // Logic handled by DropdownMenuTrigger normally,
+      // but if we are manually controlling or intercepting, we might need this.
+      // However, preventing default on the trigger click stops the menu from opening.
+      // If unlocked, we don't prevent default, so menu opens.
+    }
+  }
 
   const handleVerifyAndClear = async () => {
     if (deleteMode === 'single' && !selectedCompanyId) {
@@ -103,11 +121,12 @@ export const ManagementMenu = ({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
             className="w-full md:w-auto gap-2 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 h-11 md:h-10"
+            onClick={handleAdminClick}
           >
             <Settings className="h-5 w-5 md:h-4 md:w-4" />
             <span className="hidden sm:inline">Admin</span>
@@ -160,6 +179,14 @@ export const ManagementMenu = ({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <PasswordProtectionDialog
+        open={isPasswordOpen}
+        onOpenChange={setIsPasswordOpen}
+        onSuccess={() => setIsMenuOpen(true)}
+        title="Acesso Administrativo"
+        description="Esta área é restrita a administradores. Digite a senha para continuar."
+      />
 
       <ImportDialog
         open={isImportOpen}

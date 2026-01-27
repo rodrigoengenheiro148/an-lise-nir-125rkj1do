@@ -39,6 +39,8 @@ interface DashboardState {
   isLoading: boolean
   isLoadingMaterials: boolean
   error: string | null
+  isAdminUnlocked: boolean
+  unlockAdmin: () => void
 }
 
 const DashboardContext = createContext<DashboardState | undefined>(undefined)
@@ -54,6 +56,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false)
 
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<string>(
     () => localStorage.getItem(STORAGE_KEYS.COMPANY_ID) || '',
@@ -108,6 +111,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const setSelectedMaterial = (material: string) => {
     localStorage.setItem(STORAGE_KEYS.MATERIAL, material)
     setSelectedMaterialState(material)
+  }
+
+  const unlockAdmin = () => {
+    setIsAdminUnlocked(true)
   }
 
   const loadData = async (forceLoadingState = false) => {
@@ -411,6 +418,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         isLoadingMaterials,
         error,
+        isAdminUnlocked,
+        unlockAdmin,
       },
     },
     children,

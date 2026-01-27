@@ -21,6 +21,7 @@ import { MetricCard } from '@/components/dashboard/MetricCard'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
 import { GlobalParetoChart } from '@/components/dashboard/GlobalParetoChart'
+import { PasswordProtectionDialog } from '@/components/dashboard/PasswordProtectionDialog'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
@@ -44,9 +45,11 @@ export default function Index() {
     isLoading,
     refreshData,
     error,
+    isAdminUnlocked,
   } = useDashboardStore()
 
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false)
 
   // Memoized filtered data to ensure visual stability and performance
   const filteredData = useMemo(() => {
@@ -146,6 +149,14 @@ export default function Index() {
     })
   }, [filteredData])
 
+  const handleImportClick = () => {
+    if (isAdminUnlocked) {
+      setIsImportOpen(true)
+    } else {
+      setIsPasswordOpen(true)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-3 md:p-6 pb-20">
       <div className="max-w-[1920px] mx-auto space-y-6">
@@ -205,7 +216,7 @@ export default function Index() {
 
             <div className="flex w-full md:w-auto gap-3">
               <Button
-                onClick={() => setIsImportOpen(true)}
+                onClick={handleImportClick}
                 className="flex-1 md:flex-none h-11 md:h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-lg shadow-emerald-900/20"
               >
                 <Upload className="h-5 w-5 md:h-4 md:w-4" />
@@ -300,6 +311,14 @@ export default function Index() {
           </>
         )}
       </div>
+
+      <PasswordProtectionDialog
+        open={isPasswordOpen}
+        onOpenChange={setIsPasswordOpen}
+        onSuccess={() => setIsImportOpen(true)}
+        title="Acesso Restrito"
+        description="Esta funcionalidade requer privilégios de administrador."
+      />
 
       <ImportDialog
         open={isImportOpen}
