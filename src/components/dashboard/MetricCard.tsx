@@ -48,7 +48,7 @@ export const MetricCard = ({
   const [isOpen, setIsOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  // Calculate averages instead of just taking the latest record
+  // Calculate averages for residue (and potential future use)
   const { avgLab, avgAnl, avgResidual } = useMemo(() => {
     if (data.length === 0) {
       return { avgLab: null, avgAnl: null, avgResidual: null }
@@ -131,43 +131,23 @@ export const MetricCard = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="flex flex-col gap-1">
-                <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
-                  LAB (Ref)
-                </span>
-                <span className="font-mono font-bold text-lg text-white">
-                  {avgLab !== null ? avgLab.toFixed(2) : '-'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
-                  ANL
-                </span>
-                <span
-                  className="font-mono font-bold text-lg"
-                  style={{ color: color }}
-                >
-                  {avgAnl !== null ? avgAnl.toFixed(2) : '-'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
-                  Resíduo
-                </span>
-                <span
-                  className={cn(
-                    'font-mono font-bold text-lg',
-                    avgResidual !== null ? 'text-red-500' : 'text-zinc-600',
-                  )}
-                >
-                  {avgResidual !== null ? avgResidual.toFixed(2) : '-'}
-                </span>
-              </div>
+            {/* Simplified stats display focused only on Residue */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-zinc-500 font-medium uppercase text-[10px] tracking-wider">
+                Resíduo:
+              </span>
+              <span
+                className={cn(
+                  'font-mono font-bold text-sm',
+                  avgResidual !== null ? 'text-red-500' : 'text-zinc-600',
+                )}
+              >
+                {avgResidual !== null ? avgResidual.toFixed(2) : '-'}
+              </span>
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 p-0 pb-2 relative">
+          <CardContent className="flex-1 p-0 pb-2 relative flex flex-col">
             {data.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[1px] z-10">
                 <span className="text-sm text-zinc-500 font-medium">
@@ -175,7 +155,8 @@ export const MetricCard = ({
                 </span>
               </div>
             )}
-            <div className="h-[200px] w-full px-2">
+            {/* Chart takes available space to focus on trends */}
+            <div className="flex-1 w-full px-2 min-h-0">
               <MetricScatterChart
                 data={data}
                 metricKey={metricKey}

@@ -60,11 +60,11 @@ const CustomTooltip = ({ active, payload, unit, color }: any) => {
             </>
           )}
           <span className="col-span-2 border-t border-zinc-900 my-0.5" />
-          <span>LAB (Ref):</span>
+          <span>LAB (REF):</span>
           <span className="text-right text-zinc-100 font-mono font-medium">
             {dataPoint.x.toFixed(2)} {unit}
           </span>
-          <span>NIR (Pred):</span>
+          <span>ANL:</span>
           <span
             className="text-right font-mono font-medium"
             style={{ color: color }}

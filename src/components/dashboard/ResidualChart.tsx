@@ -176,9 +176,13 @@ export const ResidualChart = ({
                             </>
                           )}
                           <span className="col-span-2 border-t border-zinc-900 my-0.5" />
-                          <span>LAB:</span>
+                          <span>LAB (REF):</span>
                           <span className="text-right text-zinc-100 font-mono font-medium">
                             {data.x.toFixed(2)}
+                          </span>
+                          <span>ANL:</span>
+                          <span className="text-right text-zinc-300 font-mono font-medium">
+                            {(data.x - data.y).toFixed(2)}
                           </span>
                           <span>Resíduo:</span>
                           <span

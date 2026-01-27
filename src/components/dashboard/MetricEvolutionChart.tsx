@@ -50,11 +50,11 @@ export const MetricEvolutionChart = ({
 
   const chartConfig = {
     lab: {
-      label: 'Laboratório (Ref)',
+      label: 'LAB (REF)',
       color: 'hsl(var(--primary))',
     },
     anl: {
-      label: 'Análise',
+      label: 'ANL',
       color: color,
     },
   }
@@ -118,7 +118,7 @@ export const MetricEvolutionChart = ({
             <Line
               type="monotone"
               dataKey="lab"
-              name="Laboratório (Ref)"
+              name="LAB (REF)"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
               dot={{
@@ -133,7 +133,7 @@ export const MetricEvolutionChart = ({
             <Line
               type="monotone"
               dataKey="anl"
-              name="Análise"
+              name="ANL"
               stroke={color}
               strokeWidth={2}
               dot={{
