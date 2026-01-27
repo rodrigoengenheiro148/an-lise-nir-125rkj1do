@@ -191,18 +191,7 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
-            <span className="text-xs text-zinc-500 uppercase font-mono">
-              Amostras (Total)
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white">
-                {filteredRecords.length}
-              </span>
-              <span className="text-xs text-blue-400">registros</span>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
             <span className="text-xs text-zinc-500 uppercase font-mono">
               Última Atividade
