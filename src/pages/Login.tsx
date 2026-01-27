@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/components/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,7 +84,7 @@ export default function Login() {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -99,6 +99,15 @@ export default function Login() {
                 'Entrar'
               )}
             </Button>
+            <div className="text-center text-sm">
+              <span className="text-zinc-400">Não tem uma conta? </span>
+              <Link
+                to="/signup"
+                className="text-blue-500 hover:text-blue-400 hover:underline"
+              >
+                Cadastre-se
+              </Link>
+            </div>
           </CardFooter>
         </form>
       </Card>

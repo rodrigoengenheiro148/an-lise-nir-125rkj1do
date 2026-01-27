@@ -7,6 +7,7 @@ import Layout from '@/components/Layout'
 import Index from '@/pages/Index'
 import AnalysisPage from '@/pages/AnalysisPage'
 import Login from '@/pages/Login'
+import SignUp from '@/pages/SignUp'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -17,6 +18,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
 
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
