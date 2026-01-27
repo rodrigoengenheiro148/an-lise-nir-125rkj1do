@@ -62,6 +62,7 @@ const transformRecordToDB = (
   companyId: string,
 ) => {
   const dbRow: any = {
+    id: record.id, // Include ID to allow upsert by ID
     company_id: companyId,
     date: record.date || null,
     material: record.material,
@@ -86,41 +87,6 @@ const transformRecordToDB = (
   })
 
   return dbRow
-}
-
-const deduplicateRecords = (records: AnalysisRecord[]): AnalysisRecord[] => {
-  const map = new Map<string, AnalysisRecord>()
-
-  records.forEach((record) => {
-    // Create a unique key based on business logic unique constraints
-    const companyId = record.company_id || ''
-    const date = record.date || 'null'
-    const material = record.material || ''
-    const submaterial = record.submaterial || record.sub_material || ''
-
-    // Normalize key to ensure consistent matching
-    const key = `${companyId}|${date}|${material}|${submaterial}`.toLowerCase()
-
-    if (map.has(key)) {
-      const existing = map.get(key)!
-      // Merge: overwrite existing fields with new non-null/non-empty values
-      // This ensures we accumulate data from multiple partial records
-      const merged = { ...existing }
-      Object.keys(record).forEach((k) => {
-        const val = record[k]
-        // Only merge if value is present and not empty string
-        // We explicitly check against undefined/null to allow 0 values
-        if (val !== undefined && val !== null && val !== '') {
-          merged[k] = val
-        }
-      })
-      map.set(key, merged)
-    } else {
-      map.set(key, { ...record })
-    }
-  })
-
-  return Array.from(map.values())
 }
 
 export const api = {
@@ -185,7 +151,7 @@ export const api = {
     record: Partial<AnalysisRecord> & { company_id: string },
   ) => {
     const fullRecord: AnalysisRecord = {
-      id: '',
+      id: crypto.randomUUID(), // Generate ID for new records
       company: '',
       ...record,
     }
@@ -242,15 +208,14 @@ export const api = {
   saveRecords: async (records: AnalysisRecord[]) => {
     if (records.length === 0) return
 
-    // 1. Deduplicate records first to avoid "ON CONFLICT" errors within the same batch
-    // and to merge data efficiently before sending to DB.
-    const uniqueRecords = deduplicateRecords(records)
+    // REMOVED deduplication to allow multiple samples (distinct records) for same day/material
+    // We treat every record in the array as a distinct sample to be inserted/upserted.
 
     // Process in chunks to avoid payload size limits
     const CHUNK_SIZE = 50
 
-    for (let i = 0; i < uniqueRecords.length; i += CHUNK_SIZE) {
-      const chunk = uniqueRecords.slice(i, i + CHUNK_SIZE)
+    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+      const chunk = records.slice(i, i + CHUNK_SIZE)
       const validChunk = chunk.filter((r) => r.company_id)
 
       if (validChunk.length === 0) continue
@@ -261,8 +226,7 @@ export const api = {
       )
 
       // 2. Call RPC to handle upsert logic on server side
-      // This is safer and faster than client-side fetch+merge+upsert
-      // It handles deep merging of metrics via COALESCE
+      // The RPC function is updated to handle multiple samples and upsert by ID if present
       const { error } = await supabase.rpc('bulk_upsert_analysis_records', {
         records: dbRecords as any,
       })

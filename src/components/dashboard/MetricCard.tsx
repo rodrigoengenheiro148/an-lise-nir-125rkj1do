@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,18 +48,48 @@ export const MetricCard = ({
   const [isOpen, setIsOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  const latestRecord = data.length > 0 ? data[0] : null
+  // Calculate averages instead of just taking the latest record
+  const { avgLab, avgAnl, avgResidual } = useMemo(() => {
+    if (data.length === 0) {
+      return { avgLab: null, avgAnl: null, avgResidual: null }
+    }
 
-  const getVal = (key: string) => {
-    if (!latestRecord) return null
-    const val = latestRecord[key]
-    return typeof val === 'number' ? val : null
-  }
+    let sumLab = 0
+    let countLab = 0
+    let sumAnl = 0
+    let countAnl = 0
 
-  const latestLab = getVal(`${metricKey}_lab`)
-  const latestAnl = getVal(`${metricKey}_anl`)
+    data.forEach((r) => {
+      const lab = r[`${metricKey}_lab`]
+      const anl = r[`${metricKey}_anl`]
 
-  const latestResidual = calculateResidue(latestLab, latestAnl)
+      if (lab !== undefined && lab !== null && lab !== '') {
+        const val = Number(lab)
+        if (!isNaN(val)) {
+          sumLab += val
+          countLab++
+        }
+      }
+
+      if (anl !== undefined && anl !== null && anl !== '') {
+        const val = Number(anl)
+        if (!isNaN(val)) {
+          sumAnl += val
+          countAnl++
+        }
+      }
+    })
+
+    const finalAvgLab = countLab > 0 ? sumLab / countLab : null
+    const finalAvgAnl = countAnl > 0 ? sumAnl / countAnl : null
+    const finalAvgRes = calculateResidue(finalAvgLab, finalAvgAnl)
+
+    return {
+      avgLab: finalAvgLab,
+      avgAnl: finalAvgAnl,
+      avgResidual: finalAvgRes,
+    }
+  }, [data, metricKey])
 
   return (
     <>
@@ -107,7 +137,7 @@ export const MetricCard = ({
                   LAB (Ref)
                 </span>
                 <span className="font-mono font-bold text-lg text-white">
-                  {latestLab !== null ? latestLab.toFixed(2) : '-'}
+                  {avgLab !== null ? avgLab.toFixed(2) : '-'}
                 </span>
               </div>
               <div className="flex flex-col gap-1">
@@ -118,7 +148,7 @@ export const MetricCard = ({
                   className="font-mono font-bold text-lg"
                   style={{ color: color }}
                 >
-                  {latestAnl !== null ? latestAnl.toFixed(2) : '-'}
+                  {avgAnl !== null ? avgAnl.toFixed(2) : '-'}
                 </span>
               </div>
               <div className="flex flex-col gap-1">
@@ -128,10 +158,10 @@ export const MetricCard = ({
                 <span
                   className={cn(
                     'font-mono font-bold text-lg',
-                    latestResidual !== null ? 'text-red-500' : 'text-zinc-600',
+                    avgResidual !== null ? 'text-red-500' : 'text-zinc-600',
                   )}
                 >
-                  {latestResidual !== null ? latestResidual.toFixed(2) : '-'}
+                  {avgResidual !== null ? avgResidual.toFixed(2) : '-'}
                 </span>
               </div>
             </div>

@@ -21,6 +21,7 @@ import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
+import { isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns'
 
 export default function Index() {
   const {
@@ -28,6 +29,7 @@ export default function Index() {
     analysisRecords,
     selectedCompanyId,
     selectedMaterial,
+    selectedDateRange,
     setSelectedCompanyId,
     setSelectedMaterial,
     isLoading,
@@ -48,9 +50,21 @@ export default function Index() {
         (record.material &&
           record.material.toLowerCase() === selectedMaterial.toLowerCase())
 
-      return matchCompany && matchMaterial
+      // Date filter
+      let matchDate = true
+      if (selectedDateRange.from && record.date) {
+        const recordDate = parseISO(record.date)
+        const from = startOfDay(selectedDateRange.from)
+        const to = selectedDateRange.to
+          ? endOfDay(selectedDateRange.to)
+          : endOfDay(selectedDateRange.from)
+
+        matchDate = isWithinInterval(recordDate, { start: from, end: to })
+      }
+
+      return matchCompany && matchMaterial && matchDate
     })
-  }, [analysisRecords, selectedCompanyId, selectedMaterial])
+  }, [analysisRecords, selectedCompanyId, selectedMaterial, selectedDateRange])
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6 pb-20">
