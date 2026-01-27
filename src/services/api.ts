@@ -41,7 +41,8 @@ export const isAbortError = (error: any) => {
     msg.includes('load failed') ||
     msg.includes('network request failed') ||
     msg.includes('failed to fetch') ||
-    msg.includes('the operation was aborted')
+    msg.includes('the operation was aborted') ||
+    msg.includes('without reason') // Explicitly handle "signal is aborted without reason"
   )
 }
 
@@ -53,7 +54,7 @@ const retryOperation = async <T>(
   signal?: AbortSignal,
 ): Promise<T> => {
   const createAbortError = () => {
-    const error = new Error('Aborted')
+    const error = new Error('signal is aborted without reason')
     error.name = 'AbortError'
     return error
   }
@@ -199,7 +200,7 @@ export const api = {
         if (error) {
           // Check if error is an abort error or if signal is aborted
           if (isAbortError(error) || signal?.aborted) {
-            const abortErr = new Error('Aborted')
+            const abortErr = new Error('signal is aborted without reason')
             abortErr.name = 'AbortError'
             throw abortErr
           }
@@ -237,7 +238,7 @@ export const api = {
         while (true) {
           // Check signal explicitly before starting new request
           if (signal?.aborted) {
-            const abortErr = new Error('Aborted')
+            const abortErr = new Error('signal is aborted without reason')
             abortErr.name = 'AbortError'
             throw abortErr
           }
@@ -256,7 +257,7 @@ export const api = {
 
           if (error) {
             if (isAbortError(error) || signal?.aborted) {
-              const abortErr = new Error('Aborted')
+              const abortErr = new Error('signal is aborted without reason')
               abortErr.name = 'AbortError'
               throw abortErr
             }

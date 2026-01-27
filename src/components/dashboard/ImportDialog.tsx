@@ -23,7 +23,7 @@ import {
   getMaterialDisplayName,
 } from '@/types/dashboard'
 import { toast } from 'sonner'
-import { api } from '@/services/api'
+import { api, isAbortError } from '@/services/api'
 import {
   Select,
   SelectContent,
@@ -72,8 +72,21 @@ export const ImportDialog = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    const controller = new AbortController()
+    let isActive = true
+
     if (isOpen) {
-      api.getCompanies().then(setCompanies).catch(console.error)
+      api
+        .getCompanies(controller.signal)
+        .then((data) => {
+          if (isActive) setCompanies(data)
+        })
+        .catch((err) => {
+          if (isActive && !isAbortError(err)) {
+            console.error(err)
+          }
+        })
+
       setParseResult(null)
       setTextInput('')
       setFile(null)
@@ -84,6 +97,11 @@ export const ImportDialog = ({
       } else {
         setSelectedImportMaterial('')
       }
+    }
+
+    return () => {
+      isActive = false
+      controller.abort()
     }
   }, [isOpen, defaultMaterial])
 
