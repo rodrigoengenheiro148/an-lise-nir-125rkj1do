@@ -257,4 +257,37 @@ export const api = {
     if (error) throw error
     if (data?.error) throw new Error(data.error)
   },
+
+  exportMetricData: async (metricKey: string, companyId?: string) => {
+    const { data, error } = await supabase.functions.invoke(
+      'export-metric-data',
+      {
+        body: { metricKey, companyId },
+      },
+    )
+
+    if (error) throw error
+
+    // Check if the response is an application level error (JSON)
+    if (data && !(data instanceof Blob) && data.error) {
+      throw new Error(data.error)
+    }
+
+    // Ensure we handle the blob correctly
+    const blob =
+      data instanceof Blob
+        ? data
+        : new Blob([data as any], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          })
+
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `export-${metricKey}-${new Date().toISOString().split('T')[0]}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  },
 }

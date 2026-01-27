@@ -15,6 +15,24 @@ const KEY_MAPPING: Record<string, string> = {
   proteinDigestibility: 'protein_digestibility',
   calcium: 'calcium',
   sodium: 'sodium',
+  iodine: 'iodine',
+  impurity: 'impurity',
+}
+
+const LABEL_MAPPING: Record<string, string> = {
+  acidity: 'Acidez',
+  moisture: 'Umidade',
+  fco: 'FCO',
+  protein: 'Proteína',
+  phosphorus: 'Fósforo',
+  mineralMatter: 'Cinzas',
+  peroxide: 'Peróxido',
+  etherExtract: 'Extrato Etéreo',
+  proteinDigestibility: 'Dig. Proteica',
+  calcium: 'Cálcio',
+  sodium: 'Sódio',
+  iodine: 'Iodo',
+  impurity: 'Impureza',
 }
 
 Deno.serve(async (req) => {
@@ -43,15 +61,16 @@ Deno.serve(async (req) => {
 
     const colLab = `${dbPrefix}_lab`
     const colAnl = `${dbPrefix}_anl`
+    const colNir = `${dbPrefix}_nir`
 
     // Use .not.is.null instead of .neq.null to avoid postgres double precision casting errors
     // with the string "null" in the OR filter.
-    const filterString = `${colLab}.not.is.null,${colAnl}.not.is.null`
+    const filterString = `${colLab}.not.is.null,${colAnl}.not.is.null,${colNir}.not.is.null`
 
     let query = supabase
       .from('analysis_records')
       .select(
-        `date, material, sub_material, submaterial, companies!inner(name), ${colLab}, ${colAnl}`,
+        `date, material, sub_material, submaterial, companies!inner(name), ${colLab}, ${colAnl}, ${colNir}`,
       )
       // Filter to include rows where at least one of the values is present for the requested metric
       .or(filterString)
@@ -78,14 +97,18 @@ Deno.serve(async (req) => {
     // Format Data for Excel: Strict ordering
     // 1. LAB
     // 2. ANL
-    // 3. Data da Análise
-    // 4. Empresa
-    // 5. Material
-    // 6. Submaterial
+    // 3. NIR (Added)
+    // 4. Data da Análise
+    // 5. Empresa
+    // 6. Material
+    // 7. Submaterial
+
+    const label = LABEL_MAPPING[metricKey] || metricKey
 
     const header = [
-      'LAB',
-      'ANL',
+      `${label} (LAB)`,
+      `${label} (ANL)`,
+      `${label} (NIR)`,
       'Data da Análise',
       'Empresa',
       'Material',
@@ -101,6 +124,7 @@ Deno.serve(async (req) => {
       return [
         record[colLab] ?? '', // LAB
         record[colAnl] ?? '', // ANL
+        record[colNir] ?? '', // NIR
         record.date ?? '', // Date
         companyName, // Company
         record.material ?? '', // Material

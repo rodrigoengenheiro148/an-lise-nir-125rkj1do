@@ -26,8 +26,10 @@ import {
   Database,
   AlertTriangle,
   LayoutDashboard,
+  Download,
 } from 'lucide-react'
 import { ImportDialog } from './ImportDialog'
+import { ExportDialog } from './ExportDialog'
 import { CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
@@ -47,6 +49,7 @@ export const ManagementMenu = ({
   defaultMaterial,
 }: ManagementMenuProps) => {
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteMode, setDeleteMode] = useState<'single' | 'all'>('single')
@@ -128,6 +131,14 @@ export const ManagementMenu = ({
             Importar Dados em Massa
           </DropdownMenuItem>
 
+          <DropdownMenuItem
+            className="cursor-pointer focus:bg-zinc-900 focus:text-zinc-100 gap-2"
+            onClick={() => setIsExportOpen(true)}
+          >
+            <Download className="h-4 w-4 text-blue-500" />
+            Exportar Dados (Excel)
+          </DropdownMenuItem>
+
           <DropdownMenuSeparator className="bg-zinc-800" />
 
           <DropdownMenuItem
@@ -154,6 +165,13 @@ export const ManagementMenu = ({
         onOpenChange={setIsImportOpen}
         onImportSuccess={onDataChange}
         defaultMaterial={defaultMaterial}
+      />
+
+      <ExportDialog
+        open={isExportOpen}
+        onOpenChange={setIsExportOpen}
+        companies={companies}
+        defaultCompanyId={selectedCompanyId}
       />
 
       <Dialog

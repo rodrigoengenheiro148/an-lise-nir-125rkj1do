@@ -43,7 +43,7 @@ export const STATIC_SUBMATERIALS = [
   'FCO',
   'Proteína',
   'Fósforo',
-  'Mat. Mineral',
+  'Cinzas',
   'Peróxido',
   'Ext. Etéreo',
   'Cálcio',
@@ -151,7 +151,7 @@ export const METRICS: {
   },
   {
     key: 'mineralMatter',
-    label: 'Mat. Mineral',
+    label: 'Cinzas',
     unit: '%',
     color: '#6366f1',
     aliases: [
