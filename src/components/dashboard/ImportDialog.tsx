@@ -39,6 +39,7 @@ import { parseImportData, ParseResult } from '@/lib/import-utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { calculateResidue, formatResidue } from '@/lib/calculations'
 import { useAuth } from '@/components/AuthProvider'
+import { cn } from '@/lib/utils'
 
 interface ImportDialogProps {
   onImportSuccess?: () => void
