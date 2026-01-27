@@ -14,6 +14,7 @@ import { ChartContainer } from '@/components/ui/chart'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { calculateStats } from '@/lib/stats'
 import { cn } from '@/lib/utils'
+import { AnalysisDetailTooltip } from './AnalysisDetailTooltip'
 
 interface MetricScatterChartProps {
   data: AnalysisRecord[]
@@ -24,70 +25,6 @@ interface MetricScatterChartProps {
   compact?: boolean
   onPointSelect?: (record: AnalysisRecord) => void
   selectedRecordId?: string | null
-}
-
-// Improved Tooltip Component to support mobile tap and desktop hover
-// Strictly filters payload to ensure only point data is displayed
-const CustomTooltip = ({ active, payload, unit, color }: any) => {
-  if (!active || !payload || !payload.length) return null
-
-  // STRICT CHECK: Only show tooltip if the payload contains data from the 'points' Scatter
-  const pointPayload = payload.find((p: any) => p.name === 'points')
-
-  if (pointPayload && pointPayload.payload && pointPayload.payload.original) {
-    const dataPoint = pointPayload.payload
-    const original = dataPoint.original as AnalysisRecord
-
-    return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
-        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
-          <span className="truncate max-w-[150px]">{original.company}</span>
-          <span className="text-[10px] text-zinc-500 font-normal">Amostra</span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
-          <span>Data:</span>
-          <span className="text-right text-zinc-300">
-            {original.date ? new Date(original.date).toLocaleDateString() : '-'}
-          </span>
-          <span>Material:</span>
-          <span className="text-right text-zinc-300 truncate max-w-[120px]">
-            {original.material || '-'}
-          </span>
-          {original.submaterial && (
-            <>
-              <span>Sub-mat:</span>
-              <span className="text-right text-zinc-500 truncate max-w-[120px]">
-                {original.submaterial}
-              </span>
-            </>
-          )}
-          <span className="col-span-2 border-t border-zinc-900 my-0.5" />
-          <span>LAB (REF):</span>
-          <span className="text-right text-zinc-100 font-mono font-medium">
-            {dataPoint.x.toFixed(2)} {unit}
-          </span>
-          <span>ANL:</span>
-          <span
-            className="text-right font-mono font-medium"
-            style={{ color: color }}
-          >
-            {dataPoint.y.toFixed(2)} {unit}
-          </span>
-          <span>Resíduo:</span>
-          <span
-            className={cn('text-right font-mono font-bold', 'text-red-500')}
-          >
-            {(dataPoint.x - dataPoint.y).toFixed(2)}
-          </span>
-          <div className="col-span-2 mt-2 pt-1 border-t border-zinc-900 text-[10px] text-zinc-500 text-center italic">
-            Clique para ver detalhes
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return null
 }
 
 export const MetricScatterChart = ({
@@ -113,7 +50,6 @@ export const MetricScatterChart = ({
     const pts = data
       .map((item) => {
         // Safe casting to Number.
-        // item[key] can be string, number, null, or undefined
         const labRaw = item[`${metricKey}_lab`]
         const anlRaw = item[`${metricKey}_anl`]
 
@@ -307,11 +243,19 @@ export const MetricScatterChart = ({
                 }}
               />
               <Tooltip
-                cursor={false} // Clean look, prevents scan lines across empty space
+                cursor={{
+                  stroke: '#3f3f46',
+                  strokeWidth: 1,
+                  strokeDasharray: '4 4',
+                }}
                 content={(props) => (
-                  <CustomTooltip {...props} unit={unit} color={color} />
+                  <AnalysisDetailTooltip
+                    {...props}
+                    highlightMetricKey={metricKey}
+                  />
                 )}
                 isAnimationActive={false}
+                wrapperStyle={{ outline: 'none', zIndex: 100 }}
               />
 
               {/* Trend Line rendered BEFORE Scatter so points are on top */}
@@ -338,6 +282,7 @@ export const MetricScatterChart = ({
                 fillOpacity={0.6} // Use opacity to make overlapping points visible
                 onClick={(data: any) => handlePointClick(data.payload)}
                 cursor="pointer"
+                activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
               >
                 {points.map((entry, index) => {
                   const isSelected =
