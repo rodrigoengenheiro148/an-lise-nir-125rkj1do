@@ -22,6 +22,8 @@ interface MetricScatterChartProps {
   unit: string
   title?: string
   compact?: boolean
+  onPointSelect?: (record: AnalysisRecord) => void
+  selectedRecordId?: string | null
 }
 
 // Improved Tooltip Component to support mobile tap and desktop hover
@@ -77,6 +79,9 @@ const CustomTooltip = ({ active, payload, unit, color }: any) => {
           >
             {(dataPoint.x - dataPoint.y).toFixed(2)}
           </span>
+          <div className="col-span-2 mt-2 pt-1 border-t border-zinc-900 text-[10px] text-zinc-500 text-center italic">
+            Clique para ver detalhes
+          </div>
         </div>
       </div>
     )
@@ -92,6 +97,8 @@ export const MetricScatterChart = ({
   unit,
   title,
   compact = false,
+  onPointSelect,
+  selectedRecordId,
 }: MetricScatterChartProps) => {
   const filterId = useId()
   const safeFilterId = filterId.replace(/:/g, '')
@@ -160,6 +167,13 @@ export const MetricScatterChart = ({
       label: 'Tendência',
       color: color,
     },
+  }
+
+  // Handle click on scatter points
+  const handlePointClick = (payload: any) => {
+    if (onPointSelect && payload && payload.original) {
+      onPointSelect(payload.original)
+    }
   }
 
   // Handle empty state gracefully within the container area to maintain layout
@@ -322,13 +336,27 @@ export const MetricScatterChart = ({
                 strokeWidth={0}
                 isAnimationActive={false} // Smoother updates for realtime
                 fillOpacity={0.6} // Use opacity to make overlapping points visible
+                onClick={(data: any) => handlePointClick(data.payload)}
+                cursor="pointer"
               >
-                {points.map((entry, index) => (
-                  <Cell
-                    key={entry.original.id || `cell-${index}`}
-                    fill={color}
-                  />
-                ))}
+                {points.map((entry, index) => {
+                  const isSelected =
+                    selectedRecordId && entry.original.id === selectedRecordId
+                  return (
+                    <Cell
+                      key={entry.original.id || `cell-${index}`}
+                      fill={isSelected ? '#ffffff' : color}
+                      stroke={isSelected ? color : undefined}
+                      strokeWidth={isSelected ? 3 : 0}
+                      style={{
+                        opacity: isSelected ? 1 : undefined,
+                        filter: isSelected
+                          ? `drop-shadow(0 0 6px ${color})`
+                          : undefined,
+                      }}
+                    />
+                  )
+                })}
               </Scatter>
             </ComposedChart>
           </ResponsiveContainer>

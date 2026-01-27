@@ -22,6 +22,7 @@ import { MetricHistogram } from './MetricHistogram'
 import { ResidualScatter } from './ResidualChart'
 import { MetricEvolutionChart } from './MetricEvolutionChart'
 import { MetricDataDialog } from './MetricDataDialog'
+import { RecordDetailSheet } from './RecordDetailSheet'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -48,6 +49,9 @@ export const MetricCard = ({
 }: MetricCardProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [selectedRecord, setSelectedRecord] = useState<AnalysisRecord | null>(
+    null,
+  )
 
   // Calculate averages for residue (and potential future use)
   const { avgLab, avgAnl, avgResidual } = useMemo(() => {
@@ -166,6 +170,8 @@ export const MetricCard = ({
                 color={color}
                 unit={unit}
                 compact={true}
+                onPointSelect={setSelectedRecord}
+                selectedRecordId={selectedRecord?.id}
               />
             </div>
           </CardContent>
@@ -229,6 +235,8 @@ export const MetricCard = ({
                   color={color}
                   unit={unit}
                   title={title}
+                  onPointSelect={setSelectedRecord}
+                  selectedRecordId={selectedRecord?.id}
                 />
               </TabsContent>
 
@@ -270,6 +278,13 @@ export const MetricCard = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      <RecordDetailSheet
+        record={selectedRecord}
+        isOpen={!!selectedRecord}
+        onClose={() => setSelectedRecord(null)}
+        highlightMetricKey={metricKey}
+      />
 
       <MetricDataDialog
         metricKey={metricKey}
