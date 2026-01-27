@@ -98,11 +98,12 @@ export const api = {
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
     // Persistent Fetching: Getting all records to ensure client-side filtering works seamlessly
+    // Increased limit to 100,000 to handle large datasets without losing chart context
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .order('created_at', { ascending: false })
-      .limit(10000)
+      .limit(100000)
 
     if (error) {
       console.error('Error fetching records:', error)
@@ -124,7 +125,7 @@ export const api = {
       .select('*, companies(name, logo_url)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
-      .limit(10000)
+      .limit(100000)
 
     if (material) {
       query = query.ilike('material', material)
@@ -158,11 +159,13 @@ export const api = {
 
     if (rowsToInsert.length === 0) return
 
-    const { error } = await supabase
-      .from('analysis_records')
-      .insert(rowsToInsert)
-
-    if (error) throw error
+    // Chunking inserts to avoid payload size limits and network timeouts
+    const CHUNK_SIZE = 1000
+    for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
+      const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE)
+      const { error } = await supabase.from('analysis_records').insert(chunk)
+      if (error) throw error
+    }
   },
 
   createRecord: async (
