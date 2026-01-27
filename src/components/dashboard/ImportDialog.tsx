@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   Grid,
   Loader2,
+  Lock,
 } from 'lucide-react'
 import {
   CompanyEntity,
@@ -37,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { parseImportData, ParseResult } from '@/lib/import-utils'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { calculateResidue, formatResidue } from '@/lib/calculations'
+import { useAuth } from '@/components/AuthProvider'
 
 interface ImportDialogProps {
   onImportSuccess?: () => void
@@ -51,6 +53,7 @@ export const ImportDialog = ({
   onOpenChange,
   defaultMaterial,
 }: ImportDialogProps) => {
+  const { user } = useAuth()
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = open !== undefined && onOpenChange !== undefined
 
@@ -172,6 +175,11 @@ export const ImportDialog = ({
   }
 
   const confirmImport = async () => {
+    if (!user) {
+      toast.error('Você precisa estar autenticado para realizar a importação.')
+      return
+    }
+
     if (!parseResult || parseResult.records.length === 0) return
 
     setIsProcessing(true)
@@ -477,13 +485,24 @@ export const ImportDialog = ({
               </Button>
               <Button
                 onClick={confirmImport}
-                disabled={isProcessing || parseResult.records.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10 min-w-[140px]"
+                disabled={
+                  isProcessing || parseResult.records.length === 0 || !user
+                }
+                className={cn(
+                  'bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10 min-w-[140px]',
+                  !user && 'opacity-50 cursor-not-allowed',
+                )}
+                title={!user ? 'Faça login para importar' : undefined}
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Salvando...
+                  </>
+                ) : !user ? (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Login Necessário
                   </>
                 ) : (
                   'Confirmar Importação'
