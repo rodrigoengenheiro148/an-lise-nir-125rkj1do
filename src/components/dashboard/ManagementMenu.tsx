@@ -79,7 +79,7 @@ export const ManagementMenu = ({
           align="end"
           className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px]"
         >
-          <DropdownMenuLabel>Ações Administrativas</DropdownMenuLabel>
+          <DropdownMenuLabel>Opções</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-zinc-800" />
 
           <DropdownMenuItem

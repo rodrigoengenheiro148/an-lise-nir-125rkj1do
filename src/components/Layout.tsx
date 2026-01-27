@@ -4,11 +4,11 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
-import { Outlet, Navigate, Link } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Toaster } from '@/components/ui/sonner'
 import { useAuth } from '@/components/AuthProvider'
-import { LogOut, User } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function Layout() {
@@ -58,14 +58,9 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-xs text-zinc-300 font-medium">
-                {user.email}
-              </span>
-              <span className="text-[10px] text-zinc-500 uppercase">
-                Administrador
-              </span>
-            </div>
+            <span className="hidden md:inline-block text-xs text-zinc-300 font-medium">
+              {user.email}
+            </span>
             <Button
               variant="ghost"
               size="icon"
