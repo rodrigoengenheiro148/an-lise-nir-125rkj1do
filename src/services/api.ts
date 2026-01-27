@@ -1,5 +1,9 @@
 import { supabase } from '@/lib/supabase/client'
-import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
+import {
+  AnalysisRecord,
+  CompanyEntity,
+  MATERIALS_OPTIONS,
+} from '@/types/dashboard'
 
 // Strict mapping ensuring all 13 metrics are covered matching DB columns
 const KEY_MAPPING: Record<string, string> = {
@@ -22,6 +26,16 @@ export const transformRecordFromDB = (
   row: any,
   company: { name: string; logo_url?: string | null },
 ): AnalysisRecord => {
+  // Normalize material name to match options if possible
+  let material = row.material
+  if (material) {
+    const lower = material.toLowerCase()
+    const match = MATERIALS_OPTIONS.find((m) => m.toLowerCase() === lower)
+    if (match) {
+      material = match
+    }
+  }
+
   const record: AnalysisRecord = {
     id: row.id,
     company: company.name,
@@ -29,7 +43,7 @@ export const transformRecordFromDB = (
     company_logo: company.logo_url || undefined,
     date: row.date,
     created_at: row.created_at,
-    material: row.material,
+    material: material,
     submaterial: row.sub_material || row.submaterial || undefined,
   }
 
@@ -134,18 +148,34 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
-    const { data, error } = await supabase
-      .from('analysis_records')
-      .select('*, companies(name, logo_url)')
-      .order('created_at', { ascending: false })
-      .limit(100000)
+    let allRows: any[] = []
+    let from = 0
+    const step = 1000 // Supabase default max per request is usually 1000
 
-    if (error) {
-      console.error('Error fetching records:', error)
-      throw error
+    // Fetch all records using pagination to overcome default limits
+    while (true) {
+      const { data, error } = await supabase
+        .from('analysis_records')
+        .select('*, companies(name, logo_url)')
+        .order('created_at', { ascending: false })
+        .range(from, from + step - 1)
+
+      if (error) {
+        console.error('Error fetching records:', error)
+        throw error
+      }
+
+      if (!data || data.length === 0) break
+
+      allRows = [...allRows, ...data]
+
+      // If we got fewer records than the step, we've reached the end
+      if (data.length < step) break
+
+      from += step
     }
 
-    return (data || []).map((row) => {
+    return allRows.map((row) => {
       const comp = (row.companies as any) || { name: 'Unknown' }
       return transformRecordFromDB(row, comp)
     })
@@ -232,6 +262,7 @@ export const api = {
 
       // 2. Call RPC to handle upsert logic on server side
       // This is safer and faster than client-side fetch+merge+upsert
+      // It handles deep merging of metrics via COALESCE
       const { error } = await supabase.rpc('bulk_upsert_analysis_records', {
         records: dbRecords as any,
       })

@@ -41,8 +41,13 @@ export default function Index() {
     return analysisRecords.filter((record) => {
       const matchCompany =
         !selectedCompanyId || record.company_id === selectedCompanyId
+
+      // Robust case-insensitive string comparison for material filter
       const matchMaterial =
-        !selectedMaterial || record.material === selectedMaterial
+        !selectedMaterial ||
+        (record.material &&
+          record.material.toLowerCase() === selectedMaterial.toLowerCase())
+
       return matchCompany && matchMaterial
     })
   }, [analysisRecords, selectedCompanyId, selectedMaterial])

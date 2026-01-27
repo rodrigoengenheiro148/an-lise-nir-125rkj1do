@@ -113,7 +113,8 @@ export const MetricScatterChart = ({
           original: item,
         }
       })
-      .filter((p) => !isNaN(p.x) && !isNaN(p.y) && p.x > 0 && p.y > 0)
+      // Ensure we keep 0 values (e.g. 0% impurity) but filter out NaN (undefined/null)
+      .filter((p) => !isNaN(p.x) && !isNaN(p.y) && p.x >= 0 && p.y >= 0)
 
     const statistics = calculateStats(pts)
 
