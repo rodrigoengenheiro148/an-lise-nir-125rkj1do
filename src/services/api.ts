@@ -136,6 +136,14 @@ export const api = {
         const { data, error } = await query
 
         if (error) {
+          // Suppress logging for AbortError to prevent console pollution
+          if (
+            signal?.aborted ||
+            error.message?.includes('AbortError') ||
+            error.code === '20'
+          ) {
+            throw error
+          }
           console.error('Error fetching companies:', error)
           throw error
         }
@@ -188,6 +196,14 @@ export const api = {
           const { data, error } = await query
 
           if (error) {
+            // Suppress logging for AbortError
+            if (
+              signal?.aborted ||
+              error.message?.includes('AbortError') ||
+              error.code === '20'
+            ) {
+              throw error
+            }
             console.error('Error fetching records:', error)
             throw error
           }
