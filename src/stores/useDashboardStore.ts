@@ -140,12 +140,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err: any) {
       // Gracefully handle abort errors
-      if (
+      const isAbort =
         err.name === 'AbortError' ||
-        err.message?.includes('AbortError') ||
-        err.message?.includes('Aborted') ||
+        err.message?.toLowerCase().includes('abort') ||
+        err.message?.toLowerCase().includes('cancel') ||
         controller.signal.aborted
-      ) {
+
+      if (isAbort) {
         return
       }
       console.error('Unexpected error loading data', err)

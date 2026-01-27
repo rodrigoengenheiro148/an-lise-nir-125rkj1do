@@ -5,6 +5,18 @@ import {
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 
+const isAbortError = (error: any) => {
+  if (!error) return false
+  if (error.name === 'AbortError') return true
+  if (error.code === '20') return true
+  const msg = error.message ? String(error.message).toLowerCase() : ''
+  return (
+    msg.includes('abort') ||
+    msg.includes('cancel') ||
+    msg.includes('signal is aborted')
+  )
+}
+
 // Helper for exponential backoff retry
 const retryOperation = async <T>(
   operation: () => Promise<T>,
@@ -20,13 +32,7 @@ const retryOperation = async <T>(
     }
     return await operation()
   } catch (error: any) {
-    const isAbort =
-      error.name === 'AbortError' ||
-      error.message === 'AbortError' ||
-      error.message === 'Aborted' ||
-      signal?.aborted
-
-    if (isAbort) {
+    if (isAbortError(error) || signal?.aborted) {
       throw error // Propagate aborts immediately
     }
 
@@ -136,12 +142,7 @@ export const api = {
         const { data, error } = await query
 
         if (error) {
-          // Suppress logging for AbortError to prevent console pollution
-          if (
-            signal?.aborted ||
-            error.message?.includes('AbortError') ||
-            error.code === '20'
-          ) {
+          if (isAbortError(error) || signal?.aborted) {
             throw error
           }
           console.error('Error fetching companies:', error)
@@ -196,12 +197,7 @@ export const api = {
           const { data, error } = await query
 
           if (error) {
-            // Suppress logging for AbortError
-            if (
-              signal?.aborted ||
-              error.message?.includes('AbortError') ||
-              error.code === '20'
-            ) {
+            if (isAbortError(error) || signal?.aborted) {
               throw error
             }
             console.error('Error fetching records:', error)
@@ -325,6 +321,9 @@ export const api = {
         })
 
         if (error) {
+          if (isAbortError(error)) {
+            throw error
+          }
           console.error('Error saving chunk:', error)
           throw error
         }
