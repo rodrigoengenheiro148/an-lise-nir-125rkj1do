@@ -22,14 +22,22 @@ export function AnalysisDetailTooltip({
 }: AnalysisDetailTooltipProps) {
   if (!active || !payload || !payload.length) return null
 
-  // STRICT CHECK: Only show tooltip if the payload contains data from the 'points' Scatter
-  // We use the name 'points' as defined in the Scatter component
-  const pointData = payload.find((p: any) => p.name === 'points')
+  // Ensure we are hovering over a valid point (Scatter or Line)
+  // We prioritize 'points' payload from scatter, but fallback to 'anl' or 'lab' from evolution chart
+  const dataPoint =
+    payload.find(
+      (p: any) =>
+        p.name === 'points' || p.dataKey === 'anl' || p.dataKey === 'lab',
+    ) || payload[0]
 
-  if (!pointData || !pointData.payload || !pointData.payload.original)
-    return null
+  if (!dataPoint || !dataPoint.payload) return null
 
-  const record = pointData.payload.original as AnalysisRecord
+  // Handle both scatter (original in payload) and evolution (original in payload.original or flattened) structures
+  const record = (dataPoint.payload.original ||
+    dataPoint.payload) as AnalysisRecord
+
+  // Basic validation to ensure we have a record
+  if (!record || !record.id) return null
 
   // Filter metrics that have data
   const metricsWithData = METRICS.filter((m) => {
@@ -64,11 +72,8 @@ export function AnalysisDetailTooltip({
             ID: {record.id.slice(0, 6)}
           </Badge>
         </div>
-        <p className="text-[10px] text-zinc-400 mb-3">
-          Dados completos do registro selecionado.
-        </p>
 
-        <div className="grid grid-cols-2 gap-2 text-[10px] bg-zinc-900/50 p-2 rounded border border-zinc-800/50">
+        <div className="grid grid-cols-2 gap-2 text-[10px] bg-zinc-900/50 p-2 rounded border border-zinc-800/50 mt-2">
           <div>
             <span className="block text-zinc-500 font-medium uppercase tracking-wider mb-0.5 scale-90 origin-left">
               Empresa
@@ -109,10 +114,10 @@ export function AnalysisDetailTooltip({
       <div className="p-3 bg-zinc-950">
         <div className="mb-2 flex items-center justify-between">
           <h4 className="text-[10px] font-semibold text-zinc-300">
-            Parâmetros Analíticos
+            Valores Analíticos
           </h4>
           <span className="text-[10px] text-zinc-500">
-            {metricsWithData.length} encontrados
+            {metricsWithData.length} parâmetros
           </span>
         </div>
 
@@ -127,7 +132,7 @@ export function AnalysisDetailTooltip({
                   LAB
                 </th>
                 <th className="px-2 py-1.5 text-right font-medium text-zinc-400">
-                  NIR (ANL)
+                  NIR
                 </th>
                 <th className="px-2 py-1.5 text-right font-medium text-zinc-400">
                   Resíduo
@@ -149,8 +154,10 @@ export function AnalysisDetailTooltip({
                   <tr
                     key={metric.key}
                     className={cn(
-                      'hover:bg-zinc-900/30 transition-colors',
-                      isHighlighted && 'bg-zinc-900/60',
+                      'transition-colors border-l-2',
+                      isHighlighted
+                        ? 'bg-zinc-900/60 border-l-blue-500'
+                        : 'hover:bg-zinc-900/30 border-l-transparent',
                     )}
                   >
                     <td className="px-2 py-1.5 font-medium text-zinc-300">
@@ -159,7 +166,13 @@ export function AnalysisDetailTooltip({
                           className="w-1.5 h-1.5 rounded-full"
                           style={{ backgroundColor: metric.color }}
                         />
-                        <span>{metric.label}</span>
+                        <span
+                          className={cn(
+                            isHighlighted && 'font-bold text-blue-400',
+                          )}
+                        >
+                          {metric.label}
+                        </span>
                       </div>
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono text-zinc-400">

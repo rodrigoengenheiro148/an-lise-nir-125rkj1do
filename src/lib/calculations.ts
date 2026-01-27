@@ -31,3 +31,34 @@ export const formatResidue = (val: number | null): string => {
   if (val === null) return '-'
   return val.toFixed(3)
 }
+
+/**
+ * Calculates a simple moving average for a numerical array.
+ * @param data Array of numbers or nulls
+ * @param windowSize Size of the moving window
+ * @returns Array of moving averages matching the input length
+ */
+export const calculateSimpleMovingAverage = (
+  data: (number | null)[],
+  windowSize: number = 5,
+): (number | null)[] => {
+  const result: (number | null)[] = []
+
+  for (let i = 0; i < data.length; i++) {
+    // Get the window ending at current index
+    // We only consider non-null values for the average
+    const start = Math.max(0, i - windowSize + 1)
+    const window = data
+      .slice(start, i + 1)
+      .filter((v) => v !== null) as number[]
+
+    if (window.length === 0) {
+      result.push(null)
+    } else {
+      const sum = window.reduce((a, b) => a + b, 0)
+      result.push(sum / window.length)
+    }
+  }
+
+  return result
+}

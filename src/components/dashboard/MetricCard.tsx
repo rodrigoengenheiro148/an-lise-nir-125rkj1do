@@ -15,12 +15,14 @@ import {
   Plus,
   ScatterChart,
   TrendingUp,
+  PieChart,
 } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { MetricScatterChart } from './MetricScatterChart'
 import { MetricHistogram } from './MetricHistogram'
 import { ResidualScatter } from './ResidualChart'
 import { MetricEvolutionChart } from './MetricEvolutionChart'
+import { MetricParetoChart } from './MetricParetoChart'
 import { MetricDataDialog } from './MetricDataDialog'
 import { RecordDetailSheet } from './RecordDetailSheet'
 import { cn } from '@/lib/utils'
@@ -193,7 +195,7 @@ export const MetricCard = ({
               className="w-full h-full flex flex-col"
             >
               <ScrollArea className="w-full flex-none pb-2">
-                <TabsList className="flex w-full sm:grid sm:grid-cols-4 bg-zinc-900 mb-2 border border-zinc-800 h-11 p-1">
+                <TabsList className="flex w-full sm:grid sm:grid-cols-5 bg-zinc-900 mb-2 border border-zinc-800 h-11 p-1">
                   <TabsTrigger
                     value="correlation"
                     className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white h-9"
@@ -207,6 +209,13 @@ export const MetricCard = ({
                   >
                     <TrendingUp className="h-4 w-4" />{' '}
                     <span className="hidden sm:inline">Evolução</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pareto"
+                    className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white h-9"
+                  >
+                    <PieChart className="h-4 w-4" />{' '}
+                    <span className="hidden sm:inline">Pareto</span>
                   </TabsTrigger>
                   <TabsTrigger
                     value="histogram"
@@ -249,6 +258,17 @@ export const MetricCard = ({
                   metricKey={metricKey}
                   color={color}
                   unit={unit}
+                />
+              </TabsContent>
+
+              <TabsContent
+                value="pareto"
+                className="flex-1 min-h-0 data-[state=active]:flex flex-col"
+              >
+                <MetricParetoChart
+                  data={data}
+                  metricKey={metricKey}
+                  color={color}
                 />
               </TabsContent>
 
