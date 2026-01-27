@@ -5,7 +5,8 @@ import {
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 
-// Strict mapping ensuring all 13 metrics are covered matching DB columns
+// Strict mapping ensuring all metrics are covered matching DB columns
+// 'mineralMatter' maps to 'mineral_matter' in the database
 const KEY_MAPPING: Record<string, string> = {
   acidity: 'acidity',
   moisture: 'moisture',
@@ -216,9 +217,6 @@ export const api = {
   saveRecords: async (records: AnalysisRecord[]) => {
     if (records.length === 0) return
 
-    // REMOVED deduplication to allow multiple samples (distinct records) for same day/material
-    // We treat every record in the array as a distinct sample to be inserted/upserted.
-
     // Process in chunks to avoid payload size limits
     const CHUNK_SIZE = 50
 
@@ -233,8 +231,7 @@ export const api = {
         transformRecordToDB(r, r.company_id!),
       )
 
-      // 2. Call RPC to handle upsert logic on server side
-      // The RPC function is updated to handle multiple samples and upsert by ID if present
+      // Call RPC to handle upsert logic on server side
       const { error } = await supabase.rpc('bulk_upsert_analysis_records', {
         records: dbRecords as any,
       })

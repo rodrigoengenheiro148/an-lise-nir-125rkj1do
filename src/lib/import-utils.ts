@@ -27,7 +27,6 @@ const normalize = (str: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
 
-// Removed 'nir' to stop mapping it automatically
 const METRIC_SUFFIXES = ['lab', 'anl', 'nir']
 
 export const parseImportData = (
@@ -411,14 +410,6 @@ export const parseImportData = (
       )
       if (matchedMat) {
         record.material = matchedMat
-      } else {
-        // Try fuzzy match or just fallback to known logic if needed,
-        // but for now we keep as is or try to be smart about common misspellings if needed.
-        // Requirement says: "Ensure that the strings saved in the database material column match the filter labels exactly"
-        // If we can't match, we keep the original string, but it might not show up in filters unless we update the filters to include "Other".
-        // However, the acceptance criteria says: "The filter options must include exactly these six options".
-        // So records with other material names won't be visible when filtered by these options.
-        // We'll leave it as is to allow other materials, but prioritize matching.
       }
     }
 
