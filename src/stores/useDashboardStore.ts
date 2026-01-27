@@ -14,7 +14,7 @@ import {
   CompanyEntity,
 } from '@/types/dashboard'
 import { toast } from 'sonner'
-import { api, transformRecordFromDB } from '@/services/api'
+import { api, transformRecordFromDB, isAbortError } from '@/services/api'
 import { supabase } from '@/lib/supabase/client'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useAuth } from '@/components/AuthProvider'
@@ -139,16 +139,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setSelectedCompanyId('')
       }
     } catch (err: any) {
-      // Gracefully handle abort errors
-      const isAbort =
-        err.name === 'AbortError' ||
-        err.message?.toLowerCase().includes('abort') ||
-        err.message?.toLowerCase().includes('cancel') ||
-        controller.signal.aborted
-
-      if (isAbort) {
+      // Gracefully handle abort errors using the improved utility
+      if (isAbortError(err) || controller.signal.aborted) {
         return
       }
+
       console.error('Unexpected error loading data', err)
       setError('Falha na conexão. Tentando restabelecer acesso ao servidor...')
       toast.error('Não foi possível carregar os dados. Verifique sua conexão.')

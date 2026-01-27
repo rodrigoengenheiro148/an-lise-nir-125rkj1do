@@ -5,15 +5,17 @@ import {
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 
-const isAbortError = (error: any) => {
+export const isAbortError = (error: any) => {
   if (!error) return false
   if (error.name === 'AbortError') return true
-  if (error.code === '20') return true
+  if (error instanceof DOMException && error.name === 'AbortError') return true
+  if (error.code === 20 || error.code === '20') return true // DOMException.ABORT_ERR
   const msg = error.message ? String(error.message).toLowerCase() : ''
   return (
     msg.includes('abort') ||
     msg.includes('cancel') ||
-    msg.includes('signal is aborted')
+    msg.includes('signal is aborted') ||
+    msg.includes('user aborted')
   )
 }
 
@@ -26,9 +28,7 @@ const retryOperation = async <T>(
 ): Promise<T> => {
   try {
     if (signal?.aborted) {
-      const err = new Error('Aborted')
-      err.name = 'AbortError'
-      throw err
+      throw new DOMException('Aborted', 'AbortError')
     }
     return await operation()
   } catch (error: any) {
@@ -38,8 +38,27 @@ const retryOperation = async <T>(
 
     if (retries <= 0) throw error
 
-    // Wait with exponential backoff
-    await new Promise((resolve) => setTimeout(resolve, delay))
+    // Wait with exponential backoff, handling abort during wait
+    await new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new DOMException('Aborted', 'AbortError'))
+        return
+      }
+
+      const timeoutId = setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort)
+        resolve(null)
+      }, delay)
+
+      const onAbort = () => {
+        clearTimeout(timeoutId)
+        signal?.removeEventListener('abort', onAbort)
+        reject(new DOMException('Aborted', 'AbortError'))
+      }
+
+      signal?.addEventListener('abort', onAbort)
+    })
+
     return retryOperation(operation, retries - 1, delay * 2, signal)
   }
 }
@@ -179,9 +198,7 @@ export const api = {
         while (true) {
           // Check signal explicitly before starting new request
           if (signal?.aborted) {
-            const err = new Error('Aborted')
-            err.name = 'AbortError'
-            throw err
+            throw new DOMException('Aborted', 'AbortError')
           }
 
           let query = supabase
