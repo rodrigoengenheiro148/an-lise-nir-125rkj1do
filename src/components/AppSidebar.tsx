@@ -13,12 +13,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
-import {
-  LayoutDashboard,
-  FileSpreadsheet,
-  Settings,
-  Microscope,
-} from 'lucide-react'
+import { LayoutDashboard, FileSpreadsheet, Settings } from 'lucide-react'
 
 export function AppSidebar() {
   const location = useLocation()
@@ -29,11 +24,6 @@ export function AppSidebar() {
       title: 'Dashboard Analítico',
       url: '/',
       icon: LayoutDashboard,
-    },
-    {
-      title: 'Importar & Analisar',
-      url: '/analysis',
-      icon: Microscope, // Represents detailed analysis
     },
   ]
 

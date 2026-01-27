@@ -6,7 +6,6 @@ import { DashboardProvider } from '@/stores/useDashboardStore'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import Layout from '@/components/Layout'
 import Index from '@/pages/Index'
-import AnalysisPage from '@/pages/AnalysisPage'
 import Login from '@/pages/Login'
 import SignUp from '@/pages/SignUp'
 import NotFound from '@/pages/NotFound'
@@ -24,7 +23,6 @@ const App = () => (
 
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/analysis" element={<AnalysisPage />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

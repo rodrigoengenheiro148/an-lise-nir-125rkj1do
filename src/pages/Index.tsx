@@ -1,8 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Calendar as CalendarIcon,
   Filter,
   BarChart2,
   Upload,
@@ -136,16 +134,6 @@ export default function Index() {
               onDataChange={refreshData}
               defaultMaterial={selectedMaterial}
             />
-
-            <Link to="/analysis" className="w-full md:w-auto">
-              <Button
-                variant="outline"
-                className="w-full border-zinc-700 bg-zinc-900/50 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-2"
-              >
-                <BarChart2 className="h-4 w-4" />
-                Análise
-              </Button>
-            </Link>
           </div>
         </header>
 
