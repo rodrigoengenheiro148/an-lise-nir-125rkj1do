@@ -51,7 +51,7 @@ const transformRecordToDB = (
     company_id: companyId,
     date: record.date || null,
     material: record.material,
-    sub_material: record.submaterial,
+    sub_material: record.submaterial, // Maps app 'submaterial' to DB 'sub_material'
   }
 
   // Parse and map values for DB insertion
@@ -72,6 +72,41 @@ const transformRecordToDB = (
   })
 
   return dbRow
+}
+
+const deduplicateRecords = (records: AnalysisRecord[]): AnalysisRecord[] => {
+  const map = new Map<string, AnalysisRecord>()
+
+  records.forEach((record) => {
+    // Create a unique key based on business logic unique constraints
+    const companyId = record.company_id || ''
+    const date = record.date || 'null'
+    const material = record.material || ''
+    const submaterial = record.submaterial || record.sub_material || ''
+
+    // Normalize key to ensure consistent matching
+    const key = `${companyId}|${date}|${material}|${submaterial}`.toLowerCase()
+
+    if (map.has(key)) {
+      const existing = map.get(key)!
+      // Merge: overwrite existing fields with new non-null/non-empty values
+      // This ensures we accumulate data from multiple partial records
+      const merged = { ...existing }
+      Object.keys(record).forEach((k) => {
+        const val = record[k]
+        // Only merge if value is present and not empty string
+        // We explicitly check against undefined/null to allow 0 values
+        if (val !== undefined && val !== null && val !== '') {
+          merged[k] = val
+        }
+      })
+      map.set(key, merged)
+    } else {
+      map.set(key, { ...record })
+    }
+  })
+
+  return Array.from(map.values())
 }
 
 export const api = {
@@ -177,79 +212,33 @@ export const api = {
   saveRecords: async (records: AnalysisRecord[]) => {
     if (records.length === 0) return
 
-    // Implementation updated to handle merging to avoid overwriting existing metrics
-    // when importing data for specific metrics (e.g. only Impurity).
+    // 1. Deduplicate records first to avoid "ON CONFLICT" errors within the same batch
+    // and to merge data efficiently before sending to DB.
+    const uniqueRecords = deduplicateRecords(records)
 
-    // Process in smaller chunks to handle URL length limits when fetching
+    // Process in chunks to avoid payload size limits
     const CHUNK_SIZE = 50
 
-    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-      const chunk = records.slice(i, i + CHUNK_SIZE)
+    for (let i = 0; i < uniqueRecords.length; i += CHUNK_SIZE) {
+      const chunk = uniqueRecords.slice(i, i + CHUNK_SIZE)
       const validChunk = chunk.filter((r) => r.company_id)
 
       if (validChunk.length === 0) continue
 
-      // 1. Fetch existing records to check for collisions/merges
-      // We look up by (company_id) AND (date)
-      const companyIds = Array.from(
-        new Set(validChunk.map((r) => r.company_id!)),
-      )
-      const dates = Array.from(
-        new Set(validChunk.map((r) => r.date).filter(Boolean)),
+      // Map to DB format
+      const dbRecords = validChunk.map((r) =>
+        transformRecordToDB(r, r.company_id!),
       )
 
-      let query = supabase
-        .from('analysis_records')
-        .select('*')
-        .in('company_id', companyIds)
-
-      // Optimization: Only filter by dates if we have them.
-      // If we don't filter by dates, we fetch all company records (might be heavy but safe)
-      if (dates.length > 0) {
-        query = query.in('date', dates as string[])
-      }
-
-      const { data: existingRecords, error: fetchError } = await query
-      if (fetchError) throw fetchError
-
-      // Index existing records for O(1) lookup
-      const existingMap = new Map<string, any>()
-      existingRecords?.forEach((rec) => {
-        const key = `${rec.company_id}|${rec.date}|${rec.material}|${rec.sub_material || ''}`
-        existingMap.set(key, rec)
+      // 2. Call RPC to handle upsert logic on server side
+      // This is safer and faster than client-side fetch+merge+upsert
+      const { error } = await supabase.rpc('bulk_upsert_analysis_records', {
+        records: dbRecords as any,
       })
 
-      // 2. Prepare Payload (Merge if exists)
-      const upsertPayload = validChunk.map((newRec) => {
-        const key = `${newRec.company_id}|${newRec.date}|${newRec.material}|${newRec.submaterial || ''}`
-        const existing = existingMap.get(key)
-
-        // Convert the new record to DB format (only non-null fields)
-        const newDbRow = transformRecordToDB(newRec, newRec.company_id!)
-
-        if (existing) {
-          // MERGE: Keep existing fields, overwrite with new non-null fields
-          // This ensures missing metrics in newRec don't wipe existing metrics
-          return {
-            ...existing, // Start with existing DB row
-            ...newDbRow, // Apply updates
-            updated_at: new Date().toISOString(),
-          }
-        } else {
-          // NEW RECORD
-          return newDbRow
-        }
-      })
-
-      // 3. Perform Upsert
-      // We use standard upsert which uses 'id' (if present from existing) to update
-      const { error: upsertError } = await supabase
-        .from('analysis_records')
-        .upsert(upsertPayload)
-
-      if (upsertError) {
-        console.error('Error saving chunk:', upsertError)
-        throw upsertError
+      if (error) {
+        console.error('Error saving chunk:', error)
+        throw error
       }
     }
   },
