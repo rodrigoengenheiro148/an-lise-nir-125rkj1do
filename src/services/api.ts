@@ -119,18 +119,9 @@ export const api = {
   createRecord: async (
     record: Partial<AnalysisRecord> & { company_id: string },
   ) => {
-    // For single record creation, we also use saveRecords to ensure proper upsert/merge logic
-    // But since createRecord signature is partial, we wrap it in array
-    // However, original usage might expect simple insert.
-    // Let's forward to saveRecords for robust handling.
-
-    // Note: transformRecordToDB is called inside saveRecords loop for each item
-    // But here we might have a partial object.
-
-    // We construct the full record object as best as we can
     const fullRecord: AnalysisRecord = {
-      id: '', // Placeholder
-      company: '', // Placeholder, not used for saving
+      id: '',
+      company: '',
       ...record,
     }
 
@@ -186,15 +177,12 @@ export const api = {
   saveRecords: async (records: AnalysisRecord[]) => {
     if (records.length === 0) return
 
-    // Transform records to DB format (snake_case columns)
-    // We filter out records that don't have company_id
     const validRecords = records.filter((r) => r.company_id)
 
     const dbRecords = validRecords.map((r) =>
       transformRecordToDB(r, r.company_id!),
     )
 
-    // Process in chunks to avoid hitting payload limits or timeouts
     const CHUNK_SIZE = 200
     for (let i = 0; i < dbRecords.length; i += CHUNK_SIZE) {
       const chunk = dbRecords.slice(i, i + CHUNK_SIZE)
@@ -210,7 +198,10 @@ export const api = {
     }
   },
 
-  clearDatabase: async (companyId: string, password: string): Promise<void> => {
+  clearDatabase: async (
+    companyId: string | null | undefined,
+    password: string,
+  ): Promise<void> => {
     const { data, error } = await supabase.functions.invoke('clear-database', {
       body: { companyId, password },
     })

@@ -144,20 +144,38 @@ export const ResidualChart = ({
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload
+                    const original = data.original as AnalysisRecord
+
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-black p-3 shadow-xl text-xs ring-1 ring-zinc-800/50">
-                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1">
-                          {data.original.company}
+                      <div className="rounded-lg border border-zinc-800 bg-black p-3 shadow-xl text-xs ring-1 ring-zinc-800/50 min-w-[200px]">
+                        <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
+                          <span className="truncate max-w-[150px]">
+                            {original.company}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-normal">
+                            Amostra
+                          </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-zinc-400">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
                           <span>Data:</span>
                           <span className="text-right text-zinc-300">
-                            {data.original.date
-                              ? new Date(
-                                  data.original.date,
-                                ).toLocaleDateString()
+                            {original.date
+                              ? new Date(original.date).toLocaleDateString()
                               : '-'}
                           </span>
+                          <span>Material:</span>
+                          <span className="text-right text-zinc-300 truncate max-w-[120px]">
+                            {original.material || '-'}
+                          </span>
+                          {original.submaterial && (
+                            <>
+                              <span>Sub-mat:</span>
+                              <span className="text-right text-zinc-500 truncate max-w-[120px]">
+                                {original.submaterial}
+                              </span>
+                            </>
+                          )}
+                          <span className="col-span-2 border-t border-zinc-900 my-0.5" />
                           <span>LAB:</span>
                           <span className="text-right text-zinc-100 font-mono font-medium">
                             {data.x.toFixed(2)}

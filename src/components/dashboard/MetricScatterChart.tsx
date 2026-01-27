@@ -34,21 +34,32 @@ const CustomTooltip = ({ active, payload, unit, color }: any) => {
 
   if (pointPayload && pointPayload.payload && pointPayload.payload.original) {
     const dataPoint = pointPayload.payload
+    const original = dataPoint.original as AnalysisRecord
+
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 shadow-xl text-xs z-50 ring-1 ring-zinc-800/50 min-w-[200px]">
         <div className="font-bold text-zinc-100 mb-2 border-b border-zinc-900 pb-1 flex justify-between items-center">
-          <span className="truncate max-w-[150px]">
-            {dataPoint.original.company}
-          </span>
+          <span className="truncate max-w-[150px]">{original.company}</span>
           <span className="text-[10px] text-zinc-500 font-normal">Amostra</span>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-zinc-400">
           <span>Data:</span>
           <span className="text-right text-zinc-300">
-            {dataPoint.original.date
-              ? new Date(dataPoint.original.date).toLocaleDateString()
-              : '-'}
+            {original.date ? new Date(original.date).toLocaleDateString() : '-'}
           </span>
+          <span>Material:</span>
+          <span className="text-right text-zinc-300 truncate max-w-[120px]">
+            {original.material || '-'}
+          </span>
+          {original.submaterial && (
+            <>
+              <span>Sub-mat:</span>
+              <span className="text-right text-zinc-500 truncate max-w-[120px]">
+                {original.submaterial}
+              </span>
+            </>
+          )}
+          <span className="col-span-2 border-t border-zinc-900 my-0.5" />
           <span>LAB (Ref):</span>
           <span className="text-right text-zinc-100 font-mono font-medium">
             {dataPoint.x.toFixed(2)} {unit}

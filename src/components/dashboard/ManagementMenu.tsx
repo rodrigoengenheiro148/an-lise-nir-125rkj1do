@@ -30,6 +30,7 @@ import { ImportDialog } from './ImportDialog'
 import { CompanyEntity } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface ManagementMenuProps {
   selectedCompanyId?: string
@@ -47,12 +48,13 @@ export const ManagementMenu = ({
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteMode, setDeleteMode] = useState<'single' | 'all'>('single')
   const [password, setPassword] = useState('')
 
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId)
 
   const handleVerifyAndClear = async () => {
-    if (!selectedCompanyId) {
+    if (deleteMode === 'single' && !selectedCompanyId) {
       toast.error('Selecione uma empresa para limpar os dados.')
       return
     }
@@ -65,8 +67,18 @@ export const ManagementMenu = ({
 
     setIsDeleting(true)
     try {
-      await api.clearDatabase(selectedCompanyId, password)
-      toast.success('Base de dados limpa com sucesso!')
+      // Pass null to delete ALL, or selectedCompanyId for specific company
+      const companyToDelete = deleteMode === 'all' ? null : selectedCompanyId
+      await api.clearDatabase(companyToDelete, password)
+
+      if (deleteMode === 'all') {
+        toast.success('Todas os dados do sistema foram excluídos com sucesso!')
+      } else {
+        toast.success(
+          `Base de dados da empresa ${selectedCompany?.name} limpa com sucesso!`,
+        )
+      }
+
       onDataChange()
       setIsDeleteDialogOpen(false)
       setPassword('')
@@ -77,6 +89,12 @@ export const ManagementMenu = ({
     } finally {
       setIsDeleting(false)
     }
+  }
+
+  const handleDeleteClick = (mode: 'single' | 'all') => {
+    setDeleteMode(mode)
+    setPassword('')
+    setIsDeleteDialogOpen(true)
   }
 
   return (
@@ -93,7 +111,7 @@ export const ManagementMenu = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px]"
+          className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[220px]"
         >
           <DropdownMenuLabel>Opções</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-zinc-800" />
@@ -110,14 +128,19 @@ export const ManagementMenu = ({
 
           <DropdownMenuItem
             className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2"
-            onClick={() => {
-              setPassword('')
-              setIsDeleteDialogOpen(true)
-            }}
+            onClick={() => handleDeleteClick('single')}
             disabled={!selectedCompanyId}
           >
             <Trash2 className="h-4 w-4" />
-            Limpar Base de Dados
+            Limpar Dados (Empresa)
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 font-bold"
+            onClick={() => handleDeleteClick('all')}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Limpar TUDO (Reset Geral)
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -139,18 +162,28 @@ export const ManagementMenu = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-500">
               <Database className="h-5 w-5" />
-              Confirmar Exclusão
+              {deleteMode === 'all'
+                ? 'Resetar TODO o Sistema'
+                : 'Confirmar Exclusão (Empresa)'}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 space-y-2">
               <span className="flex items-start gap-2 bg-red-950/30 p-3 rounded-md border border-red-900/50 mt-2">
                 <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                 <span className="text-sm">
-                  Esta ação é <strong>irreversível</strong>. Todos os registros
-                  da empresa{' '}
-                  <span className="font-bold text-white">
-                    {selectedCompany?.name}
-                  </span>{' '}
-                  serão excluídos permanentemente.
+                  Esta ação é <strong>irreversível</strong>.{' '}
+                  {deleteMode === 'all' ? (
+                    <span className="uppercase font-bold text-red-400">
+                      TODOS OS REGISTROS DE TODAS AS EMPRESAS SERÃO EXCLUÍDOS.
+                    </span>
+                  ) : (
+                    <>
+                      Todos os registros da empresa{' '}
+                      <span className="font-bold text-white">
+                        {selectedCompany?.name}
+                      </span>{' '}
+                      serão excluídos permanentemente.
+                    </>
+                  )}
                 </span>
               </span>
               <span className="block mt-4 text-zinc-300">
@@ -169,7 +202,12 @@ export const ManagementMenu = ({
               placeholder="Digite a senha..."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-red-500"
+              className={cn(
+                'bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-offset-0',
+                password.length > 0 && password !== '16071997'
+                  ? 'focus-visible:ring-red-500 border-red-500/50'
+                  : 'focus-visible:ring-emerald-500',
+              )}
               autoComplete="off"
             />
           </div>
@@ -193,7 +231,11 @@ export const ManagementMenu = ({
               ) : (
                 <Trash2 className="h-4 w-4" />
               )}
-              {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+              {isDeleting
+                ? 'Excluindo...'
+                : deleteMode === 'all'
+                  ? 'Confirmar RESET GERAL'
+                  : 'Confirmar Exclusão'}
             </Button>
           </DialogFooter>
         </DialogContent>
