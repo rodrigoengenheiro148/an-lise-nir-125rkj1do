@@ -138,7 +138,7 @@ export const api = {
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .order('created_at', { ascending: false })
-      .limit(10000)
+      .limit(100000)
 
     if (error) {
       console.error('Error fetching records:', error)
