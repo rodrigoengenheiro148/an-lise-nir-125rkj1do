@@ -91,11 +91,14 @@ const transformRecordToDB = (
 }
 
 export const api = {
-  getCompanies: async (): Promise<CompanyEntity[]> => {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .order('name')
+  getCompanies: async (signal?: AbortSignal): Promise<CompanyEntity[]> => {
+    let query = supabase.from('companies').select('*').order('name')
+
+    if (signal) {
+      query = query.abortSignal(signal)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Error fetching companies:', error)
@@ -114,18 +117,31 @@ export const api = {
     return data
   },
 
-  getRecords: async (): Promise<AnalysisRecord[]> => {
+  getRecords: async (signal?: AbortSignal): Promise<AnalysisRecord[]> => {
     let allRows: any[] = []
     let from = 0
     const step = 1000 // Supabase default max per request is usually 1000
 
     // Fetch all records using pagination to overcome default limits
     while (true) {
-      const { data, error } = await supabase
+      // Check signal explicitly before starting new request
+      if (signal?.aborted) {
+        const err = new Error('Aborted')
+        err.name = 'AbortError'
+        throw err
+      }
+
+      let query = supabase
         .from('analysis_records')
         .select('*, companies(name, logo_url)')
         .order('created_at', { ascending: false })
         .range(from, from + step - 1)
+
+      if (signal) {
+        query = query.abortSignal(signal)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         console.error('Error fetching records:', error)

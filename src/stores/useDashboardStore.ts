@@ -73,6 +73,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
+  // Use a ref to track the active AbortController
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   const companiesRef = useRef<CompanyEntity[]>([])
   useEffect(() => {
     companiesRef.current = companies
@@ -95,6 +98,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async (forceLoadingState = false) => {
     if (!user) return
 
+    // Cancel previous request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     if (
       forceLoadingState ||
       (companies.length === 0 && analysisRecords.length === 0)
@@ -103,11 +113,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const companiesData = await api.getCompanies()
+      // Pass the signal to API calls
+      const companiesData = await api.getCompanies(controller.signal)
+      if (controller.signal.aborted) return
+
       setCompanies(companiesData)
       companiesRef.current = companiesData
 
-      const recordsData = await api.getRecords()
+      const recordsData = await api.getRecords(controller.signal)
+      if (controller.signal.aborted) return
+
       setAnalysisRecords(recordsData)
 
       setError(null)
@@ -123,12 +138,23 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setSelectedCompanyId('')
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Gracefully handle abort errors
+      if (
+        err.name === 'AbortError' ||
+        err.message?.includes('AbortError') ||
+        controller.signal.aborted
+      ) {
+        return
+      }
       console.error('Unexpected error loading data', err)
       setError('Erro ao carregar dados. Tente atualizar a página.')
       toast.error('Não foi possível conectar ao servidor.')
     } finally {
-      setIsLoading(false)
+      // Only set loading to false if this is the latest controller
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -299,6 +325,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       setCompanies([])
       setAnalysisRecords([])
       setError(null)
+    }
+
+    // Cleanup function to abort pending requests on unmount or user change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [user])
 
