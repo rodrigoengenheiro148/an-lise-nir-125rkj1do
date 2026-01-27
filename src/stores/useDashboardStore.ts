@@ -76,6 +76,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   // Use a ref to track the active AbortController
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Use a ref to track component mount status to avoid updates on unmounted component
+  const isMounted = useRef(true)
+
   const companiesRef = useRef<CompanyEntity[]>([])
   useEffect(() => {
     companiesRef.current = companies
@@ -84,6 +87,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const pendingUpdates = useRef<
     { type: 'INSERT' | 'UPDATE' | 'DELETE'; payload: any }[]
   >([])
+
+  // Track mounting status
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
 
   const setSelectedCompanyId = (id: string) => {
     localStorage.setItem(STORAGE_KEYS.COMPANY_ID, id)
@@ -113,14 +124,17 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Pass the signal to API calls to support cancellation
       const companiesData = await api.getCompanies(controller.signal)
-      // Check abort state immediately after await to prevent state updates if cancelled
-      if (controller.signal.aborted) return
+
+      // Check abort state AND mount state immediately after await
+      if (controller.signal.aborted || !isMounted.current) return
 
       setCompanies(companiesData)
       companiesRef.current = companiesData
 
       const recordsData = await api.getRecords(controller.signal)
-      if (controller.signal.aborted) return
+
+      // Check again after second await
+      if (controller.signal.aborted || !isMounted.current) return
 
       setAnalysisRecords(recordsData)
 
@@ -140,9 +154,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     } catch (err: any) {
       // Gracefully handle abort errors or if the specific controller was aborted
       // This specifically fixes the "Index page crash" or "HTTP N/A" errors
-      if (isAbortError(err) || controller.signal.aborted) {
+      if (
+        isAbortError(err) ||
+        controller.signal.aborted ||
+        !isMounted.current
+      ) {
         // Silently return to avoid showing cancellation errors to the user
-        // console.log('Request aborted silently') // Optional debug
         return
       }
 
@@ -150,8 +167,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       setError('Falha na conexão. Tentando restabelecer acesso ao servidor...')
       toast.error('Não foi possível carregar os dados. Verifique sua conexão.')
     } finally {
-      // Only set loading to false if this is the latest controller
-      if (abortControllerRef.current === controller) {
+      // Only set loading to false if this is the latest controller AND component is still mounted
+      if (abortControllerRef.current === controller && isMounted.current) {
         setIsLoading(false)
       }
     }
@@ -175,6 +192,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           table: 'companies',
         },
         (payload) => {
+          if (!isMounted.current) return
           if (payload.eventType === 'INSERT') {
             const newCompany = payload.new as CompanyEntity
             setCompanies((prev) =>
@@ -218,6 +236,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           table: 'analysis_records',
         },
         (payload) => {
+          if (!isMounted.current) return
           pendingUpdates.current.push({
             type: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
             payload: payload.eventType === 'DELETE' ? payload.old : payload.new,
@@ -235,6 +254,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       })
 
     const interval = setInterval(() => {
+      if (!isMounted.current) return
       if (pendingUpdates.current.length === 0) return
 
       const updates = [...pendingUpdates.current]
@@ -312,7 +332,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const logic = async () => {
-      if (!selectedCompanyId) return
+      if (!selectedCompanyId || !isMounted.current) return
 
       let nextMaterial = selectedMaterial
 

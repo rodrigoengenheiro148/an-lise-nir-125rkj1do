@@ -46,6 +46,12 @@ export const isAbortError = (error: any) => {
   )
 }
 
+const createAbortError = () => {
+  const error = new Error('signal is aborted without reason')
+  error.name = 'AbortError'
+  return error
+}
+
 // Helper for exponential backoff retry with robust abort handling
 const retryOperation = async <T>(
   operation: () => Promise<T>,
@@ -53,12 +59,6 @@ const retryOperation = async <T>(
   delay = 1000,
   signal?: AbortSignal,
 ): Promise<T> => {
-  const createAbortError = () => {
-    const error = new Error('signal is aborted without reason')
-    error.name = 'AbortError'
-    return error
-  }
-
   // Check signal before starting the operation
   if (signal?.aborted) {
     throw createAbortError()
@@ -200,9 +200,7 @@ export const api = {
         if (error) {
           // Check if error is an abort error or if signal is aborted
           if (isAbortError(error) || signal?.aborted) {
-            const abortErr = new Error('signal is aborted without reason')
-            abortErr.name = 'AbortError'
-            throw abortErr
+            throw createAbortError()
           }
           console.error('Error fetching companies:', error)
           throw error
@@ -238,9 +236,7 @@ export const api = {
         while (true) {
           // Check signal explicitly before starting new request
           if (signal?.aborted) {
-            const abortErr = new Error('signal is aborted without reason')
-            abortErr.name = 'AbortError'
-            throw abortErr
+            throw createAbortError()
           }
 
           let query = supabase
@@ -257,9 +253,7 @@ export const api = {
 
           if (error) {
             if (isAbortError(error) || signal?.aborted) {
-              const abortErr = new Error('signal is aborted without reason')
-              abortErr.name = 'AbortError'
-              throw abortErr
+              throw createAbortError()
             }
             console.error('Error fetching records:', error)
             throw error
