@@ -4,11 +4,11 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
-import { Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Link } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Toaster } from '@/components/ui/sonner'
 import { useAuth } from '@/components/AuthProvider'
-import { LogOut } from 'lucide-react'
+import { LogOut, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function Layout() {
@@ -20,10 +20,6 @@ export default function Layout() {
         Carregando...
       </div>
     )
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />
   }
 
   return (
@@ -58,17 +54,34 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="hidden md:inline-block text-xs text-zinc-300 font-medium">
-              {user.email}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => signOut()}
-              className="text-zinc-500 hover:text-red-400 hover:bg-zinc-900"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            {user ? (
+              <>
+                <span className="hidden md:inline-block text-xs text-zinc-300 font-medium">
+                  {user.email}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => signOut()}
+                  className="text-zinc-500 hover:text-red-400 hover:bg-zinc-900"
+                  title="Sair"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-zinc-400 hover:text-white hover:bg-zinc-900 gap-2"
+              >
+                <Link to="/login">
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Entrar</span>
+                </Link>
+              </Button>
+            )}
           </div>
         </header>
         <div className="flex-1 overflow-auto bg-zinc-950 relative">

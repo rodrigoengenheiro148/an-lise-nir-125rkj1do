@@ -96,8 +96,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const loadData = async (forceLoadingState = false) => {
-    if (!user) return
-
     // Cancel previous request if exists to prevent race conditions
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -158,8 +156,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    if (!user) return
-
     // Reconnection logic listener
     const handleOnline = () => {
       toast.success('Conexão restabelecida. Atualizando dados...')
@@ -334,13 +330,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedCompanyId, materials.length])
 
   useEffect(() => {
-    if (user) {
-      loadData()
-    } else {
-      setCompanies([])
-      setAnalysisRecords([])
-      setError(null)
-    }
+    // Always load data regardless of auth state to support public access
+    loadData()
 
     // Cleanup function to abort pending requests on unmount or user change
     return () => {
@@ -348,7 +339,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         abortControllerRef.current.abort()
       }
     }
-  }, [user])
+  }, [user]) // Reload when user changes (e.g. login/logout) to refresh permissions
 
   const refreshData = () => {
     loadData(false)
