@@ -10,7 +10,14 @@ import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
-import { Activity, TrendingUp, Cloud, Plus } from 'lucide-react'
+import {
+  Activity,
+  TrendingUp,
+  Cloud,
+  Plus,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useDashboardStore from '@/stores/useDashboardStore'
 
@@ -25,6 +32,7 @@ const Index = () => {
     isLoading: isStoreLoading,
     isLoadingMaterials,
     refreshData,
+    error: storeError,
   } = useDashboardStore()
 
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
@@ -61,12 +69,56 @@ const Index = () => {
     refreshData()
   }
 
+  // Handle loading state
   if (isStoreLoading && storeCompanies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
         <div className="animate-pulse flex flex-col items-center">
           <Activity className="h-10 w-10 text-blue-500 mb-4" />
           <span className="text-lg font-medium">Carregando Dados...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle error state or no companies
+  if (!isStoreLoading && (storeError || storeCompanies.length === 0)) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100 p-6">
+        <div className="flex flex-col items-center max-w-md text-center">
+          {storeError ? (
+            <>
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-bold mb-2">Erro de Conexão</h2>
+              <p className="text-zinc-400 mb-6">{storeError}</p>
+            </>
+          ) : (
+            <>
+              <div className="p-4 bg-zinc-900 rounded-full mb-4">
+                <TrendingUp className="h-10 w-10 text-zinc-500" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Bem-vindo ao Dashboard</h2>
+              <p className="text-zinc-400 mb-6">
+                Comece adicionando uma empresa para gerenciar suas análises.
+              </p>
+            </>
+          )}
+
+          <div className="flex gap-4">
+            <Button onClick={refreshData} variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Tentar Novamente
+            </Button>
+            {storeCompanies.length === 0 && !storeError && (
+              <CompanySelector
+                selectedCompanyId={selectedCompanyId}
+                companies={[]}
+                onSelect={() => {}}
+                onCompanyAdded={handleCompanyAdded}
+                isLoading={false}
+                placeholder="Cadastrar Empresa"
+              />
+            )}
+          </div>
         </div>
       </div>
     )

@@ -57,6 +57,7 @@ export const ManagementMenu = ({
       return
     }
 
+    // Strict client-side password check before even calling backend
     if (password !== '16071997') {
       toast.error('Senha incorreta. A exclusão não foi realizada.')
       return
@@ -84,7 +85,7 @@ export const ManagementMenu = ({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="gap-2 border-zinc-700 text-zinc-300"
+            className="gap-2 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800"
           >
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Gerenciamento</span>

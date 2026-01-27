@@ -38,6 +38,7 @@ interface DashboardState {
   refreshData: () => void
   isLoading: boolean
   isLoadingMaterials: boolean
+  error: string | null
 }
 
 const DashboardContext = createContext<DashboardState | undefined>(undefined)
@@ -52,6 +53,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   // Initialize state from localStorage if available
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<string>(
@@ -92,21 +94,55 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return
 
     setIsLoading(true)
+    setError(null)
+
     try {
-      const [fetchedCompanies, fetchedRecords] = await Promise.all([
+      // Use Promise.allSettled to ensure we get as much data as possible even if one fails
+      const [companiesResult, recordsResult] = await Promise.allSettled([
         api.getCompanies(),
         api.getRecords(),
       ])
 
-      setCompanies(fetchedCompanies)
-      setAnalysisRecords(fetchedRecords)
+      let fetchedCompanies: CompanyEntity[] = []
+      let fetchedRecords: AnalysisRecord[] = []
 
-      // If no company selected (and none persisted), select the first one
-      if (fetchedCompanies.length > 0 && !selectedCompanyId) {
-        setSelectedCompanyId(fetchedCompanies[0].id)
+      if (companiesResult.status === 'fulfilled') {
+        fetchedCompanies = companiesResult.value
+        setCompanies(fetchedCompanies)
+      } else {
+        console.error('Failed to load companies', companiesResult.reason)
+        setError('Falha ao carregar empresas.')
       }
-    } catch (error) {
-      console.error('Failed to load data', error)
+
+      if (recordsResult.status === 'fulfilled') {
+        fetchedRecords = recordsResult.value
+        setAnalysisRecords(fetchedRecords)
+      } else {
+        console.error('Failed to load records', recordsResult.reason)
+        // If companies loaded, we might not want to block entirely, but records are crucial
+        if (!error) setError('Falha ao carregar registros.')
+      }
+
+      // Check for persistence validity
+      if (fetchedCompanies.length > 0) {
+        // If selected company is invalid (deleted or stale), reset to first available
+        const isValidCompany = fetchedCompanies.some(
+          (c) => c.id === selectedCompanyId,
+        )
+
+        if (!selectedCompanyId || !isValidCompany) {
+          setSelectedCompanyId(fetchedCompanies[0].id)
+        }
+      } else if (
+        fetchedCompanies.length === 0 &&
+        companiesResult.status === 'fulfilled'
+      ) {
+        // No companies exist at all
+        setSelectedCompanyId('')
+      }
+    } catch (err) {
+      console.error('Unexpected error loading data', err)
+      setError('Erro inesperado de conexão.')
       toast.error('Não foi possível conectar ao servidor.')
     } finally {
       setIsLoading(false)
@@ -158,6 +194,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id
             setCompanies((prev) => prev.filter((c) => c.id !== deletedId))
+            // Also remove from selection if current
+            if (selectedCompanyId === deletedId) {
+              // We rely on the companies state update to trigger re-selection or user action
+              // But better to clear it or let the effect handle it
+              setSelectedCompanyId('')
+            }
           }
         },
       )
@@ -225,7 +267,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [user, selectedCompanyId])
 
   // Derive materials from analysisRecords for the selected company
   const materials = useMemo(() => {
@@ -244,8 +286,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   // Handle Material Selection Logic
   useEffect(() => {
     const logic = async () => {
+      // If no company is selected, we can't really determine materials
       if (!selectedCompanyId) {
-        setSelectedMaterial('')
+        // Only clear if we have no companies at all, otherwise keep it
+        // in case it's just a transient state, but here we can't do much
         return
       }
 
@@ -253,36 +297,41 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       try {
         let nextMaterial = selectedMaterial
 
-        if (selectedMaterial) {
+        // Logic to prevent "Empty Dashboard" syndrome:
+        // If the selected material is NOT present in the current company's data,
+        // we should switch to the first available material for this company.
+        // This prevents the user from seeing 0 records just because they switched companies.
+
+        if (materials.length > 0) {
           const existsInDb = materials.some(
-            (m) => m.toLowerCase() === selectedMaterial.toLowerCase(),
+            (m) => m.toLowerCase() === (selectedMaterial || '').toLowerCase(),
           )
-          if (!existsInDb && materials.length > 0) {
-            // keep selection or not?
-          }
-        }
 
-        if (!nextMaterial) {
-          if (materials.length > 0) {
-            const validMat = MATERIALS_OPTIONS.find((opt) =>
-              materials.some(
-                (dbMat) => dbMat.toLowerCase() === opt.toLowerCase(),
-              ),
+          if (!existsInDb) {
+            // Current selection is invalid for this company, switch to first available
+            // Check if any standard material is available to prioritize standard ordering
+            const validStandard = MATERIALS_OPTIONS.find((opt) =>
+              materials.some((m) => m.toLowerCase() === opt.toLowerCase()),
             )
-            nextMaterial = validMat || materials[0]
+
+            nextMaterial = validStandard || materials[0]
           } else {
-            nextMaterial = MATERIALS_OPTIONS[0]
+            // Current selection is valid, ensure casing matches option or DB
+            const normalized = materials.find(
+              (m) => m.toLowerCase() === selectedMaterial.toLowerCase(),
+            )
+            if (normalized) nextMaterial = normalized
           }
+        } else {
+          // No materials for this company (no records).
+          // We can keep the selectedMaterial or reset to default.
+          // Keeping it allows user to "add" a record for this material easily.
+          if (!nextMaterial) nextMaterial = MATERIALS_OPTIONS[0]
         }
 
-        const normalized = MATERIALS_OPTIONS.find(
-          (opt) => opt.toLowerCase() === nextMaterial.toLowerCase(),
-        )
-        if (normalized) {
-          nextMaterial = normalized
+        if (nextMaterial !== selectedMaterial) {
+          setSelectedMaterial(nextMaterial)
         }
-
-        setSelectedMaterial(nextMaterial)
       } finally {
         setIsLoadingMaterials(false)
       }
@@ -300,6 +349,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       // Clear data on logout
       setCompanies([])
       setAnalysisRecords([])
+      setError(null)
     }
   }, [user])
 
@@ -334,6 +384,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         refreshData,
         isLoading,
         isLoadingMaterials,
+        error,
       },
     },
     children,
