@@ -199,11 +199,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           if (!isMounted.current) return
           if (payload.eventType === 'INSERT') {
             const newCompany = payload.new as CompanyEntity
-            setCompanies((prev) =>
-              [...prev, newCompany].sort((a, b) =>
+            setCompanies((prev) => {
+              // Ensure we don't add duplicate companies which causes duplicate key errors
+              if (prev.some((c) => c.id === newCompany.id)) return prev
+              return [...prev, newCompany].sort((a, b) =>
                 a.name.localeCompare(b.name),
-              ),
-            )
+              )
+            })
           } else if (payload.eventType === 'UPDATE') {
             const updatedCompany = payload.new as CompanyEntity
             setCompanies((prev) =>

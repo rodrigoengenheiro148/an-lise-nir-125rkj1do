@@ -173,7 +173,11 @@ export const MetricParetoChart = ({
                 barSize={40}
               >
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={color} fillOpacity={0.8} />
+                  <Cell
+                    key={`cell-${entry.name}`}
+                    fill={color}
+                    fillOpacity={0.8}
+                  />
                 ))}
               </Bar>
 

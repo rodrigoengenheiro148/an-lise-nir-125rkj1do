@@ -167,7 +167,7 @@ export const GlobalParetoChart = ({
                 >
                   {chartData.map((entry, index) => (
                     <Cell
-                      key={`cell-${index}`}
+                      key={`cell-${entry.name}`}
                       fill="var(--color-count)"
                       fillOpacity={0.8}
                     />
