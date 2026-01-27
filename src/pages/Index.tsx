@@ -6,6 +6,8 @@ import {
   Upload,
   AlertTriangle,
   RefreshCw,
+  Inbox,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -66,6 +68,25 @@ export default function Index() {
       return matchCompany && matchMaterial && matchDate
     })
   }, [analysisRecords, selectedCompanyId, selectedMaterial, selectedDateRange])
+
+  // Determine which metrics have data to display based on filtered records
+  // This satisfies the requirement to hide empty cards
+  const visibleMetrics = useMemo(() => {
+    return METRICS.filter((metric) => {
+      return filteredData.some((record) => {
+        const lab = record[`${metric.key}_lab`]
+        const anl = record[`${metric.key}_anl`]
+        const nir = record[`${metric.key}_nir`]
+
+        // Check if any value is present (not null/undefined/empty)
+        // We verify if at least one entry has non-null fields for the metric
+        const hasValue = (val: any) =>
+          val !== null && val !== undefined && val !== ''
+
+        return hasValue(lab) || hasValue(anl) || hasValue(nir)
+      })
+    })
+  }, [filteredData])
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 p-3 md:p-6 pb-20">
@@ -168,22 +189,48 @@ export default function Index() {
           </div>
         )}
 
-        {/* Industrial High-Density Grid - Responsive to Mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 auto-rows-fr">
-          {METRICS.map((metric) => (
-            <div key={metric.key} className="h-[320px] min-h-[320px]">
-              <MetricCard
-                title={metric.label}
-                metricKey={metric.key}
-                color={metric.color}
-                unit={metric.unit}
-                data={filteredData}
-                className="h-full shadow-lg shadow-black/50 border-zinc-800/80 bg-zinc-950 hover:border-zinc-700 transition-colors"
-                selectedCompanyId={selectedCompanyId}
-              />
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center min-h-[400px] text-zinc-500 animate-fade-in">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+            <p className="text-sm">Carregando dados...</p>
+          </div>
+        ) : (
+          <>
+            {/* Industrial High-Density Grid - Responsive to Mobile */}
+            {visibleMetrics.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 auto-rows-fr animate-fade-in">
+                {visibleMetrics.map((metric) => (
+                  <div key={metric.key} className="h-[320px] min-h-[320px]">
+                    <MetricCard
+                      title={metric.label}
+                      metricKey={metric.key}
+                      color={metric.color}
+                      unit={metric.unit}
+                      data={filteredData}
+                      className="h-full shadow-lg shadow-black/50 border-zinc-800/80 bg-zinc-950 hover:border-zinc-700 transition-colors"
+                      selectedCompanyId={selectedCompanyId}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center min-h-[400px] text-zinc-500 space-y-4 animate-fade-in">
+                <div className="bg-zinc-900/50 p-6 rounded-full border border-zinc-800">
+                  <Inbox className="h-10 w-10 opacity-50" />
+                </div>
+                <div className="text-center space-y-1">
+                  <h3 className="text-lg font-semibold text-zinc-300">
+                    Nenhum dado encontrado
+                  </h3>
+                  <p className="text-sm text-zinc-400 max-w-sm">
+                    Não há registros de análise com métricas válidas para os
+                    filtros selecionados.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <ImportDialog
