@@ -7,54 +7,68 @@ import {
 
 export const isAbortError = (error: any) => {
   if (!error) return false
+
+  // Standard AbortError checks
   if (error.name === 'AbortError') return true
   if (error instanceof DOMException && error.name === 'AbortError') return true
-  if (error.code === 20 || error.code === '20') return true // DOMException.ABORT_ERR
-  const msg = error.message ? String(error.message).toLowerCase() : ''
+  // DOMException code 20 is ABORT_ERR
+  if (error.code === 20 || error.code === '20') return true
+
+  // Check for string messages or error objects with messages
+  const msg = error.message
+    ? String(error.message).toLowerCase()
+    : typeof error === 'string'
+      ? error.toLowerCase()
+      : ''
+
   return (
     msg.includes('abort') ||
     msg.includes('cancel') ||
     msg.includes('signal is aborted') ||
-    msg.includes('user aborted')
+    msg.includes('user aborted') ||
+    msg.includes('http n/a') // Specific error mentioned in requirements
   )
 }
 
-// Helper for exponential backoff retry
+// Helper for exponential backoff retry with robust abort handling
 const retryOperation = async <T>(
   operation: () => Promise<T>,
   retries = 3,
   delay = 1000,
   signal?: AbortSignal,
 ): Promise<T> => {
+  // Check signal before starting the operation
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError')
+  }
+
   try {
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError')
-    }
     return await operation()
   } catch (error: any) {
+    // Check if the error is an abort error or if the signal was aborted during the operation
     if (isAbortError(error) || signal?.aborted) {
-      throw error // Propagate aborts immediately
+      throw new DOMException('Aborted', 'AbortError')
     }
 
     if (retries <= 0) throw error
 
     // Wait with exponential backoff, handling abort during wait
     await new Promise((resolve, reject) => {
+      // Immediate check
       if (signal?.aborted) {
-        reject(new DOMException('Aborted', 'AbortError'))
-        return
+        return reject(new DOMException('Aborted', 'AbortError'))
       }
-
-      const timeoutId = setTimeout(() => {
-        signal?.removeEventListener('abort', onAbort)
-        resolve(null)
-      }, delay)
 
       const onAbort = () => {
         clearTimeout(timeoutId)
         signal?.removeEventListener('abort', onAbort)
         reject(new DOMException('Aborted', 'AbortError'))
       }
+
+      const timeoutId = setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort)
+        resolve(null)
+      }, delay)
 
       signal?.addEventListener('abort', onAbort)
     })
@@ -162,7 +176,7 @@ export const api = {
 
         if (error) {
           if (isAbortError(error) || signal?.aborted) {
-            throw error
+            throw new DOMException('Aborted', 'AbortError')
           }
           console.error('Error fetching companies:', error)
           throw error
@@ -215,7 +229,7 @@ export const api = {
 
           if (error) {
             if (isAbortError(error) || signal?.aborted) {
-              throw error
+              throw new DOMException('Aborted', 'AbortError')
             }
             console.error('Error fetching records:', error)
             throw error

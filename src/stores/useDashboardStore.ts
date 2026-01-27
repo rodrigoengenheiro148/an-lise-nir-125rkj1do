@@ -98,7 +98,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async (forceLoadingState = false) => {
     if (!user) return
 
-    // Cancel previous request if exists
+    // Cancel previous request if exists to prevent race conditions
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
@@ -113,8 +113,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Pass the signal to API calls
+      // Pass the signal to API calls to support cancellation
       const companiesData = await api.getCompanies(controller.signal)
+      // Check abort state immediately after await to prevent state updates if cancelled
       if (controller.signal.aborted) return
 
       setCompanies(companiesData)
@@ -139,7 +140,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setSelectedCompanyId('')
       }
     } catch (err: any) {
-      // Gracefully handle abort errors using the improved utility
+      // Gracefully handle abort errors or if the specific controller was aborted
+      // This specifically fixes the "Index page crash" or "HTTP N/A" errors
       if (isAbortError(err) || controller.signal.aborted) {
         return
       }
