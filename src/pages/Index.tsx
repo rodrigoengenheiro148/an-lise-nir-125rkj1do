@@ -51,7 +51,7 @@ const Index = () => {
     })
   }, [analysisRecords, selectedCompanyId, selectedMaterial])
 
-  const handleCompanyAdded = (newCompany: any) => {
+  const handleCompanyAdded = (newCompany: CompanyEntity) => {
     refreshData()
     setSelectedCompanyId(newCompany.id)
   }
@@ -74,11 +74,8 @@ const Index = () => {
     )
   }
 
-  const companiesForSelector: CompanyEntity[] = storeCompanies.map((c) => ({
-    id: c.id,
-    name: c.name,
-    created_at: new Date().toISOString(),
-  }))
+  // Use the store companies directly as they are now CompanyEntity[]
+  const companiesForSelector: CompanyEntity[] = storeCompanies
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">

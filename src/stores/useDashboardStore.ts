@@ -3,18 +3,23 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
   useMemo,
 } from 'react'
-import { Company, Sample } from '@/lib/types'
-import { AnalysisRecord, MATERIALS_OPTIONS } from '@/types/dashboard'
+import { Sample } from '@/lib/types'
+import {
+  AnalysisRecord,
+  MATERIALS_OPTIONS,
+  CompanyEntity,
+} from '@/types/dashboard'
 import { toast } from 'sonner'
 import { api, transformRecordFromDB } from '@/services/api'
 import { supabase } from '@/lib/supabase/client'
 import { RealtimeChannel } from '@supabase/supabase-js'
 
 interface DashboardState {
-  companies: Company[]
+  companies: CompanyEntity[]
   materials: string[]
   samples: Sample[]
   analysisRecords: AnalysisRecord[]
@@ -42,7 +47,7 @@ const STORAGE_KEYS = {
 }
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
-  const [companies, setCompanies] = useState<Company[]>([])
+  const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
 
@@ -64,6 +69,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
+  // Use a ref to access the latest companies list inside the realtime callback
+  // without triggering a re-subscription loop
+  const companiesRef = useRef<CompanyEntity[]>([])
+  useEffect(() => {
+    companiesRef.current = companies
+  }, [companies])
+
   const setSelectedCompanyId = (id: string) => {
     localStorage.setItem(STORAGE_KEYS.COMPANY_ID, id)
     setSelectedCompanyIdState(id)
@@ -82,16 +94,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         api.getRecords(),
       ])
 
-      const mappedCompanies = fetchedCompanies.map((c) => ({
-        id: c.id,
-        name: c.name,
-      }))
-      setCompanies(mappedCompanies)
+      setCompanies(fetchedCompanies)
       setAnalysisRecords(fetchedRecords)
 
       // If no company selected (and none persisted), select the first one
-      if (mappedCompanies.length > 0 && !selectedCompanyId) {
-        setSelectedCompanyId(mappedCompanies[0].id)
+      if (fetchedCompanies.length > 0 && !selectedCompanyId) {
+        setSelectedCompanyId(fetchedCompanies[0].id)
       }
     } catch (error) {
       console.error('Failed to load data', error)
@@ -101,10 +109,53 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  // Realtime subscription
+  // Realtime subscription setup
   useEffect(() => {
     const channel: RealtimeChannel = supabase
-      .channel('dashboard-changes')
+      .channel('dashboard-realtime')
+      // Subscribe to Companies table changes
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'companies',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newCompany = payload.new as CompanyEntity
+            setCompanies((prev) =>
+              [...prev, newCompany].sort((a, b) =>
+                a.name.localeCompare(b.name),
+              ),
+            )
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedCompany = payload.new as CompanyEntity
+            setCompanies((prev) =>
+              prev.map((c) =>
+                c.id === updatedCompany.id ? updatedCompany : c,
+              ),
+            )
+            // Update company name/logo in existing records if company details change
+            setAnalysisRecords((prev) =>
+              prev.map((r) => {
+                if (r.company_id === updatedCompany.id) {
+                  return {
+                    ...r,
+                    company: updatedCompany.name,
+                    company_logo: updatedCompany.logo_url || undefined,
+                  }
+                }
+                return r
+              }),
+            )
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id
+            setCompanies((prev) => prev.filter((c) => c.id !== deletedId))
+          }
+        },
+      )
+      // Subscribe to Analysis Records table changes
       .on(
         'postgres_changes',
         {
@@ -113,23 +164,30 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           table: 'analysis_records',
         },
         (payload) => {
+          // Use the ref to get the current companies list without dependency injection
+          const currentCompanies = companiesRef.current
+
           if (payload.eventType === 'INSERT') {
             const newRecord = payload.new as any
-            const company = companies.find((c) => c.id === newRecord.company_id)
+            const company = currentCompanies.find(
+              (c) => c.id === newRecord.company_id,
+            )
             if (company) {
               const transformed = transformRecordFromDB(newRecord, {
                 name: company.name,
+                logo_url: company.logo_url,
               })
               setAnalysisRecords((prev) => [transformed, ...prev])
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedRecord = payload.new as any
-            const company = companies.find(
+            const company = currentCompanies.find(
               (c) => c.id === updatedRecord.company_id,
             )
             if (company) {
               const transformed = transformRecordFromDB(updatedRecord, {
                 name: company.name,
+                logo_url: company.logo_url,
               })
               setAnalysisRecords((prev) =>
                 prev.map((r) => (r.id === transformed.id ? transformed : r)),
@@ -146,7 +204,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [companies])
+  }, []) // Empty dependency array ensures subscription happens once
 
   // Derive materials from analysisRecords for the selected company
   const materials = useMemo(() => {
@@ -172,7 +230,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
       setIsLoadingMaterials(true)
       try {
-        // Robust Selection Logic based on current derived materials
         let nextMaterial = selectedMaterial
 
         if (selectedMaterial) {
@@ -212,7 +269,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     logic()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId, materials]) // Re-run when materials change (e.g. from realtime)
+  }, [selectedCompanyId, materials])
 
   // Initial load
   useEffect(() => {
