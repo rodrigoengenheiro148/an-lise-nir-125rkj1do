@@ -188,6 +188,7 @@ const transformRecordToDB = (
     date: record.date || null,
     material: record.material,
     sub_material: record.submaterial, // Maps app 'submaterial' to DB 'sub_material'
+    submaterial: record.submaterial, // Also map to 'submaterial' for consistency
   }
 
   // Parse and map values for DB insertion
@@ -339,8 +340,10 @@ export const api = {
       const dbUpdates: any = {}
 
       if (updates.material !== undefined) dbUpdates.material = updates.material
-      if (updates.submaterial !== undefined)
+      if (updates.submaterial !== undefined) {
         dbUpdates.sub_material = updates.submaterial
+        dbUpdates.submaterial = updates.submaterial
+      }
       if (updates.company_id) dbUpdates.company_id = updates.company_id
       if (updates.date !== undefined) dbUpdates.date = updates.date
 

@@ -15,6 +15,7 @@ import {
   XCircle,
   FileSpreadsheet,
   Grid,
+  Loader2,
 } from 'lucide-react'
 import {
   CompanyEntity,
@@ -158,6 +159,7 @@ export const ImportDialog = ({
         companies,
         selectedMetric,
         selectedImportMaterial,
+        selectedCompanyId, // Pass the ID explicitly for robust mapping
       )
       setParseResult(result)
       setIsProcessing(false)
@@ -181,9 +183,10 @@ export const ImportDialog = ({
       )
       if (onImportSuccess) onImportSuccess()
       setIsOpen(false)
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
-      toast.error('Erro ao salvar registros no banco de dados.')
+      const message = e.message || 'Erro ao salvar registros no banco de dados.'
+      toast.error(`Falha na importação: ${message}`)
     } finally {
       setIsProcessing(false)
     }
@@ -475,9 +478,16 @@ export const ImportDialog = ({
               <Button
                 onClick={confirmImport}
                 disabled={isProcessing || parseResult.records.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10 min-w-[140px]"
               >
-                {isProcessing ? 'Salvando...' : 'Confirmar Importação'}
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Confirmar Importação'
+                )}
               </Button>
             </>
           )}

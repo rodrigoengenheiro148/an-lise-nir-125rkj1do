@@ -35,6 +35,7 @@ export const parseImportData = (
   existingCompanies: { name: string; id: string }[] = [],
   targetMetric?: string, // The key of the selected metric, 'auto', or 'bulk_strict'
   defaultMaterial?: string,
+  defaultCompanyId?: string,
 ): ParseResult => {
   const rows = content
     .split(/\r?\n/)
@@ -293,6 +294,9 @@ export const parseImportData = (
       })
 
       record.company = defaultCompany
+      if (defaultCompanyId) {
+        record.company_id = defaultCompanyId
+      }
     } else if (useStrictMetricMapping && targetMetric) {
       // Robust strict mapping logic (Single Metric)
       let currentCols = cols
@@ -335,6 +339,9 @@ export const parseImportData = (
         hasError = true
       }
       record.company = defaultCompany
+      if (defaultCompanyId) {
+        record.company_id = defaultCompanyId
+      }
     } else {
       // Standard Header Mapping
       headerMap.forEach((map) => {
@@ -370,6 +377,9 @@ export const parseImportData = (
       })
       if (!record.company && defaultCompany) {
         record.company = defaultCompany
+        if (defaultCompanyId) {
+          record.company_id = defaultCompanyId
+        }
       }
     }
 
@@ -378,19 +388,26 @@ export const parseImportData = (
       errors.push(`${rowErrorPrefix}Empresa não identificada.`)
       hasError = true
     } else {
-      const matched = existingCompanies.find(
-        (c) =>
-          normalize(c.name) === normalize(record.company) ||
-          c.id === record.company,
-      )
-      if (!matched) {
-        errors.push(
-          `${rowErrorPrefix}Empresa '${record.company}' não encontrada no sistema.`,
-        )
-        hasError = true
+      // If we already set the company_id from default, we can skip lookup or verify
+      if (record.company_id) {
+        // company_id already set from default
+        // Optionally we could verify if name matches but that might be overkill if default is used
       } else {
-        record.company = matched.name
-        record.company_id = matched.id
+        // Try to match company name
+        const matched = existingCompanies.find(
+          (c) =>
+            normalize(c.name) === normalize(record.company) ||
+            c.id === record.company,
+        )
+        if (!matched) {
+          errors.push(
+            `${rowErrorPrefix}Empresa '${record.company}' não encontrada no sistema.`,
+          )
+          hasError = true
+        } else {
+          record.company = matched.name
+          record.company_id = matched.id
+        }
       }
     }
 
