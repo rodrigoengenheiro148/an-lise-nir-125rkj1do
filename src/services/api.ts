@@ -26,8 +26,8 @@ export const isAbortError = (error: any) => {
     msg.includes('cancel') ||
     msg.includes('signal is aborted') ||
     msg.includes('user aborted') ||
-    msg.includes('http n/a') || // Specific error mentioned in requirements
-    msg.includes('load failed') || // Common on mobile Safari
+    msg.includes('http n/a') ||
+    msg.includes('load failed') ||
     msg.includes('network request failed') ||
     msg.includes('failed to fetch')
   )
@@ -40,9 +40,15 @@ const retryOperation = async <T>(
   delay = 1000,
   signal?: AbortSignal,
 ): Promise<T> => {
+  const createAbortError = () => {
+    const error = new Error('Aborted')
+    error.name = 'AbortError'
+    return error
+  }
+
   // Check signal before starting the operation
   if (signal?.aborted) {
-    throw new DOMException('Aborted', 'AbortError')
+    throw createAbortError()
   }
 
   try {
@@ -50,7 +56,7 @@ const retryOperation = async <T>(
   } catch (error: any) {
     // Check if the error is an abort error or if the signal was aborted during the operation
     if (isAbortError(error) || signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError')
+      throw createAbortError()
     }
 
     if (retries <= 0) throw error
@@ -59,13 +65,13 @@ const retryOperation = async <T>(
     await new Promise((resolve, reject) => {
       // Immediate check
       if (signal?.aborted) {
-        return reject(new DOMException('Aborted', 'AbortError'))
+        return reject(createAbortError())
       }
 
       const onAbort = () => {
         clearTimeout(timeoutId)
         signal?.removeEventListener('abort', onAbort)
-        reject(new DOMException('Aborted', 'AbortError'))
+        reject(createAbortError())
       }
 
       const timeoutId = setTimeout(() => {
@@ -178,8 +184,12 @@ export const api = {
         const { data, error } = await query
 
         if (error) {
+          // Check if error is an abort error or if signal is aborted
+          // This handles cases where Supabase returns an error object for aborts
           if (isAbortError(error) || signal?.aborted) {
-            throw new DOMException('Aborted', 'AbortError')
+            const abortErr = new Error('Aborted')
+            abortErr.name = 'AbortError'
+            throw abortErr
           }
           console.error('Error fetching companies:', error)
           throw error
@@ -215,7 +225,9 @@ export const api = {
         while (true) {
           // Check signal explicitly before starting new request
           if (signal?.aborted) {
-            throw new DOMException('Aborted', 'AbortError')
+            const abortErr = new Error('Aborted')
+            abortErr.name = 'AbortError'
+            throw abortErr
           }
 
           let query = supabase
@@ -232,7 +244,9 @@ export const api = {
 
           if (error) {
             if (isAbortError(error) || signal?.aborted) {
-              throw new DOMException('Aborted', 'AbortError')
+              const abortErr = new Error('Aborted')
+              abortErr.name = 'AbortError'
+              throw abortErr
             }
             console.error('Error fetching records:', error)
             throw error
