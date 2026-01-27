@@ -20,6 +20,7 @@ import {
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
+import { GlobalParetoChart } from '@/components/dashboard/GlobalParetoChart'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
@@ -87,6 +88,41 @@ export default function Index() {
       return matchCompany && matchMaterial && matchDate
     })
   }, [analysisRecords, selectedCompanyId, selectedMaterial, selectedDateRange])
+
+  // Specific filtered data for Pareto chart (ignores material filter)
+  const paretoFilteredData = useMemo(() => {
+    if (!analysisRecords) return []
+
+    return analysisRecords.filter((record) => {
+      if (!record) return false
+
+      const matchCompany =
+        !selectedCompanyId || record.company_id === selectedCompanyId
+
+      // Date filter - same logic as above
+      let matchDate = true
+      if (selectedDateRange.from && record.date) {
+        try {
+          const recordDate = parseISO(record.date)
+          if (isValid(recordDate)) {
+            const from = startOfDay(selectedDateRange.from)
+            const to = selectedDateRange.to
+              ? endOfDay(selectedDateRange.to)
+              : endOfDay(selectedDateRange.from)
+
+            matchDate = isWithinInterval(recordDate, { start: from, end: to })
+          } else {
+            matchDate = false
+          }
+        } catch (e) {
+          matchDate = false
+        }
+      }
+
+      // Explicitly ignoring selectedMaterial for the global pareto chart
+      return matchCompany && matchDate
+    })
+  }, [analysisRecords, selectedCompanyId, selectedDateRange])
 
   // Determine which metrics have data to display based on filtered records
   // This satisfies the requirement to hide empty cards
@@ -218,6 +254,16 @@ export default function Index() {
           </div>
         ) : (
           <>
+            {/* Global Pareto Chart - Responsive */}
+            {paretoFilteredData.length > 0 && (
+              <div className="animate-fade-in">
+                <GlobalParetoChart
+                  data={paretoFilteredData}
+                  className="border-zinc-800 bg-zinc-950 shadow-lg shadow-black/50"
+                />
+              </div>
+            )}
+
             {/* Industrial High-Density Grid - Responsive to Mobile */}
             {visibleMetrics.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 auto-rows-fr animate-fade-in">
