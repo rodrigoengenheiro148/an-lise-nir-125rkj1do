@@ -161,8 +161,6 @@ export const api = {
   },
 
   saveRecords: async (records: AnalysisRecord[]) => {
-    // This function can handle bulk inserts
-    // We need to fetch companies to map names to IDs if needed
     const companies = await api.getCompanies()
 
     // Filter and map records to DB format
@@ -178,8 +176,8 @@ export const api = {
 
     if (rowsToInsert.length === 0) return
 
-    // Insert in chunks to avoid payload limits if necessary,
-    // but for now simple insert is fine for reasonable batches
+    // Cloud-First: Direct insert to Supabase
+    // Using simple insert for now, assuming acceptable batch sizes
     const { error } = await supabase
       .from('analysis_records')
       .insert(rowsToInsert)
@@ -191,6 +189,7 @@ export const api = {
     record: Partial<AnalysisRecord> & { company_id: string },
   ) => {
     const dbRow = transformRecordToDB(record, record.company_id)
+    // Cloud-First: Direct insert
     const { error } = await supabase.from('analysis_records').insert(dbRow)
     if (error) throw error
   },
@@ -233,7 +232,6 @@ export const api = {
   },
 
   clearDatabase: async (companyId: string, password: string): Promise<void> => {
-    // Strictly uses the edge function to verify password securely
     const { data, error } = await supabase.functions.invoke('clear-database', {
       body: { companyId, password },
     })

@@ -79,7 +79,6 @@ export const ImportDialog = ({
       setFile(null)
       setIsProcessing(false)
       setSelectedMetric('auto')
-      // Reset material to default from props or first option
       if (defaultMaterial && MATERIALS_OPTIONS.includes(defaultMaterial)) {
         setSelectedImportMaterial(defaultMaterial)
       } else {
@@ -88,7 +87,6 @@ export const ImportDialog = ({
     }
   }, [isOpen, defaultMaterial])
 
-  // Reset results when metric changes
   useEffect(() => {
     setParseResult(null)
   }, [selectedMetric, selectedImportMaterial])
@@ -141,7 +139,7 @@ export const ImportDialog = ({
         defaultCompany,
         companies,
         selectedMetric,
-        selectedImportMaterial, // Pass selected material as default
+        selectedImportMaterial,
       )
       setParseResult(result)
       setIsProcessing(false)

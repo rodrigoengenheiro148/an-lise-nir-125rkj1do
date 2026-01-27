@@ -64,12 +64,14 @@ const Index = () => {
     setSelectedCompanyId(newCompany.id)
   }
 
-  // Refresh data triggers a global reload if needed, but realtime should handle most
   const handleDataChange = async () => {
+    // We call refreshData to ensure consistency, but due to Realtime
+    // and the silent refresh implementation, this won't cause UI flickering.
     refreshData()
   }
 
-  // Handle loading state
+  // Handle initial loading state
+  // This only blocks the UI if we have absolutely no data to show
   if (isStoreLoading && storeCompanies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
@@ -155,7 +157,7 @@ const Index = () => {
                     setSelectedCompanyId(id)
                   }}
                   onCompanyAdded={handleCompanyAdded}
-                  isLoading={isStoreLoading}
+                  isLoading={isStoreLoading} // Only shows spinner on initial load or manual force
                 />
               </div>
               <div className="w-full sm:w-[250px]">

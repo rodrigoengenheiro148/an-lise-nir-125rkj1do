@@ -55,7 +55,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  // Initialize state from localStorage if available
+  // Initialize state from localStorage if available (only for UI preferences)
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<string>(
     () => localStorage.getItem(STORAGE_KEYS.COMPANY_ID) || '',
   )
@@ -70,11 +70,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     from: undefined,
     to: undefined,
   })
+
+  // Initialize loading as true to prevent flash of empty state on first load
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
   // Use a ref to access the latest companies list inside the realtime callback
-  // without triggering a re-subscription loop
   const companiesRef = useRef<CompanyEntity[]>([])
   useEffect(() => {
     companiesRef.current = companies
@@ -90,14 +91,18 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     setSelectedMaterialState(material)
   }
 
-  const loadData = async () => {
+  const loadData = async (forceLoadingState = false) => {
     if (!user) return
 
-    setIsLoading(true)
+    // Only show loading state if we have no data or if forced (e.g. manual hard refresh)
+    // This prevents "blanking out" charts during background updates
+    if (forceLoadingState || companies.length === 0) {
+      setIsLoading(true)
+    }
+
     setError(null)
 
     try {
-      // Use Promise.allSettled to ensure we get as much data as possible even if one fails
       const [companiesResult, recordsResult] = await Promise.allSettled([
         api.getCompanies(),
         api.getRecords(),
@@ -119,13 +124,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setAnalysisRecords(fetchedRecords)
       } else {
         console.error('Failed to load records', recordsResult.reason)
-        // If companies loaded, we might not want to block entirely, but records are crucial
         if (!error) setError('Falha ao carregar registros.')
       }
 
       // Check for persistence validity
       if (fetchedCompanies.length > 0) {
-        // If selected company is invalid (deleted or stale), reset to first available
         const isValidCompany = fetchedCompanies.some(
           (c) => c.id === selectedCompanyId,
         )
@@ -137,7 +140,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         fetchedCompanies.length === 0 &&
         companiesResult.status === 'fulfilled'
       ) {
-        // No companies exist at all
         setSelectedCompanyId('')
       }
     } catch (err) {
@@ -194,10 +196,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id
             setCompanies((prev) => prev.filter((c) => c.id !== deletedId))
-            // Also remove from selection if current
             if (selectedCompanyId === deletedId) {
-              // We rely on the companies state update to trigger re-selection or user action
-              // But better to clear it or let the effect handle it
               setSelectedCompanyId('')
             }
           }
@@ -212,33 +211,46 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           table: 'analysis_records',
         },
         (payload) => {
-          // Use the ref to get the current companies list without dependency injection
           const currentCompanies = companiesRef.current
 
           if (payload.eventType === 'INSERT') {
             const newRecord = payload.new as any
-            const company = currentCompanies.find(
-              (c) => c.id === newRecord.company_id,
-            )
-            if (company) {
-              const transformed = transformRecordFromDB(newRecord, {
+
+            // Helper to transform and add record
+            const addRecordToState = (
+              company: CompanyEntity,
+              recordData: any,
+            ) => {
+              const transformed = transformRecordFromDB(recordData, {
                 name: company.name,
                 logo_url: company.logo_url,
               })
-              setAnalysisRecords((prev) => [transformed, ...prev])
+
+              setAnalysisRecords((prev) => {
+                // RACE CONDITION PREVENTION:
+                // Check if record already exists (e.g. from manual refresh happening simultaneously)
+                if (prev.some((r) => r.id === transformed.id)) {
+                  return prev
+                }
+                return [transformed, ...prev]
+              })
+            }
+
+            const company = currentCompanies.find(
+              (c) => c.id === newRecord.company_id,
+            )
+
+            if (company) {
+              addRecordToState(company, newRecord)
             } else {
-              // Fetch company if not found locally (e.g. race condition)
+              // Fetch company if not found locally (e.g. new company + new record race)
               api.getCompanies().then((refreshedCompanies) => {
                 setCompanies(refreshedCompanies)
                 const freshCompany = refreshedCompanies.find(
                   (c) => c.id === newRecord.company_id,
                 )
                 if (freshCompany) {
-                  const transformed = transformRecordFromDB(newRecord, {
-                    name: freshCompany.name,
-                    logo_url: freshCompany.logo_url,
-                  })
-                  setAnalysisRecords((prev) => [transformed, ...prev])
+                  addRecordToState(freshCompany, newRecord)
                 }
               })
             }
@@ -286,21 +298,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   // Handle Material Selection Logic
   useEffect(() => {
     const logic = async () => {
-      // If no company is selected, we can't really determine materials
-      if (!selectedCompanyId) {
-        // Only clear if we have no companies at all, otherwise keep it
-        // in case it's just a transient state, but here we can't do much
-        return
-      }
+      if (!selectedCompanyId) return
 
       setIsLoadingMaterials(true)
       try {
         let nextMaterial = selectedMaterial
-
-        // Logic to prevent "Empty Dashboard" syndrome:
-        // If the selected material is NOT present in the current company's data,
-        // we should switch to the first available material for this company.
-        // This prevents the user from seeing 0 records just because they switched companies.
 
         if (materials.length > 0) {
           const existsInDb = materials.some(
@@ -308,24 +310,18 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           )
 
           if (!existsInDb) {
-            // Current selection is invalid for this company, switch to first available
-            // Check if any standard material is available to prioritize standard ordering
             const validStandard = MATERIALS_OPTIONS.find((opt) =>
               materials.some((m) => m.toLowerCase() === opt.toLowerCase()),
             )
 
             nextMaterial = validStandard || materials[0]
           } else {
-            // Current selection is valid, ensure casing matches option or DB
             const normalized = materials.find(
               (m) => m.toLowerCase() === selectedMaterial.toLowerCase(),
             )
             if (normalized) nextMaterial = normalized
           }
         } else {
-          // No materials for this company (no records).
-          // We can keep the selectedMaterial or reset to default.
-          // Keeping it allows user to "add" a record for this material easily.
           if (!nextMaterial) nextMaterial = MATERIALS_OPTIONS[0]
         }
 
@@ -346,7 +342,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       loadData()
     } else {
-      // Clear data on logout
       setCompanies([])
       setAnalysisRecords([])
       setError(null)
@@ -354,7 +349,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }, [user])
 
   const refreshData = () => {
-    loadData()
+    // Silent refresh to avoid UI flickering
+    loadData(false)
   }
 
   const addSamples = (newSamples: Sample[]) => {

@@ -79,7 +79,7 @@ export const EditRecordDialog = ({
         const initial = {
           material: defaultMaterial || '',
           submaterial: '',
-          date: new Date().toISOString().split('T')[0], // Default to today for new records
+          date: new Date().toISOString().split('T')[0],
           company_id: defaultCompanyId || '',
         }
         setFormData(initial)
