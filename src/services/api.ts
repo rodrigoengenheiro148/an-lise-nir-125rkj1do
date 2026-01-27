@@ -243,6 +243,15 @@ export const api = {
     if (error) throw error
   },
 
+  clearDatabase: async (companyId: string, password: string): Promise<void> => {
+    const { data, error } = await supabase.functions.invoke('clear-database', {
+      body: { companyId, password },
+    })
+
+    if (error) throw error
+    if (data?.error) throw new Error(data.error)
+  },
+
   deleteAllRecords: async () => {
     const { error } = await supabase
       .from('analysis_records')
