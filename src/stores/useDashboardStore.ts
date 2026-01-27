@@ -94,7 +94,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       isMounted.current = false
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
+        // Explicit reason prevents "signal is aborted without reason" error
+        abortControllerRef.current.abort('Component unmounted')
       }
     }
   }, [])
@@ -112,7 +113,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async (forceLoadingState = false) => {
     // Cancel previous request if exists to prevent race conditions
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
+      abortControllerRef.current.abort('Cancelled by new request')
     }
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -370,7 +371,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     // Cleanup function to abort pending requests on unmount or user change
     return () => {
       if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
+        // Explicit reason prevents "signal is aborted without reason" error
+        abortControllerRef.current.abort('Component unmounted')
       }
     }
   }, [user?.id]) // Reload when user changes (e.g. login/logout) to refresh permissions

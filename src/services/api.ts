@@ -5,11 +5,11 @@ import {
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 
-export const createAbortError = () => {
+export const createAbortError = (message = 'The operation was aborted') => {
   if (typeof DOMException !== 'undefined') {
-    return new DOMException('The operation was aborted', 'AbortError')
+    return new DOMException(message, 'AbortError')
   }
-  const error = new Error('The operation was aborted')
+  const error = new Error(message)
   error.name = 'AbortError'
   return error
 }
@@ -64,7 +64,9 @@ const retryOperation = async <T>(
 ): Promise<T> => {
   // Check signal before starting the operation
   if (signal?.aborted) {
-    throw createAbortError()
+    // If we have a specific string reason, preserve it. Otherwise use generic message to avoid "without reason" noise.
+    const reason = typeof signal.reason === 'string' ? signal.reason : undefined
+    throw createAbortError(reason)
   }
 
   try {
@@ -74,7 +76,10 @@ const retryOperation = async <T>(
     if (isAbortError(error) || signal?.aborted) {
       // If it's already an abort error, throw it directly to preserve details
       if (isAbortError(error)) throw error
-      throw createAbortError()
+
+      const reason =
+        typeof signal?.reason === 'string' ? signal.reason : undefined
+      throw createAbortError(reason)
     }
 
     if (retries <= 0) throw error
@@ -83,13 +88,17 @@ const retryOperation = async <T>(
     await new Promise((resolve, reject) => {
       // Immediate check
       if (signal?.aborted) {
-        return reject(createAbortError())
+        const reason =
+          typeof signal.reason === 'string' ? signal.reason : undefined
+        return reject(createAbortError(reason))
       }
 
       const onAbort = () => {
         clearTimeout(timeoutId)
         signal?.removeEventListener('abort', onAbort)
-        reject(createAbortError())
+        const reason =
+          typeof signal?.reason === 'string' ? signal.reason : undefined
+        reject(createAbortError(reason))
       }
 
       const timeoutId = setTimeout(() => {
@@ -229,7 +238,10 @@ export const api = {
         if (error) {
           // Check if error is an abort error or if signal is aborted
           if (isAbortError(error) || signal?.aborted) {
-            throw createAbortError()
+            // Use signal reason if available
+            const reason =
+              typeof signal?.reason === 'string' ? signal.reason : undefined
+            throw createAbortError(reason)
           }
           console.error('Error fetching companies:', error)
           throw error
@@ -271,7 +283,9 @@ export const api = {
         while (true) {
           // Check signal explicitly before starting new request
           if (signal?.aborted) {
-            throw createAbortError()
+            const reason =
+              typeof signal.reason === 'string' ? signal.reason : undefined
+            throw createAbortError(reason)
           }
 
           // Join with companies to get names. RLS on companies will filter this implicitly if set up correctly,
@@ -291,7 +305,9 @@ export const api = {
 
           if (error) {
             if (isAbortError(error) || signal?.aborted) {
-              throw createAbortError()
+              const reason =
+                typeof signal?.reason === 'string' ? signal.reason : undefined
+              throw createAbortError(reason)
             }
             console.error('Error fetching records:', error)
             throw error
