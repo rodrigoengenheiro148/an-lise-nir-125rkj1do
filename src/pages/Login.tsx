@@ -25,18 +25,47 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+
+    // Basic validation to prevent unnecessary API calls
+    if (!email || !password) {
+      toast.error('Por favor, preencha todos os campos.')
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       const { error } = await signIn(email, password)
+
       if (error) {
-        toast.error('Erro ao fazer login. Verifique suas credenciais.')
-        console.error(error)
+        console.error('Erro de login:', error)
+
+        // Handle specific authentication errors gracefully
+        // 'Invalid login credentials' is the standard message from Supabase for incorrect email/password
+        if (
+          error.message === 'Invalid login credentials' ||
+          error.status === 400
+        ) {
+          toast.error(
+            'Credenciais inválidas. Verifique seu e-mail e senha e tente novamente.',
+          )
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error(
+            'Email não confirmado. Por favor, verifique sua caixa de entrada.',
+          )
+        } else {
+          // Generic fallback for other auth errors
+          toast.error(`Erro ao fazer login: ${error.message}`)
+        }
       } else {
         toast.success('Login realizado com sucesso!')
         navigate('/')
       }
-    } catch (err) {
-      console.error(err)
-      toast.error('Ocorreu um erro inesperado.')
+    } catch (err: any) {
+      // Catch unexpected runtime errors (e.g. network failures) to prevent app crash
+      console.error('Exceção durante login:', err)
+      toast.error(
+        'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.',
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -44,7 +73,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
-      <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
+      <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-zinc-100 animate-fade-in-up">
         <CardHeader className="space-y-1">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-blue-500/10 rounded-full">
@@ -70,6 +99,8 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
                 required
+                autoComplete="email"
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -81,6 +112,8 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
                 required
+                autoComplete="current-password"
+                disabled={isSubmitting}
               />
             </div>
           </CardContent>
