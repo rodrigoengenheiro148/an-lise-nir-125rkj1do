@@ -5,6 +5,15 @@ import {
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
 
+export const createAbortError = () => {
+  if (typeof DOMException !== 'undefined') {
+    return new DOMException('The operation was aborted', 'AbortError')
+  }
+  const error = new Error('The operation was aborted')
+  error.name = 'AbortError'
+  return error
+}
+
 export const isAbortError = (error: any) => {
   if (!error) return false
 
@@ -44,12 +53,6 @@ export const isAbortError = (error: any) => {
     msg.includes('the operation was aborted') ||
     msg.includes('without reason') // Explicitly handle "signal is aborted without reason"
   )
-}
-
-const createAbortError = () => {
-  const error = new Error('signal is aborted without reason')
-  error.name = 'AbortError'
-  return error
 }
 
 // Helper for exponential backoff retry with robust abort handling

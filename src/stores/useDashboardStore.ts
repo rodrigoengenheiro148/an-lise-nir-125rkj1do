@@ -93,6 +93,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     isMounted.current = true
     return () => {
       isMounted.current = false
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [])
 
@@ -324,7 +327,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(interval)
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [user?.id]) // Optimized dependency to user ID to avoid reference instability
 
   const materials = useMemo(() => {
     if (!selectedCompanyId) return []
@@ -370,7 +373,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         abortControllerRef.current.abort()
       }
     }
-  }, [user]) // Reload when user changes (e.g. login/logout) to refresh permissions
+  }, [user?.id]) // Reload when user changes (e.g. login/logout) to refresh permissions
 
   const refreshData = () => {
     loadData(false)
