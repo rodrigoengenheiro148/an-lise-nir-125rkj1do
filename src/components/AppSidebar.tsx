@@ -37,7 +37,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               size="lg"
               asChild
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground min-h-[44px]"
             >
               <Link to="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
@@ -64,9 +64,11 @@ export function AppSidebar() {
                     isActive={location.pathname === item.url}
                     tooltip={item.title}
                     onClick={closeMobile}
+                    size="lg"
+                    className="min-h-[44px]"
                   >
                     <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -79,9 +81,14 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Configurações">
+            <SidebarMenuButton
+              asChild
+              tooltip="Configurações"
+              size="lg"
+              className="min-h-[44px]"
+            >
               <button>
-                <Settings className="h-4 w-4" />
+                <Settings className="h-5 w-5" />
                 <span>Configurações</span>
               </button>
             </SidebarMenuButton>

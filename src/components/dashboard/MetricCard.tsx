@@ -104,7 +104,7 @@ export const MetricCard = ({
                   className="h-4 w-1 rounded-full"
                   style={{ backgroundColor: color }}
                 />
-                {title}
+                <span className="truncate">{title}</span>
               </CardTitle>
               <div className="flex items-center gap-1">
                 <span className="text-xs font-mono text-zinc-500 bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-md">
@@ -113,19 +113,19 @@ export const MetricCard = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-zinc-500 hover:text-blue-400 hover:bg-zinc-900"
+                  className="h-9 w-9 md:h-8 md:w-8 text-zinc-500 hover:text-blue-400 hover:bg-zinc-900"
                   onClick={() => setIsAddDialogOpen(true)}
                   title="Adicionar Dados"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-5 w-5 md:h-4 md:w-4" />
                 </Button>
                 <DialogTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-zinc-900"
+                    className="h-9 w-9 md:h-8 md:w-8 text-zinc-500 hover:text-white hover:bg-zinc-900"
                   >
-                    <Maximize2 className="h-4 w-4" />
+                    <Maximize2 className="h-5 w-5 md:h-4 md:w-4" />
                   </Button>
                 </DialogTrigger>
               </div>
@@ -168,48 +168,58 @@ export const MetricCard = ({
           </CardContent>
         </Card>
 
-        <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col bg-black border-zinc-800 text-zinc-100">
-          <DialogHeader>
-            <DialogTitle className="flex gap-4 items-baseline uppercase">
-              <span>{title}</span>
-              <span className="text-sm font-normal text-zinc-400 lowercase normal-case">
+        {/* Fullscreen on mobile, normal dialog on desktop */}
+        <DialogContent className="w-full h-full max-w-none m-0 rounded-none sm:rounded-lg sm:max-w-[90vw] sm:h-[90vh] flex flex-col bg-black border-zinc-800 text-zinc-100 p-0 sm:p-6">
+          <DialogHeader className="p-4 sm:p-0 flex-none">
+            <DialogTitle className="flex flex-col sm:flex-row gap-1 sm:gap-4 items-start sm:items-baseline uppercase">
+              <span className="text-lg sm:text-xl font-bold">{title}</span>
+              <span className="text-xs sm:text-sm font-normal text-zinc-400 lowercase normal-case">
                 Visualização Detalhada
               </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 w-full min-h-0 p-4">
+          <div className="flex-1 w-full min-h-0 p-2 sm:p-4 overflow-hidden">
             <Tabs
               defaultValue="correlation"
               className="w-full h-full flex flex-col"
             >
-              <TabsList className="grid w-full grid-cols-4 bg-zinc-900 mb-4 border border-zinc-800">
-                <TabsTrigger
-                  value="correlation"
-                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-                >
-                  <Activity className="h-4 w-4" /> Correlação
-                </TabsTrigger>
-                <TabsTrigger
-                  value="evolution"
-                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-                >
-                  <TrendingUp className="h-4 w-4" /> Evolução
-                </TabsTrigger>
-                <TabsTrigger
-                  value="histogram"
-                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-                >
-                  <BarChart2 className="h-4 w-4" /> Histograma (LAB)
-                </TabsTrigger>
-                <TabsTrigger
-                  value="residuals"
-                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-                >
-                  <ScatterChart className="h-4 w-4" /> Dispersão Resíduos
-                </TabsTrigger>
-              </TabsList>
+              <ScrollArea className="w-full flex-none pb-2">
+                <TabsList className="flex w-full sm:grid sm:grid-cols-4 bg-zinc-900 mb-2 border border-zinc-800 h-11 p-1">
+                  <TabsTrigger
+                    value="correlation"
+                    className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white h-9"
+                  >
+                    <Activity className="h-4 w-4" />{' '}
+                    <span className="hidden sm:inline">Correlação</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="evolution"
+                    className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white h-9"
+                  >
+                    <TrendingUp className="h-4 w-4" />{' '}
+                    <span className="hidden sm:inline">Evolução</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="histogram"
+                    className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white h-9"
+                  >
+                    <BarChart2 className="h-4 w-4" />{' '}
+                    <span className="hidden sm:inline">Histograma</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="residuals"
+                    className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white h-9"
+                  >
+                    <ScatterChart className="h-4 w-4" />{' '}
+                    <span className="hidden sm:inline">Resíduos</span>
+                  </TabsTrigger>
+                </TabsList>
+              </ScrollArea>
 
-              <TabsContent value="correlation" className="flex-1 min-h-0">
+              <TabsContent
+                value="correlation"
+                className="flex-1 min-h-0 data-[state=active]:flex flex-col"
+              >
                 <MetricScatterChart
                   data={data}
                   metricKey={metricKey}
@@ -219,7 +229,10 @@ export const MetricCard = ({
                 />
               </TabsContent>
 
-              <TabsContent value="evolution" className="flex-1 min-h-0">
+              <TabsContent
+                value="evolution"
+                className="flex-1 min-h-0 data-[state=active]:flex flex-col"
+              >
                 <MetricEvolutionChart
                   data={data}
                   metricKey={metricKey}
@@ -228,7 +241,10 @@ export const MetricCard = ({
                 />
               </TabsContent>
 
-              <TabsContent value="histogram" className="flex-1 min-h-0">
+              <TabsContent
+                value="histogram"
+                className="flex-1 min-h-0 data-[state=active]:flex flex-col"
+              >
                 <MetricHistogram
                   data={data}
                   metricKey={metricKey}
@@ -236,7 +252,10 @@ export const MetricCard = ({
                 />
               </TabsContent>
 
-              <TabsContent value="residuals" className="flex-1 min-h-0">
+              <TabsContent
+                value="residuals"
+                className="flex-1 min-h-0 data-[state=active]:flex flex-col"
+              >
                 <ResidualScatter
                   data={data}
                   metricKey={metricKey}

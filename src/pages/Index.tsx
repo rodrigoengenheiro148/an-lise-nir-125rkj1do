@@ -68,32 +68,36 @@ export default function Index() {
   }, [analysisRecords, selectedCompanyId, selectedMaterial, selectedDateRange])
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6 pb-20">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-3 md:p-6 pb-20">
       <div className="max-w-[1920px] mx-auto space-y-6">
         <header className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3 font-display tracking-tight text-white">
-              <LayoutDashboard className="h-8 w-8 text-blue-500" />
+          <div className="w-full xl:w-auto">
+            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3 font-display tracking-tight text-white">
+              <LayoutDashboard className="h-7 w-7 md:h-8 md:w-8 text-blue-500" />
               Painel de Controle
             </h1>
-            <p className="text-zinc-400 text-sm mt-1">
+            <p className="text-zinc-400 text-xs md:text-sm mt-1">
               Monitoramento em tempo real de indicadores de qualidade
             </p>
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto">
             <div className="flex items-center gap-2 bg-zinc-900/50 p-1.5 rounded-lg border border-zinc-800 w-full md:w-auto">
-              <Filter className="h-4 w-4 text-zinc-500 ml-2" />
+              <Filter className="h-4 w-4 text-zinc-500 ml-2 shrink-0" />
               <Select
                 value={selectedCompanyId}
                 onValueChange={setSelectedCompanyId}
               >
-                <SelectTrigger className="h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
+                <SelectTrigger className="h-10 md:h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
                   <SelectValue placeholder="Selecione a Empresa" />
                 </SelectTrigger>
                 <SelectContent>
                   {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
+                    <SelectItem
+                      key={c.id}
+                      value={c.id}
+                      className="min-h-[44px]"
+                    >
                       {c.name}
                     </SelectItem>
                   ))}
@@ -102,17 +106,17 @@ export default function Index() {
             </div>
 
             <div className="flex items-center gap-2 bg-zinc-900/50 p-1.5 rounded-lg border border-zinc-800 w-full md:w-auto">
-              <BarChart2 className="h-4 w-4 text-zinc-500 ml-2" />
+              <BarChart2 className="h-4 w-4 text-zinc-500 ml-2 shrink-0" />
               <Select
                 value={selectedMaterial}
                 onValueChange={setSelectedMaterial}
               >
-                <SelectTrigger className="h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
+                <SelectTrigger className="h-10 md:h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
                   <SelectValue placeholder="Selecione o Material" />
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIALS_OPTIONS.map((m) => (
-                    <SelectItem key={m} value={m}>
+                    <SelectItem key={m} value={m} className="min-h-[44px]">
                       {m}
                     </SelectItem>
                   ))}
@@ -120,27 +124,29 @@ export default function Index() {
               </Select>
             </div>
 
-            <Button
-              onClick={() => setIsImportOpen(true)}
-              className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-lg shadow-emerald-900/20"
-            >
-              <Upload className="h-4 w-4" />
-              Importar
-            </Button>
+            <div className="flex w-full md:w-auto gap-3">
+              <Button
+                onClick={() => setIsImportOpen(true)}
+                className="flex-1 md:flex-none h-11 md:h-10 bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-lg shadow-emerald-900/20"
+              >
+                <Upload className="h-5 w-5 md:h-4 md:w-4" />
+                Importar
+              </Button>
 
-            <ManagementMenu
-              companies={companies}
-              selectedCompanyId={selectedCompanyId}
-              onDataChange={refreshData}
-              defaultMaterial={selectedMaterial}
-            />
+              <ManagementMenu
+                companies={companies}
+                selectedCompanyId={selectedCompanyId}
+                onDataChange={refreshData}
+                defaultMaterial={selectedMaterial}
+              />
+            </div>
           </div>
         </header>
 
         {error && (
-          <div className="w-full bg-red-950/20 border border-red-900/50 p-4 rounded-lg flex items-center justify-between gap-4 animate-fade-in">
+          <div className="w-full bg-red-950/20 border border-red-900/50 p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
               <div className="flex flex-col">
                 <span className="font-semibold text-red-200">
                   Erro de Conexão
@@ -152,7 +158,7 @@ export default function Index() {
               variant="outline"
               size="sm"
               onClick={refreshData}
-              className="border-red-900 text-red-300 hover:bg-red-950 hover:text-white gap-2"
+              className="w-full md:w-auto border-red-900 text-red-300 hover:bg-red-950 hover:text-white gap-2 h-11 md:h-9"
             >
               <RefreshCw
                 className={cn('h-4 w-4', isLoading && 'animate-spin')}
@@ -162,8 +168,8 @@ export default function Index() {
           </div>
         )}
 
-        {/* Industrial High-Density Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 auto-rows-fr">
+        {/* Industrial High-Density Grid - Responsive to Mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 auto-rows-fr">
           {METRICS.map((metric) => (
             <div key={metric.key} className="h-[320px] min-h-[320px]">
               <MetricCard

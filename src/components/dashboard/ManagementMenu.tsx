@@ -107,10 +107,11 @@ export const ManagementMenu = ({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="w-full md:w-auto gap-2 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800"
+            className="w-full md:w-auto gap-2 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 h-11 md:h-10"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-5 w-5 md:h-4 md:w-4" />
             <span className="hidden sm:inline">Admin</span>
+            <span className="sm:hidden">Opções</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -124,7 +125,7 @@ export const ManagementMenu = ({
           <DropdownMenuSeparator className="bg-zinc-800" />
 
           <DropdownMenuItem
-            className="cursor-pointer focus:bg-zinc-900 focus:text-zinc-100 gap-2"
+            className="cursor-pointer focus:bg-zinc-900 focus:text-zinc-100 gap-2 min-h-[44px]"
             onClick={() => setIsImportOpen(true)}
           >
             <Upload className="h-4 w-4 text-emerald-500" />
@@ -132,7 +133,7 @@ export const ManagementMenu = ({
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            className="cursor-pointer focus:bg-zinc-900 focus:text-zinc-100 gap-2"
+            className="cursor-pointer focus:bg-zinc-900 focus:text-zinc-100 gap-2 min-h-[44px]"
             onClick={() => setIsExportOpen(true)}
           >
             <Download className="h-4 w-4 text-blue-500" />
@@ -142,7 +143,7 @@ export const ManagementMenu = ({
           <DropdownMenuSeparator className="bg-zinc-800" />
 
           <DropdownMenuItem
-            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2"
+            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
             onClick={() => handleDeleteClick('single')}
             disabled={!selectedCompanyId}
           >
@@ -151,7 +152,7 @@ export const ManagementMenu = ({
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 font-bold"
+            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 font-bold min-h-[44px]"
             onClick={() => handleDeleteClick('all')}
           >
             <AlertTriangle className="h-4 w-4" />
@@ -225,7 +226,7 @@ export const ManagementMenu = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
-                'bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-offset-0',
+                'bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-offset-0 h-11',
                 password.length > 0 && password !== '16071997'
                   ? 'focus-visible:ring-red-500 border-red-500/50'
                   : 'focus-visible:ring-emerald-500',
@@ -239,14 +240,14 @@ export const ManagementMenu = ({
               variant="ghost"
               disabled={isDeleting}
               onClick={() => setIsDeleteDialogOpen(false)}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-900"
+              className="text-zinc-400 hover:text-white hover:bg-zinc-900 h-11 sm:h-10"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleVerifyAndClear}
               disabled={isDeleting || !password}
-              className="bg-red-600 hover:bg-red-700 text-white gap-2"
+              className="bg-red-600 hover:bg-red-700 text-white gap-2 h-11 sm:h-10"
             >
               {isDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

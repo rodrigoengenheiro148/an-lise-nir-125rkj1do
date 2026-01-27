@@ -173,13 +173,11 @@ export const ImportDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-100 h-full max-h-none sm:max-h-[90vh] flex flex-col p-4 sm:p-6 w-full sm:rounded-lg">
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Importe múltiplos registros de uma vez. O sistema mesclará
-            automaticamente dados novos com existentes com base na Data, Empresa
-            e Material.
+            Importe múltiplos registros de uma vez.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,17 +190,21 @@ export const ImportDialog = ({
                   value={selectedMetric}
                   onValueChange={setSelectedMetric}
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 min-h-[44px]">
                     <SelectValue placeholder="Selecione o Modo..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
-                    <SelectItem value="bulk_strict">
+                    <SelectItem value="bulk_strict" className="min-h-[44px]">
                       <span className="font-bold text-emerald-500">
                         Template Completo (Bulk Import)
                       </span>
                     </SelectItem>
                     {METRICS.map((m) => (
-                      <SelectItem key={m.key} value={m.key}>
+                      <SelectItem
+                        key={m.key}
+                        value={m.key}
+                        className="min-h-[44px]"
+                      >
                         {m.label}
                       </SelectItem>
                     ))}
@@ -216,12 +218,16 @@ export const ImportDialog = ({
                   value={selectedCompanyId}
                   onValueChange={setSelectedCompanyId}
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 min-h-[44px]">
                     <SelectValue placeholder="Selecione caso faltem dados..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
                     {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
+                      <SelectItem
+                        key={c.id}
+                        value={c.id}
+                        className="min-h-[44px]"
+                      >
                         {c.name}
                       </SelectItem>
                     ))}
@@ -237,25 +243,22 @@ export const ImportDialog = ({
                   value={selectedImportMaterial}
                   onValueChange={setSelectedImportMaterial}
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 min-h-[44px]">
                     <SelectValue placeholder="Utilizar material da linha ou selecione..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
-                    <SelectItem value=" ">
+                    <SelectItem value=" " className="min-h-[44px]">
                       <span className="text-zinc-500 italic">
                         Detectar do arquivo (Padrão)
                       </span>
                     </SelectItem>
                     {MATERIALS_OPTIONS.map((m) => (
-                      <SelectItem key={m} value={m}>
+                      <SelectItem key={m} value={m} className="min-h-[44px]">
                         {getMaterialDisplayName(m)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-zinc-500 px-1">
-                  Usado se o material não for especificado no arquivo.
-                </p>
               </div>
             </div>
 
@@ -264,12 +267,12 @@ export const ImportDialog = ({
               onValueChange={setActiveTab}
               className="flex-1 flex flex-col overflow-hidden pt-2"
             >
-              <TabsList className="grid w-full grid-cols-2 bg-zinc-900 flex-none">
-                <TabsTrigger value="text" className="gap-2">
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-900 flex-none h-12">
+                <TabsTrigger value="text" className="gap-2 h-10">
                   <Grid className="h-4 w-4" />
                   Planilha / Excel
                 </TabsTrigger>
-                <TabsTrigger value="file" className="gap-2">
+                <TabsTrigger value="file" className="gap-2 h-10">
                   <Upload className="h-4 w-4" />
                   Arquivo CSV
                 </TabsTrigger>
@@ -277,13 +280,15 @@ export const ImportDialog = ({
 
               <TabsContent value="file" className="space-y-4 pt-4 flex-none">
                 <div
-                  className="border-2 border-dashed border-zinc-800 rounded-lg p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-900/50 hover:border-zinc-700 transition-colors"
+                  className="border-2 border-dashed border-zinc-800 rounded-lg p-6 sm:p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-900/50 hover:border-zinc-700 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {file ? (
                     <div className="flex flex-col items-center gap-2 text-emerald-500">
                       <FileSpreadsheet className="h-10 w-10" />
-                      <span className="font-medium">{file.name}</span>
+                      <span className="font-medium text-center break-all">
+                        {file.name}
+                      </span>
                       <span className="text-xs text-zinc-500">
                         Clique para alterar
                       </span>
@@ -291,7 +296,7 @@ export const ImportDialog = ({
                   ) : (
                     <div className="flex flex-col items-center gap-2 text-zinc-500">
                       <Upload className="h-10 w-10" />
-                      <span className="font-medium">
+                      <span className="font-medium text-center">
                         Clique para selecionar CSV
                       </span>
                     </div>
@@ -325,7 +330,7 @@ export const ImportDialog = ({
                 <div className="flex items-center gap-2 text-emerald-500">
                   <CheckCircle className="h-5 w-5" />
                   <span className="font-bold">{parseResult.validCount}</span>
-                  <span className="text-sm">Válidos</span>
+                  <span className="text-sm hidden sm:inline">Válidos</span>
                 </div>
                 {parseResult.invalidCount > 0 && (
                   <div className="flex items-center gap-2 text-red-500">
@@ -333,7 +338,7 @@ export const ImportDialog = ({
                     <span className="font-bold">
                       {parseResult.invalidCount}
                     </span>
-                    <span className="text-sm">Erros</span>
+                    <span className="text-sm hidden sm:inline">Erros</span>
                   </div>
                 )}
               </div>
@@ -341,7 +346,7 @@ export const ImportDialog = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setParseResult(null)}
-                className="text-zinc-400"
+                className="text-zinc-400 h-10"
               >
                 Voltar
               </Button>
@@ -356,7 +361,10 @@ export const ImportDialog = ({
                     </h4>
                     <ul className="list-disc pl-5 space-y-1">
                       {parseResult.errors.map((err, i) => (
-                        <li key={i} className="text-xs text-red-300 font-mono">
+                        <li
+                          key={i}
+                          className="text-xs text-red-300 font-mono break-all"
+                        >
                           {err}
                         </li>
                       ))}
@@ -367,15 +375,9 @@ export const ImportDialog = ({
                 {parseResult.records.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-semibold text-emerald-400 sticky top-0 bg-zinc-950/90 py-1">
-                      Pré-visualização (Primeiros 50):
+                      Pré-visualização:
                     </h4>
                     <div className="grid gap-1">
-                      <div className="grid grid-cols-[80px_1fr_1fr_auto] gap-2 text-xs font-bold text-zinc-500 px-2 uppercase">
-                        <span>Data</span>
-                        <span>Empresa</span>
-                        <span>Material</span>
-                        <span className="text-right">Valores</span>
-                      </div>
                       {parseResult.records.slice(0, 50).map((rec, i) => {
                         let valuesDisplay = '...'
                         if (
@@ -398,7 +400,7 @@ export const ImportDialog = ({
                         return (
                           <div
                             key={i}
-                            className="grid grid-cols-[80px_1fr_1fr_auto] gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50 items-center hover:bg-zinc-800/50"
+                            className="flex flex-col sm:grid sm:grid-cols-[80px_1fr_1fr_auto] gap-1 sm:gap-2 text-xs p-2 bg-zinc-900/50 rounded border border-zinc-800/50 sm:items-center hover:bg-zinc-800/50"
                           >
                             <span className="text-zinc-400 font-mono truncate">
                               {rec.date
@@ -411,7 +413,7 @@ export const ImportDialog = ({
                             <span className="truncate text-zinc-400">
                               {rec.material}
                             </span>
-                            <span className="text-zinc-500 font-mono text-right">
+                            <span className="text-zinc-500 font-mono text-left sm:text-right">
                               {valuesDisplay}
                             </span>
                           </div>
@@ -425,28 +427,37 @@ export const ImportDialog = ({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0 mt-auto pt-4 border-t border-zinc-800">
+        <DialogFooter className="gap-2 sm:gap-0 mt-auto pt-4 border-t border-zinc-800 flex-col-reverse sm:flex-row">
           {!parseResult ? (
             <>
-              <Button variant="ghost" onClick={() => setIsOpen(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => setIsOpen(false)}
+                className="h-12 sm:h-10"
+              >
                 Cancelar
               </Button>
               <Button
                 onClick={processImport}
                 disabled={isProcessing || !selectedMetric}
+                className="h-12 sm:h-10"
               >
                 {isProcessing ? 'Processando...' : 'Processar Dados'}
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => setIsOpen(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => setIsOpen(false)}
+                className="h-12 sm:h-10"
+              >
                 Cancelar
               </Button>
               <Button
                 onClick={confirmImport}
                 disabled={isProcessing || parseResult.records.length === 0}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-12 sm:h-10"
               >
                 {isProcessing ? 'Salvando...' : 'Confirmar Importação'}
               </Button>

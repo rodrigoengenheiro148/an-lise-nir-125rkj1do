@@ -191,21 +191,26 @@ export const MetricScatterChart = ({
           <h4 className="text-lg font-bold text-zinc-200 uppercase tracking-wide text-center">
             {chartTitle}
           </h4>
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[10px] sm:text-xs font-mono text-zinc-400 bg-zinc-900/50 py-1 rounded border border-zinc-800 px-2">
-            <span>R²: {stats.r2.toFixed(3)}</span>
-            <span>Slope: {stats.slope.toFixed(3)}</span>
-            <span>Bias: {stats.bias.toFixed(3)}</span>
-            <span>SEP: {stats.sep.toFixed(3)}</span>
+          <div className="flex flex-wrap justify-center gap-x-2 sm:gap-x-4 gap-y-1 text-[10px] sm:text-xs font-mono text-zinc-400 bg-zinc-900/50 py-1 rounded border border-zinc-800 px-2">
+            <span className="whitespace-nowrap">R²: {stats.r2.toFixed(3)}</span>
+            <span className="whitespace-nowrap">
+              Slope: {stats.slope.toFixed(3)}
+            </span>
+            <span className="whitespace-nowrap">
+              Bias: {stats.bias.toFixed(3)}
+            </span>
+            <span className="whitespace-nowrap">
+              SEP: {stats.sep.toFixed(3)}
+            </span>
           </div>
         </div>
       )}
 
       <div
         className={cn(
-          'flex-1',
-          compact
-            ? 'min-h-0'
-            : 'min-h-[300px] sm:min-h-[400px] bg-black rounded-lg border border-zinc-800 p-2 sm:p-4 shadow-sm',
+          'flex-1 min-h-0',
+          !compact &&
+            'min-h-[300px] sm:min-h-[400px] bg-black rounded-lg border border-zinc-800 p-2 sm:p-4 shadow-sm',
         )}
       >
         <ChartContainer config={chartConfig} className="h-full w-full">
@@ -215,7 +220,7 @@ export const MetricScatterChart = ({
                 top: 20,
                 right: 20,
                 bottom: 20,
-                left: 0,
+                left: -10,
               }}
             >
               <defs>
@@ -272,7 +277,7 @@ export const MetricScatterChart = ({
                   fill: '#a1a1aa',
                   fontSize: 10,
                   fontWeight: 600,
-                  offset: 0,
+                  offset: 10,
                 }}
               />
               <Tooltip
@@ -280,6 +285,7 @@ export const MetricScatterChart = ({
                 content={(props) => (
                   <CustomTooltip {...props} unit={unit} color={color} />
                 )}
+                isAnimationActive={false}
               />
 
               {/* Trend Line rendered BEFORE Scatter so points are on top */}

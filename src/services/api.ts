@@ -27,8 +27,9 @@ export const isAbortError = (error: any) => {
     msg.includes('signal is aborted') ||
     msg.includes('user aborted') ||
     msg.includes('http n/a') || // Specific error mentioned in requirements
-    msg.includes('failed to fetch') ||
-    msg.includes('network request failed')
+    msg.includes('load failed') || // Common on mobile Safari
+    msg.includes('network request failed') ||
+    msg.includes('failed to fetch')
   )
 }
 

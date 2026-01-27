@@ -80,10 +80,12 @@ export const ResidualChart = ({
         </div>
       </div>
 
-      <div className="flex-1 min-h-[400px] bg-black rounded-lg border border-zinc-800 p-4 shadow-sm">
+      <div className="flex-1 min-h-[400px] bg-black rounded-lg border border-zinc-800 p-2 sm:p-4 shadow-sm">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+            <ScatterChart
+              margin={{ top: 20, right: 20, left: -10, bottom: 20 }}
+            >
               <defs>
                 <filter
                   id={`glow-residue-${safeFilterId}`}
@@ -136,6 +138,7 @@ export const ResidualChart = ({
                   fill: '#a1a1aa',
                   fontSize: 12,
                   fontWeight: 600,
+                  offset: 10,
                 }}
               />
               <ReferenceLine y={0} stroke="#52525b" strokeDasharray="3 3" />
@@ -200,6 +203,7 @@ export const ResidualChart = ({
                   }
                   return null
                 }}
+                isAnimationActive={false}
               />
               <Scatter
                 name="Resíduo"
@@ -207,6 +211,7 @@ export const ResidualChart = ({
                 fill="#ef4444"
                 style={{ filter: `url(#glow-residue-${safeFilterId})` }}
                 strokeWidth={0}
+                isAnimationActive={false}
               />
             </ScatterChart>
           </ResponsiveContainer>

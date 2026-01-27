@@ -83,12 +83,12 @@ export const MetricHistogram = ({
   }
 
   return (
-    <div className="h-full w-full bg-black rounded-lg border border-zinc-800 p-4 shadow-sm">
+    <div className="h-full w-full bg-black rounded-lg border border-zinc-800 p-2 sm:p-4 shadow-sm">
       <ChartContainer config={chartConfig} className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={histogramData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -132,6 +132,7 @@ export const MetricHistogram = ({
               radius={[4, 4, 0, 0]}
               name="Frequência"
               barSize={32}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
@@ -141,6 +142,7 @@ export const MetricHistogram = ({
               dot={{ r: 3, fill: color, strokeWidth: 0 }}
               activeDot={{ r: 5, strokeWidth: 0 }}
               name="Tendência"
+              isAnimationActive={false}
             />
           </ComposedChart>
         </ResponsiveContainer>
