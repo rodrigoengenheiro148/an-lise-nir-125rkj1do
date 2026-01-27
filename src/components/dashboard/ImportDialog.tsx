@@ -78,7 +78,7 @@ export const ImportDialog = ({
       setTextInput('')
       setFile(null)
       setIsProcessing(false)
-      setSelectedMetric('auto')
+      setSelectedMetric('')
       if (defaultMaterial && MATERIALS_OPTIONS.includes(defaultMaterial)) {
         setSelectedImportMaterial(defaultMaterial)
       } else {
@@ -196,11 +196,6 @@ export const ImportDialog = ({
                     <SelectValue placeholder="Selecione o Modo..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
-                    <SelectItem value="auto">
-                      <span className="font-bold">
-                        Automático (Detectar cabeçalhos)
-                      </span>
-                    </SelectItem>
                     <SelectItem value="bulk_strict">
                       <span className="font-bold text-emerald-500">
                         Template Completo (Bulk Import)

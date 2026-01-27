@@ -151,7 +151,7 @@ export const METRICS: {
   },
   {
     key: 'mineralMatter',
-    label: 'Cinzas', // Also known as Material Mineral
+    label: 'Material Mineral', // Updated from 'Cinzas'
     unit: '%',
     color: '#6366f1',
     aliases: [
@@ -160,7 +160,7 @@ export const METRICS: {
       'cinzas',
       'mineral matter',
       'mm',
-      'material mineral',
+      'material mineral'
     ],
   },
   {
