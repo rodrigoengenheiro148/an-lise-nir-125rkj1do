@@ -13,6 +13,8 @@ const KEY_MAPPING: Record<string, string> = {
   proteinDigestibility: 'protein_digestibility',
   calcium: 'calcium',
   sodium: 'sodium',
+  iodine: 'iodine',
+  impurity: 'impurity',
 }
 
 // Exported for use in Store for Realtime updates

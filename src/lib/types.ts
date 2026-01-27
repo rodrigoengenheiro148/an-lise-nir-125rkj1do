@@ -10,6 +10,8 @@ export type AnalysisType =
   | 'CALCIO'
   | 'FCO'
   | 'SODIO'
+  | 'IODO'
+  | 'IMPUREZA'
 
 export interface Sample {
   id: string
@@ -37,6 +39,8 @@ export const ANALYSIS_TYPES: AnalysisType[] = [
   'CALCIO',
   'FCO',
   'SODIO',
+  'IODO',
+  'IMPUREZA',
 ]
 
 export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
@@ -51,6 +55,8 @@ export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
   CALCIO: 'Cálcio',
   FCO: 'FCO',
   SODIO: 'Sódio',
+  IODO: 'Iodo',
+  IMPUREZA: 'Impureza',
 }
 
 export interface Stats {

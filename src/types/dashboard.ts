@@ -59,6 +59,8 @@ export const STATIC_SUBMATERIALS = [
   'Cálcio',
   'Dig. Proteica',
   'Sódio',
+  'Iodo',
+  'Impureza',
 ]
 
 export type MetricKey =
@@ -73,6 +75,8 @@ export type MetricKey =
   | 'proteinDigestibility'
   | 'calcium'
   | 'sodium'
+  | 'iodine'
+  | 'impurity'
 
 export const METRICS: {
   key: MetricKey
@@ -175,6 +179,20 @@ export const METRICS: {
     color: '#f59e0b',
     aliases: ['fosforo', 'phosphorus'],
   },
+  {
+    key: 'iodine',
+    label: 'Iodo',
+    unit: 'g/100g',
+    color: '#d946ef',
+    aliases: ['iodo', 'iodine', 'iv'],
+  },
+  {
+    key: 'impurity',
+    label: 'Impureza',
+    unit: '%',
+    color: '#a1a1aa',
+    aliases: ['impureza', 'impurity', 'sujeira', 'imp'],
+  },
 ]
 
 export const BULK_IMPORT_ORDER: MetricKey[] = [
@@ -189,6 +207,8 @@ export const BULK_IMPORT_ORDER: MetricKey[] = [
   'protein',
   'proteinDigestibility',
   'sodium',
+  'iodine',
+  'impurity',
 ]
 
 export interface AnalysisRecord {
