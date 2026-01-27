@@ -8,6 +8,8 @@ import Layout from '@/components/Layout'
 import Index from '@/pages/Index'
 import Login from '@/pages/Login'
 import SignUp from '@/pages/SignUp'
+import ForgotPassword from '@/pages/ForgotPassword'
+import ResetPassword from '@/pages/ResetPassword'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -20,6 +22,8 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
