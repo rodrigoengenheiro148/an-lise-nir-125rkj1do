@@ -111,6 +111,8 @@ export const EditRecordDialog = ({
       if (mode === 'edit' && record) {
         // Robust Patching: Calculate only the diff to send to the API
         const updates: Partial<AnalysisRecord> = {}
+
+        // Check core fields
         if (formData.material !== initialData.material)
           updates.material = formData.material
         if (formData.submaterial !== initialData.submaterial)
@@ -119,17 +121,23 @@ export const EditRecordDialog = ({
           updates.company_id = formData.company_id
         if (formData.date !== initialData.date) updates.date = formData.date
 
+        // Check all metrics
         METRICS.forEach((m) => {
-          const keyLab = `${m.key}_lab`
-          const keyAnl = `${m.key}_anl`
-          const keyNir = `${m.key}_nir`
-          // Compare loosely to handle null/undefined differences from form
-          if (formData[keyLab] != initialData[keyLab])
-            updates[keyLab] = formData[keyLab]
-          if (formData[keyAnl] != initialData[keyAnl])
-            updates[keyAnl] = formData[keyAnl]
-          if (formData[keyNir] != initialData[keyNir])
-            updates[keyNir] = formData[keyNir]
+          ;['lab', 'nir', 'anl'].forEach((type) => {
+            const key = `${m.key}_${type}`
+            const newVal = formData[key]
+            const oldVal = initialData[key]
+
+            // Compare values loosely to handle string/number differences from inputs
+            // and treat '' as equivalent to null/undefined if original was null/undefined
+            const normalizedNew = newVal === '' ? null : newVal
+            const normalizedOld =
+              oldVal === undefined || oldVal === null ? null : oldVal
+
+            if (normalizedNew != normalizedOld) {
+              updates[key] = newVal // Pass the raw new value, api.ts handles cleaning
+            }
+          })
         })
 
         if (Object.keys(updates).length > 0) {

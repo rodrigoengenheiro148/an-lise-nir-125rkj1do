@@ -95,7 +95,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async (forceLoadingState = false) => {
     if (!user) return
 
-    // Smart loading: Only show spinner if we strictly need to (initial load or manual force)
     if (
       forceLoadingState ||
       (companies.length === 0 && analysisRecords.length === 0)
@@ -104,11 +103,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Fetch companies first to ensure we have context for records
       const companiesData = await api.getCompanies()
       setCompanies(companiesData)
-
-      // Update ref immediately for any pending realtime events
       companiesRef.current = companiesData
 
       const recordsData = await api.getRecords()
@@ -116,7 +112,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
       setError(null)
 
-      // Initial Selection Logic
       if (companiesData.length > 0) {
         const isValidCompany = companiesData.some(
           (c) => c.id === selectedCompanyId,
@@ -137,7 +132,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  // Realtime subscription setup
   useEffect(() => {
     if (!user) return
 
@@ -202,7 +196,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       )
       .subscribe()
 
-    // Robust Interval Processor for Realtime Events
     const interval = setInterval(() => {
       if (pendingUpdates.current.length === 0) return
 
@@ -217,20 +210,17 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           if (update.type === 'INSERT') {
             const newRecord = update.payload
 
-            // Prevent duplicates
             if (nextRecords.some((r) => r.id === newRecord.id)) return
 
             const company = currentCompanies.find(
               (c) => c.id === newRecord.company_id,
             )
 
-            // Even if company is missing locally (rare), we add it with ID as placeholder
-            // to ensure data is visible. It will be fixed on next full refresh or company sync.
             const transformed = transformRecordFromDB(newRecord, {
               name: company?.name || 'Carregando...',
               logo_url: company?.logo_url,
             })
-            nextRecords.unshift(transformed) // Add to top
+            nextRecords.unshift(transformed)
           } else if (update.type === 'UPDATE') {
             const updatedRecord = update.payload
             const company = currentCompanies.find(
@@ -243,11 +233,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
             const idx = nextRecords.findIndex((r) => r.id === transformed.id)
             if (idx !== -1) {
-              // Replace existing record logic ensuring we don't lose the object reference identity if not needed,
-              // but here we replace to update all fields.
               nextRecords[idx] = transformed
             } else {
-              // If we got an update for a record we don't have, treat as insert
               nextRecords.unshift(transformed)
             }
           } else if (update.type === 'DELETE') {
@@ -256,7 +243,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           }
         })
 
-        // Ensure sorting by created_at desc to match DB order
         return nextRecords.sort((a, b) => {
           return (
             new Date(b.created_at || 0).getTime() -

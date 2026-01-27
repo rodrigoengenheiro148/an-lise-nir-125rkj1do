@@ -14,11 +14,13 @@ import {
   Activity,
   Plus,
   ScatterChart,
+  TrendingUp,
 } from 'lucide-react'
 import { AnalysisRecord, MetricKey } from '@/types/dashboard'
 import { MetricScatterChart } from './MetricScatterChart'
 import { MetricHistogram } from './MetricHistogram'
 import { ResidualScatter } from './ResidualChart'
+import { MetricEvolutionChart } from './MetricEvolutionChart'
 import { MetricDataDialog } from './MetricDataDialog'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -169,12 +171,18 @@ export const MetricCard = ({
               defaultValue="correlation"
               className="w-full h-full flex flex-col"
             >
-              <TabsList className="grid w-full grid-cols-3 bg-zinc-900 mb-4 border border-zinc-800">
+              <TabsList className="grid w-full grid-cols-4 bg-zinc-900 mb-4 border border-zinc-800">
                 <TabsTrigger
                   value="correlation"
                   className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
                 >
                   <Activity className="h-4 w-4" /> Correlação
+                </TabsTrigger>
+                <TabsTrigger
+                  value="evolution"
+                  className="flex items-center gap-2 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+                >
+                  <TrendingUp className="h-4 w-4" /> Evolução
                 </TabsTrigger>
                 <TabsTrigger
                   value="histogram"
@@ -197,6 +205,15 @@ export const MetricCard = ({
                   color={color}
                   unit={unit}
                   title={title}
+                />
+              </TabsContent>
+
+              <TabsContent value="evolution" className="flex-1 min-h-0">
+                <MetricEvolutionChart
+                  data={data}
+                  metricKey={metricKey}
+                  color={color}
+                  unit={unit}
                 />
               </TabsContent>
 

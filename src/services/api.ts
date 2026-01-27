@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
 
+// Strict mapping ensuring all 13 metrics are covered matching DB columns
 const KEY_MAPPING: Record<string, string> = {
   acidity: 'acidity',
   moisture: 'moisture',
@@ -32,7 +33,10 @@ export const transformRecordFromDB = (
     submaterial: row.sub_material || row.submaterial || undefined,
   }
 
+  // Map all metric columns from DB (snake_case) to App (camelCase)
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
+    // Explicitly check for null/undefined to preserve 0 values
+    // Using ?? undefined to ensure we have a consistent type in App state
     record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? undefined
     record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? undefined
     record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? undefined
@@ -52,7 +56,7 @@ const transformRecordToDB = (
     sub_material: record.submaterial,
   }
 
-  // Only include defined metrics to avoid overwriting with nulls if using upsert/update (though this is mostly used for insert)
+  // Parse and map values for DB insertion
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
     const parseVal = (val: any) => {
       if (val === undefined || val === null || val === '') return null
@@ -64,9 +68,10 @@ const transformRecordToDB = (
     const nir = parseVal(record[`${appKey}_nir`])
     const anl = parseVal(record[`${appKey}_anl`])
 
-    if (lab !== undefined && lab !== null) dbRow[`${dbPrefix}_lab`] = lab
-    if (nir !== undefined && nir !== null) dbRow[`${dbPrefix}_nir`] = nir
-    if (anl !== undefined && anl !== null) dbRow[`${dbPrefix}_anl`] = anl
+    // Only set fields that are defined (even if null)
+    if (lab !== undefined) dbRow[`${dbPrefix}_lab`] = lab
+    if (nir !== undefined) dbRow[`${dbPrefix}_nir`] = nir
+    if (anl !== undefined) dbRow[`${dbPrefix}_anl`] = anl
   })
 
   return dbRow
@@ -97,12 +102,11 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
-    // Robust Fetching: Selecting all necessary fields explicitly to ensure data integrity
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
       .order('created_at', { ascending: false })
-      .limit(100000)
+      .limit(10000)
 
     if (error) {
       console.error('Error fetching records:', error)
@@ -113,64 +117,6 @@ export const api = {
       const comp = (row.companies as any) || { name: 'Unknown' }
       return transformRecordFromDB(row, comp)
     })
-  },
-
-  getCompanyRecords: async (
-    companyId: string,
-    material?: string,
-  ): Promise<AnalysisRecord[]> => {
-    let query = supabase
-      .from('analysis_records')
-      .select('*, companies(name, logo_url)')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false })
-      .limit(100000)
-
-    if (material) {
-      query = query.ilike('material', material)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching company records:', error)
-      throw error
-    }
-
-    return (data || []).map((row) => {
-      const comp = (row.companies as any) || { name: 'Unknown' }
-      return transformRecordFromDB(row, comp)
-    })
-  },
-
-  saveRecords: async (records: AnalysisRecord[]) => {
-    const companies = await api.getCompanies()
-
-    const rowsToInsert = records
-      .map((r) => {
-        const company = companies.find(
-          (c) => c.name === r.company || c.id === r.company_id,
-        )
-        if (!company) return null
-        // Ensure we pass a new ID if not present, though usually insert handles it.
-        // If the record has an ID, we might want to preserve it or let DB gen it.
-        // For imports, we treat them as new records to avoid accidental overwrites of existing unrelated data.
-        return transformRecordToDB(r, company.id)
-      })
-      .filter(Boolean)
-
-    if (rowsToInsert.length === 0) return
-
-    // Chunking inserts to avoid payload size limits and network timeouts
-    const CHUNK_SIZE = 500 // Reduced chunk size for better stability
-    for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
-      const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE)
-      const { error } = await supabase.from('analysis_records').insert(chunk)
-      if (error) {
-        console.error('Error saving chunk:', error)
-        throw error
-      }
-    }
   },
 
   createRecord: async (
@@ -184,24 +130,21 @@ export const api = {
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
     const dbUpdates: any = {}
 
-    // Explicitly handle meta fields
     if (updates.material !== undefined) dbUpdates.material = updates.material
     if (updates.submaterial !== undefined)
       dbUpdates.sub_material = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
     if (updates.date !== undefined) dbUpdates.date = updates.date
 
-    // Robust Patching: Only update fields that are explicitly present in the updates object.
-    // This prevents overwriting existing data with nulls or defaults.
+    // Robust Update Logic: Only include fields explicitly present in updates object
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
       const types = ['lab', 'nir', 'anl']
       types.forEach((type) => {
         const key = `${appKey}_${type}`
         if (Object.prototype.hasOwnProperty.call(updates, key)) {
           const val = updates[key]
-          // If explicitly set to empty string or null, we set DB value to null.
-          // Otherwise parse number.
-          if (val === undefined) return // Should not happen with hasOwnProperty check but safe to keep
+
+          if (val === undefined) return // Skip undefined keys
 
           if (val === '' || val === null) {
             dbUpdates[`${dbPrefix}_${type}`] = null

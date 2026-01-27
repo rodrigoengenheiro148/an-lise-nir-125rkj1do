@@ -7,16 +7,6 @@ export interface CompanyEntity {
   created_at: string
 }
 
-export const DEFAULT_COMPANIES: string[] = [
-  'Brasmix',
-  'Mar Reciclagem',
-  'Farinorte',
-  'Juina',
-  'Nutrição',
-  'Varzea',
-]
-
-// Updated to match Acceptance Criteria strictly
 export const MATERIALS_OPTIONS = [
   'farinha de peixe',
   'farinha de pena e sangue',
