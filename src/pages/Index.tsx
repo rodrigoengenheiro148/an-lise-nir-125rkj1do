@@ -1,280 +1,149 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  METRICS,
-  CompanyEntity,
-  getMaterialDisplayName,
-  MATERIALS_OPTIONS,
-} from '@/types/dashboard'
-import { CompanySelector } from '@/components/dashboard/CompanySelector'
-import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
-import { MetricCard } from '@/components/dashboard/MetricCard'
-import { EditRecordDialog } from '@/components/dashboard/EditRecordDialog'
-import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
-import {
-  Activity,
-  TrendingUp,
-  Cloud,
-  Plus,
-  AlertCircle,
-  RefreshCw,
-  CheckCircle2,
+  LayoutDashboard,
+  Calendar as CalendarIcon,
+  Filter,
+  BarChart2,
+  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { MetricCard } from '@/components/dashboard/MetricCard'
+import { ImportDialog } from '@/components/dashboard/ImportDialog'
 import useDashboardStore from '@/stores/useDashboardStore'
+import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 
-const Index = () => {
+export default function Index() {
   const {
-    selectedCompanyId,
-    setSelectedCompanyId,
-    selectedMaterial,
-    setSelectedMaterial,
-    companies: storeCompanies,
+    companies,
     analysisRecords,
-    isLoading: isStoreLoading,
-    isLoadingMaterials,
-    refreshData,
-    error: storeError,
+    selectedCompanyId,
+    selectedMaterial,
+    setSelectedCompanyId,
+    setSelectedMaterial,
+    isLoading,
   } = useDashboardStore()
 
-  const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
 
-  // Derive filtered records from the global store which is updated in real-time
-  // Material filtering fixes data to its respective category
-  const filteredRecords = useMemo(() => {
-    if (!selectedCompanyId) return []
-
-    let records = analysisRecords.filter(
-      (r) => r.company_id === selectedCompanyId,
-    )
-
-    if (selectedMaterial) {
-      records = records.filter(
-        (r) => r.material?.toLowerCase() === selectedMaterial.toLowerCase(),
-      )
-    }
-
-    // Ensure sorting by date descending
-    return records.sort((a, b) => {
-      const dateA = new Date(a.date || 0).getTime()
-      const dateB = new Date(b.date || 0).getTime()
-      return dateB - dateA
+  // Memoized filtered data to ensure visual stability and performance
+  const filteredData = useMemo(() => {
+    return analysisRecords.filter((record) => {
+      const matchCompany =
+        !selectedCompanyId || record.company_id === selectedCompanyId
+      const matchMaterial =
+        !selectedMaterial || record.material === selectedMaterial
+      return matchCompany && matchMaterial
     })
   }, [analysisRecords, selectedCompanyId, selectedMaterial])
 
-  const handleCompanyAdded = (newCompany: CompanyEntity) => {
-    refreshData()
-    setSelectedCompanyId(newCompany.id)
-  }
-
-  const handleDataChange = async () => {
-    // Triggered after add/edit/import
-    // Calls silent refresh to ensure consistency, though Realtime handles most cases
-    refreshData()
-  }
-
-  // Handle initial loading state
-  // This only blocks the UI if we have absolutely no data to show
-  if (isStoreLoading && storeCompanies.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
-        <div className="animate-pulse flex flex-col items-center">
-          <Activity className="h-10 w-10 text-blue-500 mb-4" />
-          <span className="text-lg font-medium">Carregando Dados...</span>
-        </div>
-      </div>
-    )
-  }
-
-  // Handle error state or no companies
-  if (!isStoreLoading && (storeError || storeCompanies.length === 0)) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100 p-6">
-        <div className="flex flex-col items-center max-w-md text-center">
-          {storeError ? (
-            <>
-              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-              <h2 className="text-xl font-bold mb-2">Erro de Conexão</h2>
-              <p className="text-zinc-400 mb-6">{storeError}</p>
-            </>
-          ) : (
-            <>
-              <div className="p-4 bg-zinc-900 rounded-full mb-4">
-                <TrendingUp className="h-10 w-10 text-zinc-500" />
-              </div>
-              <h2 className="text-xl font-bold mb-2">Bem-vindo ao Dashboard</h2>
-              <p className="text-zinc-400 mb-6">
-                Comece adicionando uma empresa para gerenciar suas análises.
-              </p>
-            </>
-          )}
-
-          <div className="flex gap-4">
-            <Button onClick={refreshData} variant="outline" className="gap-2">
-              <RefreshCw className="h-4 w-4" /> Tentar Novamente
-            </Button>
-            {storeCompanies.length === 0 && !storeError && (
-              <CompanySelector
-                selectedCompanyId={selectedCompanyId}
-                companies={[]}
-                onSelect={() => {}}
-                onCompanyAdded={handleCompanyAdded}
-                isLoading={false}
-                placeholder="Cadastrar Empresa"
-              />
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const companiesForSelector: CompanyEntity[] = storeCompanies
-
   return (
-    <div className="min-h-full bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">
-      {/* Sticky header for tool controls, sits below main Layout header */}
-      <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-30 shadow-md">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/20 shrink-0">
-              <TrendingUp className="h-6 w-6 text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                Dashboard Analítico
-              </h1>
-              <p className="text-xs text-zinc-400">
-                Monitoramento de Qualidade Cloud
-              </p>
-            </div>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-6 pb-20">
+      <div className="max-w-[1920px] mx-auto space-y-6">
+        <header className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3 font-display tracking-tight text-white">
+              <LayoutDashboard className="h-8 w-8 text-blue-500" />
+              Painel de Controle
+            </h1>
+            <p className="text-zinc-400 text-sm mt-1">
+              Monitoramento em tempo real de indicadores de qualidade
+            </p>
           </div>
 
-          <div className="flex flex-col xl:flex-row items-center gap-4 w-full md:w-auto">
-            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto text-zinc-950">
-              <div className="w-full sm:w-[250px]">
-                <CompanySelector
-                  selectedCompanyId={selectedCompanyId}
-                  companies={companiesForSelector}
-                  onSelect={(id) => {
-                    setSelectedCompanyId(id)
-                  }}
-                  onCompanyAdded={handleCompanyAdded}
-                  isLoading={isStoreLoading} // Only shows spinner on initial load or manual force
-                />
-              </div>
-              <div className="w-full sm:w-[250px]">
-                <MaterialSelector
-                  selectedMaterial={selectedMaterial}
-                  materials={MATERIALS_OPTIONS}
-                  onSelect={setSelectedMaterial}
-                  isLoading={isLoadingMaterials}
-                  disabled={!selectedCompanyId}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-              <ManagementMenu
-                selectedCompanyId={selectedCompanyId}
-                companies={companiesForSelector}
-                onDataChange={handleDataChange}
-                defaultMaterial={selectedMaterial}
-              />
-
-              <Button
-                onClick={() => setIsAddRecordOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm"
-                disabled={!selectedCompanyId}
+          <div className="flex flex-col md:flex-row items-center gap-3 w-full xl:w-auto">
+            <div className="flex items-center gap-2 bg-zinc-900/50 p-1.5 rounded-lg border border-zinc-800 w-full md:w-auto">
+              <Filter className="h-4 w-4 text-zinc-500 ml-2" />
+              <Select
+                value={selectedCompanyId}
+                onValueChange={setSelectedCompanyId}
               >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Adicionar</span>
+                <SelectTrigger className="h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
+                  <SelectValue placeholder="Selecione a Empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2 bg-zinc-900/50 p-1.5 rounded-lg border border-zinc-800 w-full md:w-auto">
+              <BarChart2 className="h-4 w-4 text-zinc-500 ml-2" />
+              <Select
+                value={selectedMaterial}
+                onValueChange={setSelectedMaterial}
+              >
+                <SelectTrigger className="h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
+                  <SelectValue placeholder="Selecione o Material" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MATERIALS_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={() => setIsImportOpen(true)}
+              className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-lg shadow-emerald-900/20"
+            >
+              <Upload className="h-4 w-4" />
+              Importar Dados
+            </Button>
+
+            <Link to="/analysis" className="w-full md:w-auto">
+              <Button
+                variant="outline"
+                className="w-full border-zinc-700 bg-zinc-900/50 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-2"
+              >
+                <BarChart2 className="h-4 w-4" />
+                Análise Avançada
               </Button>
-            </div>
+            </Link>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-8 animate-fade-in">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col">
-            <span className="text-xs text-zinc-500 uppercase font-mono">
-              Última Atividade
-            </span>
-            <span className="text-lg font-medium text-white">
-              {filteredRecords[0]?.created_at
-                ? new Date(filteredRecords[0].created_at).toLocaleDateString(
-                    'pt-BR',
-                    { day: '2-digit', month: '2-digit', year: '2-digit' },
-                  )
-                : '-'}
-            </span>
-          </div>
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
-            <div className="flex items-center gap-2">
-              <Cloud
-                className={cn(
-                  'h-4 w-4',
-                  storeError ? 'text-red-500' : 'text-emerald-500',
-                )}
-              />
-              <span className="text-xs text-zinc-500 uppercase font-mono">
-                Sincronização
-              </span>
-            </div>
-            <span className="text-sm font-medium text-zinc-300 mt-1 flex items-center gap-2">
-              {storeError ? (
-                <span className="text-red-400">Falha na conexão</span>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                  Online (Supabase)
-                </>
-              )}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
-              <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-              Dispersão por Parâmetro (LAB vs ANL)
-              {selectedMaterial && (
-                <span className="text-sm font-normal text-zinc-500 ml-2 hidden sm:inline">
-                  - {getMaterialDisplayName(selectedMaterial)}
-                </span>
-              )}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {METRICS.map((metric) => (
+        {/* Industrial High-Density Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 auto-rows-fr">
+          {METRICS.map((metric) => (
+            <div key={metric.key} className="h-[320px] min-h-[320px]">
               <MetricCard
-                key={metric.key}
                 title={metric.label}
                 metricKey={metric.key}
                 color={metric.color}
                 unit={metric.unit}
-                data={filteredRecords}
+                data={filteredData}
+                className="h-full shadow-lg shadow-black/50 border-zinc-800/80 bg-zinc-950 hover:border-zinc-700 transition-colors"
                 selectedCompanyId={selectedCompanyId}
               />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      </main>
+      </div>
 
-      <EditRecordDialog
-        open={isAddRecordOpen}
-        onOpenChange={setIsAddRecordOpen}
-        record={null}
-        mode="add"
-        onSuccess={handleDataChange}
-        defaultCompanyId={selectedCompanyId}
+      <ImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
         defaultMaterial={selectedMaterial}
+        onImportSuccess={() => {
+          // Data refresh is handled by Realtime subscription in Store
+        }}
       />
     </div>
   )
 }
-
-export default Index

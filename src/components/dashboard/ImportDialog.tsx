@@ -156,7 +156,9 @@ export const ImportDialog = ({
 
     setIsProcessing(true)
     try {
+      // Use the updated api.saveRecords which supports robust upsert logic
       await api.saveRecords(parseResult.records)
+
       toast.success(
         `${parseResult.records.length} registros importados com sucesso!`,
       )
@@ -176,8 +178,9 @@ export const ImportDialog = ({
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Importe múltiplos registros de uma vez. Novos registros serão
-            criados.
+            Importe múltiplos registros de uma vez. O sistema mesclará
+            automaticamente dados novos com existentes com base na Data, Empresa
+            e Material.
           </DialogDescription>
         </DialogHeader>
 

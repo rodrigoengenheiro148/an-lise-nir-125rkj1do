@@ -35,8 +35,6 @@ export const transformRecordFromDB = (
 
   // Map all metric columns from DB (snake_case) to App (camelCase)
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
-    // Explicitly check for null/undefined to preserve 0 values
-    // Using ?? undefined to ensure we have a consistent type in App state
     record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? undefined
     record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? undefined
     record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? undefined
@@ -68,10 +66,9 @@ const transformRecordToDB = (
     const nir = parseVal(record[`${appKey}_nir`])
     const anl = parseVal(record[`${appKey}_anl`])
 
-    // Only set fields that are defined (even if null)
-    if (lab !== undefined) dbRow[`${dbPrefix}_lab`] = lab
-    if (nir !== undefined) dbRow[`${dbPrefix}_nir`] = nir
-    if (anl !== undefined) dbRow[`${dbPrefix}_anl`] = anl
+    if (lab !== null) dbRow[`${dbPrefix}_lab`] = lab
+    if (nir !== null) dbRow[`${dbPrefix}_nir`] = nir
+    if (anl !== null) dbRow[`${dbPrefix}_anl`] = anl
   })
 
   return dbRow
@@ -122,9 +119,22 @@ export const api = {
   createRecord: async (
     record: Partial<AnalysisRecord> & { company_id: string },
   ) => {
-    const dbRow = transformRecordToDB(record, record.company_id)
-    const { error } = await supabase.from('analysis_records').insert(dbRow)
-    if (error) throw error
+    // For single record creation, we also use saveRecords to ensure proper upsert/merge logic
+    // But since createRecord signature is partial, we wrap it in array
+    // However, original usage might expect simple insert.
+    // Let's forward to saveRecords for robust handling.
+
+    // Note: transformRecordToDB is called inside saveRecords loop for each item
+    // But here we might have a partial object.
+
+    // We construct the full record object as best as we can
+    const fullRecord: AnalysisRecord = {
+      id: '', // Placeholder
+      company: '', // Placeholder, not used for saving
+      ...record,
+    }
+
+    await api.saveRecords([fullRecord])
   },
 
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
@@ -136,7 +146,6 @@ export const api = {
     if (updates.company_id) dbUpdates.company_id = updates.company_id
     if (updates.date !== undefined) dbUpdates.date = updates.date
 
-    // Robust Update Logic: Only include fields explicitly present in updates object
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
       const types = ['lab', 'nir', 'anl']
       types.forEach((type) => {
@@ -144,7 +153,7 @@ export const api = {
         if (Object.prototype.hasOwnProperty.call(updates, key)) {
           const val = updates[key]
 
-          if (val === undefined) return // Skip undefined keys
+          if (val === undefined) return
 
           if (val === '' || val === null) {
             dbUpdates[`${dbPrefix}_${type}`] = null
@@ -172,6 +181,33 @@ export const api = {
       .delete()
       .eq('id', id)
     if (error) throw error
+  },
+
+  saveRecords: async (records: AnalysisRecord[]) => {
+    if (records.length === 0) return
+
+    // Transform records to DB format (snake_case columns)
+    // We filter out records that don't have company_id
+    const validRecords = records.filter((r) => r.company_id)
+
+    const dbRecords = validRecords.map((r) =>
+      transformRecordToDB(r, r.company_id!),
+    )
+
+    // Process in chunks to avoid hitting payload limits or timeouts
+    const CHUNK_SIZE = 200
+    for (let i = 0; i < dbRecords.length; i += CHUNK_SIZE) {
+      const chunk = dbRecords.slice(i, i + CHUNK_SIZE)
+
+      const { error } = await supabase.rpc('bulk_upsert_analysis_records', {
+        records: chunk,
+      })
+
+      if (error) {
+        console.error('Error saving records:', error)
+        throw error
+      }
+    }
   },
 
   clearDatabase: async (companyId: string, password: string): Promise<void> => {
