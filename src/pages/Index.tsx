@@ -17,9 +17,11 @@ import {
   Plus,
   AlertCircle,
   RefreshCw,
+  CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import useDashboardStore from '@/stores/useDashboardStore'
+import { cn } from '@/lib/utils'
 
 const Index = () => {
   const {
@@ -67,13 +69,12 @@ const Index = () => {
 
   const handleDataChange = async () => {
     // Triggered after add/edit/import
-    // Calls silent refresh to ensure consistency
+    // Calls silent refresh to ensure consistency, though Realtime handles most cases
     refreshData()
   }
 
   // Handle initial loading state
   // This only blocks the UI if we have absolutely no data to show
-  // Optimized Loading States: We don't block if we have stale data
   if (isStoreLoading && storeCompanies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
@@ -133,7 +134,7 @@ const Index = () => {
   return (
     <div className="min-h-full bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">
       {/* Sticky header for tool controls, sits below main Layout header */}
-      <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-30">
+      <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-30 shadow-md">
         <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/20 shrink-0">
@@ -144,7 +145,7 @@ const Index = () => {
                 Dashboard Analítico
               </h1>
               <p className="text-xs text-zinc-400">
-                Monitoramento de Qualidade
+                Monitoramento de Qualidade Cloud
               </p>
             </div>
           </div>
@@ -183,7 +184,7 @@ const Index = () => {
 
               <Button
                 onClick={() => setIsAddRecordOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm"
                 disabled={!selectedCompanyId}
               >
                 <Plus className="h-4 w-4" />
@@ -210,11 +211,26 @@ const Index = () => {
             </span>
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
-            <span className="text-xs text-zinc-500 uppercase font-mono flex items-center gap-2">
-              <Cloud className="h-3 w-3 text-emerald-500" /> Status
-            </span>
-            <span className="text-sm font-medium text-zinc-300 mt-1">
-              {storeError ? 'Erro na sincronização' : 'Conectado (Realtime)'}
+            <div className="flex items-center gap-2">
+              <Cloud
+                className={cn(
+                  'h-4 w-4',
+                  storeError ? 'text-red-500' : 'text-emerald-500',
+                )}
+              />
+              <span className="text-xs text-zinc-500 uppercase font-mono">
+                Sincronização
+              </span>
+            </div>
+            <span className="text-sm font-medium text-zinc-300 mt-1 flex items-center gap-2">
+              {storeError ? (
+                <span className="text-red-400">Falha na conexão</span>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  Online (Supabase)
+                </>
+              )}
             </span>
           </div>
         </div>

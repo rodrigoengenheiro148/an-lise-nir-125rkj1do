@@ -176,7 +176,8 @@ export const ImportDialog = ({
         <DialogHeader>
           <DialogTitle>Importar Registros de Análise</DialogTitle>
           <DialogDescription className="text-zinc-400">
-            Importação em massa via Excel ou CSV.
+            Importe múltiplos registros de uma vez. Novos registros serão
+            criados.
           </DialogDescription>
         </DialogHeader>
 

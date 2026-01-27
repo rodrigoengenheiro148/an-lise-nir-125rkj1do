@@ -109,6 +109,7 @@ export const EditRecordDialog = ({
     setSubmitting(true)
     try {
       if (mode === 'edit' && record) {
+        // Robust Patching: Calculate only the diff to send to the API
         const updates: Partial<AnalysisRecord> = {}
         if (formData.material !== initialData.material)
           updates.material = formData.material
@@ -122,23 +123,26 @@ export const EditRecordDialog = ({
           const keyLab = `${m.key}_lab`
           const keyAnl = `${m.key}_anl`
           const keyNir = `${m.key}_nir`
-          if (formData[keyLab] !== initialData[keyLab])
+          // Compare loosely to handle null/undefined differences from form
+          if (formData[keyLab] != initialData[keyLab])
             updates[keyLab] = formData[keyLab]
-          if (formData[keyAnl] !== initialData[keyAnl])
+          if (formData[keyAnl] != initialData[keyAnl])
             updates[keyAnl] = formData[keyAnl]
-          if (formData[keyNir] !== initialData[keyNir])
+          if (formData[keyNir] != initialData[keyNir])
             updates[keyNir] = formData[keyNir]
         })
 
         if (Object.keys(updates).length > 0) {
           await api.updateRecord(record.id, updates)
-          toast.success('Registro atualizado!')
+          toast.success('Registro atualizado com sucesso!')
+        } else {
+          toast.info('Nenhuma alteração detectada.')
         }
       } else if (mode === 'add' && formData.company_id) {
         await api.createRecord(formData as AnalysisRecord)
         toast.success('Registro criado com sucesso!')
       }
-      // Trigger refresh in parent
+
       onSuccess()
       onOpenChange(false)
     } catch (e) {
@@ -184,7 +188,7 @@ export const EditRecordDialog = ({
               </DialogTitle>
               <DialogDescription className="text-zinc-400">
                 {mode === 'edit'
-                  ? 'Modifique os dados da amostra e os resultados.'
+                  ? 'Modifique apenas os valores que deseja alterar. Outros campos permanecerão inalterados.'
                   : `Cadastrando novo registro${defaultCompanyId ? ` para ${companies.find((c) => c.id === defaultCompanyId)?.name || 'empresa selecionada'}` : ''}.`}
               </DialogDescription>
             </DialogHeader>
@@ -233,7 +237,7 @@ export const EditRecordDialog = ({
                 ) : (
                   <>
                     <FlaskConical className="h-4 w-4" />{' '}
-                    {mode === 'add' ? 'Cadastrar' : 'Salvar'}
+                    {mode === 'add' ? 'Cadastrar' : 'Salvar Alterações'}
                   </>
                 )}
               </Button>

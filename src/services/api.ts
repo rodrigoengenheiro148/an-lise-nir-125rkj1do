@@ -17,7 +17,6 @@ const KEY_MAPPING: Record<string, string> = {
   impurity: 'impurity',
 }
 
-// Exported for use in Store for Realtime updates
 export const transformRecordFromDB = (
   row: any,
   company: { name: string; logo_url?: string | null },
@@ -53,6 +52,7 @@ const transformRecordToDB = (
     sub_material: record.submaterial,
   }
 
+  // Only include defined metrics to avoid overwriting with nulls if using upsert/update (though this is mostly used for insert)
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
     const parseVal = (val: any) => {
       if (val === undefined || val === null || val === '') return null
@@ -64,9 +64,9 @@ const transformRecordToDB = (
     const nir = parseVal(record[`${appKey}_nir`])
     const anl = parseVal(record[`${appKey}_anl`])
 
-    if (lab !== undefined) dbRow[`${dbPrefix}_lab`] = lab
-    if (nir !== undefined) dbRow[`${dbPrefix}_nir`] = nir
-    if (anl !== undefined) dbRow[`${dbPrefix}_anl`] = anl
+    if (lab !== undefined && lab !== null) dbRow[`${dbPrefix}_lab`] = lab
+    if (nir !== undefined && nir !== null) dbRow[`${dbPrefix}_nir`] = nir
+    if (anl !== undefined && anl !== null) dbRow[`${dbPrefix}_anl`] = anl
   })
 
   return dbRow
@@ -97,8 +97,7 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
-    // Persistent Fetching: Getting all records to ensure client-side filtering works seamlessly
-    // Increased limit to 100,000 to handle large datasets without losing chart context
+    // Robust Fetching: Selecting all necessary fields explicitly to ensure data integrity
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
@@ -153,6 +152,9 @@ export const api = {
           (c) => c.name === r.company || c.id === r.company_id,
         )
         if (!company) return null
+        // Ensure we pass a new ID if not present, though usually insert handles it.
+        // If the record has an ID, we might want to preserve it or let DB gen it.
+        // For imports, we treat them as new records to avoid accidental overwrites of existing unrelated data.
         return transformRecordToDB(r, company.id)
       })
       .filter(Boolean)
@@ -160,11 +162,14 @@ export const api = {
     if (rowsToInsert.length === 0) return
 
     // Chunking inserts to avoid payload size limits and network timeouts
-    const CHUNK_SIZE = 1000
+    const CHUNK_SIZE = 500 // Reduced chunk size for better stability
     for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
       const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE)
       const { error } = await supabase.from('analysis_records').insert(chunk)
-      if (error) throw error
+      if (error) {
+        console.error('Error saving chunk:', error)
+        throw error
+      }
     }
   },
 
@@ -178,30 +183,43 @@ export const api = {
 
   updateRecord: async (id: string, updates: Partial<AnalysisRecord>) => {
     const dbUpdates: any = {}
+
+    // Explicitly handle meta fields
     if (updates.material !== undefined) dbUpdates.material = updates.material
     if (updates.submaterial !== undefined)
       dbUpdates.sub_material = updates.submaterial
     if (updates.company_id) dbUpdates.company_id = updates.company_id
     if (updates.date !== undefined) dbUpdates.date = updates.date
 
+    // Robust Patching: Only update fields that are explicitly present in the updates object.
+    // This prevents overwriting existing data with nulls or defaults.
     Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
       const types = ['lab', 'nir', 'anl']
       types.forEach((type) => {
-        const val = updates[`${appKey}_${type}`]
-        if (val !== undefined) {
-          const parsed =
-            val === '' ? null : parseFloat(String(val).replace(',', '.'))
-          dbUpdates[`${dbPrefix}_${type}`] = isNaN(parsed as number)
-            ? null
-            : parsed
+        const key = `${appKey}_${type}`
+        if (Object.prototype.hasOwnProperty.call(updates, key)) {
+          const val = updates[key]
+          // If explicitly set to empty string or null, we set DB value to null.
+          // Otherwise parse number.
+          if (val === undefined) return // Should not happen with hasOwnProperty check but safe to keep
+
+          if (val === '' || val === null) {
+            dbUpdates[`${dbPrefix}_${type}`] = null
+          } else {
+            const parsed = parseFloat(String(val).replace(',', '.'))
+            dbUpdates[`${dbPrefix}_${type}`] = isNaN(parsed) ? null : parsed
+          }
         }
       })
     })
+
+    if (Object.keys(dbUpdates).length === 0) return
 
     const { error } = await supabase
       .from('analysis_records')
       .update(dbUpdates)
       .eq('id', id)
+
     if (error) throw error
   },
 

@@ -263,12 +263,10 @@ export const DataManagementTable = ({
                   const anlKey = `${m.key}_anl`
                   const labVal = record[labKey]
                   const anlVal = record[anlKey]
-                  // Residuo = LAB - ANL
                   const residue = calculateResidue(labVal, anlVal)
 
                   return (
                     <Fragment key={m.key}>
-                      {/* LAB Column */}
                       <TableCell className="p-1 border-l border-zinc-800/30 text-center">
                         <EditableCell
                           value={labVal}
@@ -279,7 +277,6 @@ export const DataManagementTable = ({
                         />
                       </TableCell>
 
-                      {/* ANL Column */}
                       <TableCell className="p-1 border-zinc-800/30 text-center">
                         <div className="text-blue-400">
                           <EditableCell
@@ -292,7 +289,6 @@ export const DataManagementTable = ({
                         </div>
                       </TableCell>
 
-                      {/* Residue Column */}
                       <TableCell
                         className={cn(
                           'p-1 border-r border-zinc-800/30 text-center text-xs font-mono font-medium',
@@ -305,7 +301,6 @@ export const DataManagementTable = ({
                   )
                 })}
 
-                {/* Actions Column */}
                 {!readOnly && (
                   <TableCell className="text-right p-2 bg-zinc-900/95 backdrop-blur z-20 sticky right-0 border-l border-zinc-800">
                     <div className="flex justify-center gap-1">

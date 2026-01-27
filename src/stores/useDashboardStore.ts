@@ -55,7 +55,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  // Initialize state from localStorage if available (only for UI preferences)
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<string>(
     () => localStorage.getItem(STORAGE_KEYS.COMPANY_ID) || '',
   )
@@ -71,17 +70,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     to: undefined,
   })
 
-  // Initialize loading as true to prevent flash of empty state on first load
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
-  // Use a ref to access the latest companies list inside the realtime callback
   const companiesRef = useRef<CompanyEntity[]>([])
   useEffect(() => {
     companiesRef.current = companies
   }, [companies])
 
-  // Realtime Update Buffers
   const pendingUpdates = useRef<
     { type: 'INSERT' | 'UPDATE' | 'DELETE'; payload: any }[]
   >([])
@@ -99,64 +95,42 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async (forceLoadingState = false) => {
     if (!user) return
 
-    // Persistent Data Fetching: Only show loading state if we have no data or if forced.
-    if (forceLoadingState || companies.length === 0) {
+    // Smart loading: Only show spinner if we strictly need to (initial load or manual force)
+    if (
+      forceLoadingState ||
+      (companies.length === 0 && analysisRecords.length === 0)
+    ) {
       setIsLoading(true)
     }
 
     try {
-      const [companiesResult, recordsResult] = await Promise.allSettled([
-        api.getCompanies(),
-        api.getRecords(),
-      ])
+      // Fetch companies first to ensure we have context for records
+      const companiesData = await api.getCompanies()
+      setCompanies(companiesData)
 
-      let fetchedCompanies: CompanyEntity[] = []
-      let fetchedRecords: AnalysisRecord[] = []
+      // Update ref immediately for any pending realtime events
+      companiesRef.current = companiesData
 
-      if (companiesResult.status === 'fulfilled') {
-        fetchedCompanies = companiesResult.value
-        setCompanies(fetchedCompanies)
-      } else {
-        console.error('Failed to load companies', companiesResult.reason)
-        setError('Falha ao atualizar empresas. Verifique sua conexão.')
-      }
+      const recordsData = await api.getRecords()
+      setAnalysisRecords(recordsData)
 
-      if (recordsResult.status === 'fulfilled') {
-        fetchedRecords = recordsResult.value
-        setAnalysisRecords(fetchedRecords)
-      } else {
-        console.error('Failed to load records', recordsResult.reason)
-        if (!error)
-          setError(
-            'Falha ao atualizar registros. Dados exibidos podem estar desatualizados.',
-          )
-      }
+      setError(null)
 
-      if (
-        companiesResult.status === 'fulfilled' &&
-        recordsResult.status === 'fulfilled'
-      ) {
-        setError(null)
-      }
-
-      // Check for persistence validity
-      if (fetchedCompanies.length > 0) {
-        const isValidCompany = fetchedCompanies.some(
+      // Initial Selection Logic
+      if (companiesData.length > 0) {
+        const isValidCompany = companiesData.some(
           (c) => c.id === selectedCompanyId,
         )
 
         if (!selectedCompanyId || !isValidCompany) {
-          setSelectedCompanyId(fetchedCompanies[0].id)
+          setSelectedCompanyId(companiesData[0].id)
         }
-      } else if (
-        fetchedCompanies.length === 0 &&
-        companiesResult.status === 'fulfilled'
-      ) {
+      } else {
         setSelectedCompanyId('')
       }
     } catch (err) {
       console.error('Unexpected error loading data', err)
-      setError('Erro inesperado de conexão.')
+      setError('Erro ao carregar dados. Tente atualizar a página.')
       toast.error('Não foi possível conectar ao servidor.')
     } finally {
       setIsLoading(false)
@@ -169,7 +143,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     const channel: RealtimeChannel = supabase
       .channel('dashboard-realtime')
-      // Subscribe to Companies table changes
       .on(
         'postgres_changes',
         {
@@ -192,7 +165,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 c.id === updatedCompany.id ? updatedCompany : c,
               ),
             )
-            // Update company name/logo in existing records
             setAnalysisRecords((prev) =>
               prev.map((r) => {
                 if (r.company_id === updatedCompany.id) {
@@ -214,7 +186,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           }
         },
       )
-      // Subscribe to Analysis Records table changes with Buffering
       .on(
         'postgres_changes',
         {
@@ -223,7 +194,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           table: 'analysis_records',
         },
         (payload) => {
-          // Push to buffer instead of processing immediately
           pendingUpdates.current.push({
             type: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
             payload: payload.eventType === 'DELETE' ? payload.old : payload.new,
@@ -232,51 +202,53 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       )
       .subscribe()
 
-    // Process buffered updates every 500ms
+    // Robust Interval Processor for Realtime Events
     const interval = setInterval(() => {
       if (pendingUpdates.current.length === 0) return
 
       const updates = [...pendingUpdates.current]
-      pendingUpdates.current = [] // Clear buffer
+      pendingUpdates.current = []
 
       setAnalysisRecords((prevRecords) => {
         let nextRecords = [...prevRecords]
-        const companies = companiesRef.current
+        const currentCompanies = companiesRef.current
 
         updates.forEach((update) => {
           if (update.type === 'INSERT') {
             const newRecord = update.payload
 
-            // Synchronized check to avoid duplicates from manual refresh
+            // Prevent duplicates
             if (nextRecords.some((r) => r.id === newRecord.id)) return
 
-            const company = companies.find((c) => c.id === newRecord.company_id)
+            const company = currentCompanies.find(
+              (c) => c.id === newRecord.company_id,
+            )
 
-            if (company) {
-              const transformed = transformRecordFromDB(newRecord, {
-                name: company.name,
-                logo_url: company.logo_url,
-              })
-              nextRecords.push(transformed)
-            } else {
-              // If company not found (rare race condition), we might skip or try to fetch.
-              // For bulk performance, we skip fetching per-record.
-              // The periodic refresh or company subscription will handle it eventually.
-            }
+            // Even if company is missing locally (rare), we add it with ID as placeholder
+            // to ensure data is visible. It will be fixed on next full refresh or company sync.
+            const transformed = transformRecordFromDB(newRecord, {
+              name: company?.name || 'Carregando...',
+              logo_url: company?.logo_url,
+            })
+            nextRecords.unshift(transformed) // Add to top
           } else if (update.type === 'UPDATE') {
             const updatedRecord = update.payload
-            const company = companies.find(
+            const company = currentCompanies.find(
               (c) => c.id === updatedRecord.company_id,
             )
-            if (company) {
-              const transformed = transformRecordFromDB(updatedRecord, {
-                name: company.name,
-                logo_url: company.logo_url,
-              })
-              const idx = nextRecords.findIndex((r) => r.id === transformed.id)
-              if (idx !== -1) {
-                nextRecords[idx] = transformed
-              }
+            const transformed = transformRecordFromDB(updatedRecord, {
+              name: company?.name || 'Carregando...',
+              logo_url: company?.logo_url,
+            })
+
+            const idx = nextRecords.findIndex((r) => r.id === transformed.id)
+            if (idx !== -1) {
+              // Replace existing record logic ensuring we don't lose the object reference identity if not needed,
+              // but here we replace to update all fields.
+              nextRecords[idx] = transformed
+            } else {
+              // If we got an update for a record we don't have, treat as insert
+              nextRecords.unshift(transformed)
             }
           } else if (update.type === 'DELETE') {
             const deletedId = update.payload.id
@@ -284,10 +256,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           }
         })
 
-        // No need to sort here if we want max performance, index view sorts it.
-        // But keeping it somewhat sorted helps debugging.
-        // We'll let Index.tsx handle sorting for display.
-        return nextRecords
+        // Ensure sorting by created_at desc to match DB order
+        return nextRecords.sort((a, b) => {
+          return (
+            new Date(b.created_at || 0).getTime() -
+            new Date(a.created_at || 0).getTime()
+          )
+        })
       })
     }, 500)
 
@@ -295,9 +270,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(interval)
       supabase.removeChannel(channel)
     }
-  }, [user, selectedCompanyId])
+  }, [user])
 
-  // Derive materials from analysisRecords for the selected company
   const materials = useMemo(() => {
     if (!selectedCompanyId) return []
 
@@ -311,7 +285,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     return distinctMaterials
   }, [analysisRecords, selectedCompanyId])
 
-  // Material-Specific State Management
   useEffect(() => {
     const logic = async () => {
       if (!selectedCompanyId) return
@@ -325,17 +298,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           nextMaterial = MATERIALS_OPTIONS[0]
         }
       }
-
       if (nextMaterial !== selectedMaterial) {
         setSelectedMaterial(nextMaterial)
       }
     }
-
     logic()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId, materials.length])
 
-  // Load data when user is authenticated
   useEffect(() => {
     if (user) {
       loadData()
@@ -347,7 +317,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }, [user])
 
   const refreshData = () => {
-    // Silent refresh to avoid UI flickering
     loadData(false)
   }
 
@@ -356,7 +325,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const setMaterials = (mats: string[]) => {
-    // No-op as materials are derived
+    // No-op
   }
 
   return React.createElement(
