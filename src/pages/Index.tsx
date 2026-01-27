@@ -21,6 +21,7 @@ import { MetricCard } from '@/components/dashboard/MetricCard'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
 import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
 import { GlobalParetoChart } from '@/components/dashboard/GlobalParetoChart'
+import { ControlCharts } from '@/components/dashboard/ControlCharts'
 import { PasswordProtectionDialog } from '@/components/dashboard/PasswordProtectionDialog'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
@@ -80,7 +81,6 @@ export default function Index() {
 
             matchDate = isWithinInterval(recordDate, { start: from, end: to })
           } else {
-            // If date is invalid, should we exclude it? Probably yes if filtering by date.
             matchDate = false
           }
         } catch (e) {
@@ -122,25 +122,19 @@ export default function Index() {
         }
       }
 
-      // Explicitly ignoring selectedMaterial for the global pareto chart
       return matchCompany && matchDate
     })
   }, [analysisRecords, selectedCompanyId, selectedDateRange])
 
   // Determine which metrics have data to display based on filtered records
-  // This satisfies the requirement to hide empty cards
   const visibleMetrics = useMemo(() => {
     if (!filteredData || filteredData.length === 0) return []
 
     return METRICS.filter((metric) => {
       return filteredData.some((record) => {
-        // Safe access to dynamic properties using optional chaining implicitly via type system
         const lab = record[`${metric.key}_lab`]
         const anl = record[`${metric.key}_anl`]
         const nir = record[`${metric.key}_nir`]
-
-        // Check if any value is present (not null/undefined/empty)
-        // We verify if at least one entry has non-null fields for the metric
         const hasValue = (val: any) =>
           val !== null && val !== undefined && val !== ''
 
@@ -265,7 +259,7 @@ export default function Index() {
           </div>
         ) : (
           <>
-            {/* Global Pareto Chart - Responsive */}
+            {/* Global Pareto Chart */}
             {paretoFilteredData.length > 0 && (
               <div className="animate-fade-in">
                 <GlobalParetoChart
@@ -275,7 +269,12 @@ export default function Index() {
               </div>
             )}
 
-            {/* Industrial High-Density Grid - Responsive to Mobile */}
+            {/* Control Charts */}
+            <div className="animate-fade-in">
+              <ControlCharts />
+            </div>
+
+            {/* Industrial High-Density Grid */}
             {visibleMetrics.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6 auto-rows-fr animate-fade-in">
                 {visibleMetrics.map((metric) => (
@@ -325,7 +324,6 @@ export default function Index() {
         onOpenChange={setIsImportOpen}
         defaultMaterial={selectedMaterial}
         onImportSuccess={() => {
-          // Data refresh is handled by Realtime subscription in Store
           refreshData()
         }}
       />
