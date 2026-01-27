@@ -1,4 +1,4 @@
-import { useMemo, useId, useState } from 'react'
+import { useMemo, useId } from 'react'
 import {
   ComposedChart,
   Line,
@@ -24,18 +24,14 @@ interface MetricScatterChartProps {
   compact?: boolean
 }
 
-// Extracted Tooltip Component for cleaner code and line count management
-const CustomTooltip = ({
-  active,
-  payload,
-  isHoveringPoint,
-  unit,
-  color,
-}: any) => {
-  // Strict check: active AND hovering point
-  if (!active || !isHoveringPoint || !payload || !payload.length) return null
+// Improved Tooltip Component to support mobile tap and desktop hover
+// Strictly filters payload to ensure only point data is displayed
+const CustomTooltip = ({ active, payload, unit, color }: any) => {
+  if (!active || !payload || !payload.length) return null
 
-  // Prioritize point data and ONLY show tooltip for points
+  // STRICT CHECK: Only show tooltip if the payload contains data from the 'points' Scatter
+  // This effectively prevents the tooltip from showing when hovering *only* the Trend Line
+  // because the Line component is configured with tooltipType="none"
   const pointPayload = payload.find((p: any) => p.name === 'points')
 
   if (pointPayload && pointPayload.payload && pointPayload.payload.original) {
@@ -88,7 +84,6 @@ export const MetricScatterChart = ({
   title,
   compact = false,
 }: MetricScatterChartProps) => {
-  const [isHoveringPoint, setIsHoveringPoint] = useState(false)
   const filterId = useId()
   const safeFilterId = filterId.replace(/:/g, '')
 
@@ -251,18 +246,14 @@ export const MetricScatterChart = ({
                 }}
               />
               <Tooltip
-                cursor={false}
+                cursor={false} // Clean look, prevents scan lines across empty space
                 content={(props) => (
-                  <CustomTooltip
-                    {...props}
-                    isHoveringPoint={isHoveringPoint}
-                    unit={unit}
-                    color={color}
-                  />
+                  <CustomTooltip {...props} unit={unit} color={color} />
                 )}
               />
 
-              {/* Trend Line rendered BEFORE Scatter so points are on top and receive events */}
+              {/* Trend Line rendered BEFORE Scatter so points are on top */}
+              {/* tooltipType="none" is CRITICAL to prevent trend line from showing in tooltip */}
               <Line
                 name="trend"
                 data={trendPoints}
@@ -282,8 +273,7 @@ export const MetricScatterChart = ({
                 shape="circle"
                 style={{ filter: `url(#glow-${safeFilterId})` }}
                 strokeWidth={0}
-                onMouseEnter={() => setIsHoveringPoint(true)}
-                onMouseLeave={() => setIsHoveringPoint(false)}
+                isAnimationActive={false} // Smoother updates for realtime
               >
                 {points.map((entry, index) => (
                   <Cell

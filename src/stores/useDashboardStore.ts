@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { api, transformRecordFromDB } from '@/services/api'
 import { supabase } from '@/lib/supabase/client'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import { useAuth } from '@/components/AuthProvider'
 
 interface DashboardState {
   companies: CompanyEntity[]
@@ -47,6 +48,7 @@ const STORAGE_KEYS = {
 }
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth()
   const [companies, setCompanies] = useState<CompanyEntity[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
@@ -87,6 +89,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const loadData = async () => {
+    if (!user) return
+
     setIsLoading(true)
     try {
       const [fetchedCompanies, fetchedRecords] = await Promise.all([
@@ -111,6 +115,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
   // Realtime subscription setup
   useEffect(() => {
+    if (!user) return
+
     const channel: RealtimeChannel = supabase
       .channel('dashboard-realtime')
       // Subscribe to Companies table changes
@@ -178,6 +184,21 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 logo_url: company.logo_url,
               })
               setAnalysisRecords((prev) => [transformed, ...prev])
+            } else {
+              // Fetch company if not found locally (e.g. race condition)
+              api.getCompanies().then((refreshedCompanies) => {
+                setCompanies(refreshedCompanies)
+                const freshCompany = refreshedCompanies.find(
+                  (c) => c.id === newRecord.company_id,
+                )
+                if (freshCompany) {
+                  const transformed = transformRecordFromDB(newRecord, {
+                    name: freshCompany.name,
+                    logo_url: freshCompany.logo_url,
+                  })
+                  setAnalysisRecords((prev) => [transformed, ...prev])
+                }
+              })
             }
           } else if (payload.eventType === 'UPDATE') {
             const updatedRecord = payload.new as any
@@ -204,7 +225,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, []) // Empty dependency array ensures subscription happens once
+  }, [user])
 
   // Derive materials from analysisRecords for the selected company
   const materials = useMemo(() => {
@@ -271,10 +292,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId, materials])
 
-  // Initial load
+  // Load data when user is authenticated
   useEffect(() => {
-    loadData()
-  }, [])
+    if (user) {
+      loadData()
+    } else {
+      // Clear data on logout
+      setCompanies([])
+      setAnalysisRecords([])
+    }
+  }, [user])
 
   const refreshData = () => {
     loadData()

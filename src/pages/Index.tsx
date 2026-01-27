@@ -58,8 +58,6 @@ const Index = () => {
 
   // Refresh data triggers a global reload if needed, but realtime should handle most
   const handleDataChange = async () => {
-    // With realtime, we might not need to manually fetch, but it's safe to keep for explicit actions
-    // like "Clear Database" or bulk import which might happen in another context
     refreshData()
   }
 
@@ -74,11 +72,11 @@ const Index = () => {
     )
   }
 
-  // Use the store companies directly as they are now CompanyEntity[]
   const companiesForSelector: CompanyEntity[] = storeCompanies
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">
+    <div className="min-h-full bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">
+      {/* Sticky header for tool controls, sits below main Layout header */}
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full md:w-auto">
