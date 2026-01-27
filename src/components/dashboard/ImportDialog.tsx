@@ -40,6 +40,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { calculateResidue, formatResidue } from '@/lib/calculations'
 import { useAuth } from '@/components/AuthProvider'
 import { cn } from '@/lib/utils'
+import useDashboardStore from '@/stores/useDashboardStore'
 
 interface ImportDialogProps {
   onImportSuccess?: () => void
@@ -55,6 +56,9 @@ export const ImportDialog = ({
   defaultMaterial,
 }: ImportDialogProps) => {
   const { user } = useAuth()
+  const { selectedCompanyId: storeCompanyId, companies: storeCompanies } =
+    useDashboardStore()
+
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = open !== undefined && onOpenChange !== undefined
 
@@ -77,21 +81,17 @@ export const ImportDialog = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    let isActive = true
+    // Sync with store companies and selected company
+    setCompanies(storeCompanies)
+    if (storeCompanyId) {
+      setSelectedCompanyId(storeCompanyId)
+    } else if (storeCompanies.length > 0) {
+      setSelectedCompanyId(storeCompanies[0].id)
+    }
+  }, [storeCompanies, storeCompanyId, isOpen])
 
+  useEffect(() => {
     if (isOpen) {
-      api
-        .getCompanies(controller.signal)
-        .then((data) => {
-          if (isActive) setCompanies(data)
-        })
-        .catch((err) => {
-          if (isActive && !isAbortError(err)) {
-            console.error(err)
-          }
-        })
-
       setParseResult(null)
       setTextInput('')
       setFile(null)
@@ -102,11 +102,6 @@ export const ImportDialog = ({
       } else {
         setSelectedImportMaterial('')
       }
-    }
-
-    return () => {
-      isActive = false
-      controller.abort()
     }
   }, [isOpen, defaultMaterial])
 
@@ -243,13 +238,13 @@ export const ImportDialog = ({
               </div>
 
               <div className="space-y-2">
-                <Label>Empresa Padrão (Opcional)</Label>
+                <Label>Empresa Padrão</Label>
                 <Select
                   value={selectedCompanyId}
                   onValueChange={setSelectedCompanyId}
                 >
                   <SelectTrigger className="bg-zinc-900 border-zinc-700 min-h-[44px]">
-                    <SelectValue placeholder="Selecione caso faltem dados..." />
+                    <SelectValue placeholder="Selecione a empresa..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
                     {companies.map((c) => (

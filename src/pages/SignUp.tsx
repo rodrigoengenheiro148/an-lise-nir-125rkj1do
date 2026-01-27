@@ -12,13 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Loader2, UserPlus, ArrowLeft } from 'lucide-react'
+import { Loader2, UserPlus, ArrowLeft, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase/client'
 
 export default function SignUp() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
@@ -36,15 +38,31 @@ export default function SignUp() {
       return
     }
 
+    if (!companyName.trim()) {
+      toast.error('O nome da empresa é obrigatório.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      const { data, error } = await signUp(email, password)
+      // We pass the company name in the user metadata so the database trigger can pick it up
+      // and create the company automatically linked to this user.
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            company_name: companyName,
+          },
+        },
+      })
+
       if (error) {
         toast.error('Erro ao criar conta: ' + error.message)
         console.error(error)
       } else {
         if (data.session) {
-          toast.success('Conta criada com sucesso!')
+          toast.success('Conta criada com sucesso! Empresa registrada.')
           navigate('/')
         } else if (data.user) {
           toast.success('Conta criada! Verifique seu email para confirmar.')
@@ -86,6 +104,22 @@ export default function SignUp() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="companyName" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-zinc-500" />
+                Nome da Empresa
+              </Label>
+              <Input
+                id="companyName"
+                type="text"
+                placeholder="Ex: Minha Agroindústria Ltda"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="bg-zinc-950 border-zinc-800 focus-visible:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -97,6 +131,7 @@ export default function SignUp() {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <Input
@@ -109,6 +144,7 @@ export default function SignUp() {
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Senha</Label>
               <Input

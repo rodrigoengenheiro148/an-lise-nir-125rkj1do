@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/components/AuthProvider'
 import { Button } from '@/components/ui/button'
@@ -19,14 +19,19 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, user } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (user) {
+      navigate('/')
+    }
+  }, [user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Basic validation to prevent unnecessary API calls
     if (!email || !password) {
       toast.error('Por favor, preencha todos os campos.')
       setIsSubmitting(false)
@@ -39,8 +44,6 @@ export default function Login() {
       if (error) {
         console.error('Erro de login:', error)
 
-        // Handle specific authentication errors gracefully
-        // 'Invalid login credentials' is the standard message from Supabase for incorrect email/password
         if (
           error.message === 'Invalid login credentials' ||
           error.status === 400
@@ -53,7 +56,6 @@ export default function Login() {
             'Email não confirmado. Por favor, verifique sua caixa de entrada.',
           )
         } else {
-          // Generic fallback for other auth errors
           toast.error(`Erro ao fazer login: ${error.message}`)
         }
       } else {
@@ -61,7 +63,6 @@ export default function Login() {
         navigate('/')
       }
     } catch (err: any) {
-      // Catch unexpected runtime errors (e.g. network failures) to prevent app crash
       console.error('Exceção durante login:', err)
       toast.error(
         'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.',

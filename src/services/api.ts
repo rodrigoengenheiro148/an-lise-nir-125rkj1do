@@ -231,7 +231,7 @@ export const api = {
           console.error('Error fetching companies:', error)
           throw error
         }
-        return data || []
+        return (data as CompanyEntity[]) || []
       },
       3,
       1000,
@@ -239,15 +239,21 @@ export const api = {
     )
   },
 
-  addCompany: async (name: string): Promise<CompanyEntity> => {
+  createCompany: async (name: string): Promise<CompanyEntity> => {
     return retryOperation(async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error('Usuario não autenticado')
+
       const { data, error } = await supabase
         .from('companies')
-        .insert({ name })
+        .insert({ name, owner_id: user.id })
         .select()
         .single()
+
       if (error) throw error
-      return data
+      return data as CompanyEntity
     })
   },
 
@@ -265,6 +271,9 @@ export const api = {
             throw createAbortError()
           }
 
+          // Join with companies to get names. RLS on companies will filter this implicitly if set up correctly,
+          // but usually RLS on analysis_records handles the row visibility.
+          // We rely on RLS policies to only show records the user has access to.
           let query = supabase
             .from('analysis_records')
             .select('*, companies(name, logo_url)')

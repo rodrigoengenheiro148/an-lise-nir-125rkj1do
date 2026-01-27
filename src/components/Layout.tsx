@@ -4,7 +4,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, Navigate, useLocation } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Toaster } from '@/components/ui/sonner'
 import { useAuth } from '@/components/AuthProvider'
@@ -13,13 +13,19 @@ import { Button } from '@/components/ui/button'
 
 export default function Layout() {
   const { user, loading, signOut } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">
-        Carregando...
+        <LoaderSpinner />
       </div>
     )
+  }
+
+  // Auth Guard: Redirect to login if not authenticated
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return (
@@ -54,34 +60,18 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            {user ? (
-              <>
-                <span className="hidden lg:inline-block text-xs text-zinc-300 font-medium">
-                  {user.email}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => signOut()}
-                  className="text-zinc-500 hover:text-red-400 hover:bg-zinc-900 h-10 w-10 md:h-9 md:w-9"
-                  title="Sair"
-                >
-                  <LogOut className="h-5 w-5 md:h-4 md:w-4" />
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="text-zinc-400 hover:text-white hover:bg-zinc-900 gap-2 h-10 px-4 md:h-9"
-              >
-                <Link to="/login">
-                  <LogIn className="h-4 w-4" />
-                  <span className="inline">Entrar</span>
-                </Link>
-              </Button>
-            )}
+            <span className="hidden lg:inline-block text-xs text-zinc-300 font-medium">
+              {user.email}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => signOut()}
+              className="text-zinc-500 hover:text-red-400 hover:bg-zinc-900 h-10 w-10 md:h-9 md:w-9"
+              title="Sair"
+            >
+              <LogOut className="h-5 w-5 md:h-4 md:w-4" />
+            </Button>
           </div>
         </header>
         <div className="flex-1 overflow-auto bg-zinc-950 relative">
@@ -90,5 +80,11 @@ export default function Layout() {
         <Toaster />
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+function LoaderSpinner() {
+  return (
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
   )
 }

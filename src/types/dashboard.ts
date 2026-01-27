@@ -5,6 +5,7 @@ export interface CompanyEntity {
   name: string
   logo_url?: string
   created_at: string
+  owner_id?: string
 }
 
 export const MATERIALS_OPTIONS = [
@@ -160,7 +161,7 @@ export const METRICS: {
       'cinzas',
       'mineral matter',
       'mm',
-      'material mineral'
+      'material mineral',
     ],
   },
   {
