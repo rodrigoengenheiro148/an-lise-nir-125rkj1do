@@ -10,9 +10,20 @@ export const isAbortError = (error: any) => {
 
   // Standard AbortError checks
   if (error.name === 'AbortError') return true
-  if (error instanceof DOMException && error.name === 'AbortError') return true
-  // DOMException code 20 is ABORT_ERR
-  if (error.code === 20 || error.code === '20') return true
+  if (
+    error instanceof DOMException &&
+    (error.name === 'AbortError' || error.code === 20)
+  )
+    return true
+
+  // Check for custom codes
+  if (
+    error.code === 'ABORT_ERR' ||
+    error.code === 'AbortError' ||
+    error.code === 20 ||
+    error.code === '20'
+  )
+    return true
 
   // Check for string messages or error objects with messages
   const msg = error.message
@@ -29,7 +40,8 @@ export const isAbortError = (error: any) => {
     msg.includes('http n/a') ||
     msg.includes('load failed') ||
     msg.includes('network request failed') ||
-    msg.includes('failed to fetch')
+    msg.includes('failed to fetch') ||
+    msg.includes('the operation was aborted')
   )
 }
 
@@ -56,6 +68,8 @@ const retryOperation = async <T>(
   } catch (error: any) {
     // Check if the error is an abort error or if the signal was aborted during the operation
     if (isAbortError(error) || signal?.aborted) {
+      // If it's already an abort error, throw it directly to preserve details
+      if (isAbortError(error)) throw error
       throw createAbortError()
     }
 
@@ -87,7 +101,6 @@ const retryOperation = async <T>(
 }
 
 // Strict mapping ensuring all metrics are covered matching DB columns
-// 'mineralMatter' maps to 'mineral_matter' in the database
 const KEY_MAPPING: Record<string, string> = {
   acidity: 'acidity',
   moisture: 'moisture',
@@ -185,7 +198,6 @@ export const api = {
 
         if (error) {
           // Check if error is an abort error or if signal is aborted
-          // This handles cases where Supabase returns an error object for aborts
           if (isAbortError(error) || signal?.aborted) {
             const abortErr = new Error('Aborted')
             abortErr.name = 'AbortError'

@@ -141,6 +141,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       // Gracefully handle abort errors or if the specific controller was aborted
       // This specifically fixes the "Index page crash" or "HTTP N/A" errors
       if (isAbortError(err) || controller.signal.aborted) {
+        // Silently return to avoid showing cancellation errors to the user
         return
       }
 
