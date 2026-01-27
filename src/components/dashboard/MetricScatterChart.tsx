@@ -30,8 +30,6 @@ const CustomTooltip = ({ active, payload, unit, color }: any) => {
   if (!active || !payload || !payload.length) return null
 
   // STRICT CHECK: Only show tooltip if the payload contains data from the 'points' Scatter
-  // This effectively prevents the tooltip from showing when hovering *only* the Trend Line
-  // because the Line component is configured with tooltipType="none"
   const pointPayload = payload.find((p: any) => p.name === 'points')
 
   if (pointPayload && pointPayload.payload && pointPayload.payload.original) {
@@ -89,6 +87,11 @@ export const MetricScatterChart = ({
 
   // Calculate stats and prepare data for Scatter Plot
   const { points, stats, trendPoints } = useMemo(() => {
+    // Graceful handling of empty data or missing keys
+    if (!data || data.length === 0) {
+      return { points: [], stats: calculateStats([]), trendPoints: [] }
+    }
+
     const pts = data
       .map((item) => {
         const lab = Number(item[`${metricKey}_lab`])
@@ -135,16 +138,31 @@ export const MetricScatterChart = ({
     },
   }
 
+  // Handle empty state gracefully within the container area to maintain layout
   if (points.length === 0) {
     return (
       <div
         className={cn(
-          'flex h-full items-center justify-center text-sm text-zinc-500',
-          !compact &&
-            'min-h-[300px] border border-zinc-800 rounded-lg bg-black',
+          'flex flex-col',
+          compact ? 'h-full w-full' : 'h-full w-full space-y-2',
         )}
       >
-        Sem dados para exibir
+        {!compact && (
+          <div className="flex flex-col space-y-2 mb-2 opacity-50">
+            <h4 className="text-lg font-bold text-zinc-200 uppercase tracking-wide text-center">
+              {chartTitle}
+            </h4>
+          </div>
+        )}
+        <div
+          className={cn(
+            'flex items-center justify-center text-sm text-zinc-500 flex-1',
+            !compact &&
+              'min-h-[300px] border border-zinc-800 rounded-lg bg-black',
+          )}
+        >
+          Sem dados para exibir
+        </div>
       </div>
     )
   }
@@ -253,7 +271,6 @@ export const MetricScatterChart = ({
               />
 
               {/* Trend Line rendered BEFORE Scatter so points are on top */}
-              {/* tooltipType="none" is CRITICAL to prevent trend line from showing in tooltip */}
               <Line
                 name="trend"
                 data={trendPoints}

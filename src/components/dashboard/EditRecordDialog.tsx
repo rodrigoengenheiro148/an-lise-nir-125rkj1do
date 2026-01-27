@@ -60,7 +60,7 @@ export const EditRecordDialog = ({
           setCompanies(companiesData)
         } catch (e) {
           console.error(e)
-          toast.error('Erro ao carregar dados.')
+          toast.error('Erro ao carregar lista de empresas.')
         } finally {
           setLoading(false)
         }
@@ -138,6 +138,7 @@ export const EditRecordDialog = ({
         await api.createRecord(formData as AnalysisRecord)
         toast.success('Registro criado com sucesso!')
       }
+      // Trigger refresh in parent
       onSuccess()
       onOpenChange(false)
     } catch (e) {

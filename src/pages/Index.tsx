@@ -38,6 +38,7 @@ const Index = () => {
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
   // Derive filtered records from the global store which is updated in real-time
+  // Material filtering fixes data to its respective category
   const filteredRecords = useMemo(() => {
     if (!selectedCompanyId) return []
 
@@ -65,13 +66,14 @@ const Index = () => {
   }
 
   const handleDataChange = async () => {
-    // We call refreshData to ensure consistency, but due to Realtime
-    // and the silent refresh implementation, this won't cause UI flickering.
+    // Triggered after add/edit/import
+    // Calls silent refresh to ensure consistency
     refreshData()
   }
 
   // Handle initial loading state
   // This only blocks the UI if we have absolutely no data to show
+  // Optimized Loading States: We don't block if we have stale data
   if (isStoreLoading && storeCompanies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full min-h-[50vh] bg-zinc-950 text-zinc-100">
@@ -212,7 +214,7 @@ const Index = () => {
               <Cloud className="h-3 w-3 text-emerald-500" /> Status
             </span>
             <span className="text-sm font-medium text-zinc-300 mt-1">
-              Conectado (Realtime)
+              {storeError ? 'Erro na sincronização' : 'Conectado (Realtime)'}
             </span>
           </div>
         </div>

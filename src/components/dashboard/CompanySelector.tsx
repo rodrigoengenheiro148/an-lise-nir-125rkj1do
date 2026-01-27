@@ -70,10 +70,10 @@ export const CompanySelector = ({
         <Select
           value={selectedCompanyId}
           onValueChange={onSelect}
-          disabled={isLoading || companies.length === 0}
+          disabled={isLoading && companies.length === 0}
         >
           <SelectTrigger className="w-full bg-background border-input">
-            {isLoading ? (
+            {isLoading && companies.length === 0 ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="text-xs">Carregando...</span>

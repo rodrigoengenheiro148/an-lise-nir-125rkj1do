@@ -97,6 +97,7 @@ export const api = {
   },
 
   getRecords: async (): Promise<AnalysisRecord[]> => {
+    // Persistent Fetching: Getting all records to ensure client-side filtering works seamlessly
     const { data, error } = await supabase
       .from('analysis_records')
       .select('*, companies(name, logo_url)')
@@ -126,7 +127,6 @@ export const api = {
       .limit(10000)
 
     if (material) {
-      // Use ilike for case-insensitive matching
       query = query.ilike('material', material)
     }
 
@@ -143,27 +143,9 @@ export const api = {
     })
   },
 
-  getCompanyMaterials: async (companyId: string): Promise<string[]> => {
-    const { data, error } = await supabase
-      .from('analysis_records')
-      .select('material')
-      .eq('company_id', companyId)
-      .limit(10000)
-
-    if (error) {
-      console.error('Error fetching company materials:', error)
-      return []
-    }
-
-    return Array.from(
-      new Set(data?.map((d) => d.material).filter(Boolean) as string[]),
-    ).sort()
-  },
-
   saveRecords: async (records: AnalysisRecord[]) => {
     const companies = await api.getCompanies()
 
-    // Filter and map records to DB format
     const rowsToInsert = records
       .map((r) => {
         const company = companies.find(
@@ -176,8 +158,6 @@ export const api = {
 
     if (rowsToInsert.length === 0) return
 
-    // Cloud-First: Direct insert to Supabase
-    // Using simple insert for now, assuming acceptable batch sizes
     const { error } = await supabase
       .from('analysis_records')
       .insert(rowsToInsert)
@@ -189,7 +169,6 @@ export const api = {
     record: Partial<AnalysisRecord> & { company_id: string },
   ) => {
     const dbRow = transformRecordToDB(record, record.company_id)
-    // Cloud-First: Direct insert
     const { error } = await supabase.from('analysis_records').insert(dbRow)
     if (error) throw error
   },
@@ -238,21 +217,5 @@ export const api = {
 
     if (error) throw error
     if (data?.error) throw new Error(data.error)
-  },
-
-  exportMetricData: async (
-    metricKey: string,
-    companyId?: string,
-  ): Promise<Blob> => {
-    const { data, error } = await supabase.functions.invoke(
-      'export-metric-data',
-      {
-        body: { companyId, metricKey },
-        responseType: 'blob',
-      },
-    )
-
-    if (error) throw error
-    return data
   },
 }

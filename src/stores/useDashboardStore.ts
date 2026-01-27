@@ -94,13 +94,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async (forceLoadingState = false) => {
     if (!user) return
 
-    // Only show loading state if we have no data or if forced (e.g. manual hard refresh)
-    // This prevents "blanking out" charts during background updates
+    // Persistent Data Fetching: Only show loading state if we have no data or if forced.
+    // This allows background refreshes without UI flickering.
     if (forceLoadingState || companies.length === 0) {
       setIsLoading(true)
     }
 
-    setError(null)
+    // We do NOT clear error here immediately to avoid jumping layout,
+    // but we will clear it on success.
 
     try {
       const [companiesResult, recordsResult] = await Promise.allSettled([
@@ -116,7 +117,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setCompanies(fetchedCompanies)
       } else {
         console.error('Failed to load companies', companiesResult.reason)
-        setError('Falha ao carregar empresas.')
+        // Keep old companies if fetch fails, but set error
+        setError('Falha ao atualizar empresas. Verifique sua conexão.')
       }
 
       if (recordsResult.status === 'fulfilled') {
@@ -124,7 +126,18 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setAnalysisRecords(fetchedRecords)
       } else {
         console.error('Failed to load records', recordsResult.reason)
-        if (!error) setError('Falha ao carregar registros.')
+        // Keep old records if fetch fails
+        if (!error)
+          setError(
+            'Falha ao atualizar registros. Dados exibidos podem estar desatualizados.',
+          )
+      }
+
+      if (
+        companiesResult.status === 'fulfilled' &&
+        recordsResult.status === 'fulfilled'
+      ) {
+        setError(null)
       }
 
       // Check for persistence validity
@@ -140,6 +153,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         fetchedCompanies.length === 0 &&
         companiesResult.status === 'fulfilled'
       ) {
+        // Only clear selection if we confidently know there are no companies
         setSelectedCompanyId('')
       }
     } catch (err) {
@@ -227,7 +241,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
               })
 
               setAnalysisRecords((prev) => {
-                // RACE CONDITION PREVENTION:
+                // Synchronized Chart Updates:
                 // Check if record already exists (e.g. from manual refresh happening simultaneously)
                 if (prev.some((r) => r.id === transformed.id)) {
                   return prev
@@ -295,47 +309,37 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     return distinctMaterials
   }, [analysisRecords, selectedCompanyId])
 
-  // Handle Material Selection Logic
+  // Material-Specific State Management
+  // Ensure we don't automatically switch materials unless necessary,
+  // keeping the view stable (fixed) even if data is empty for the selected material.
   useEffect(() => {
     const logic = async () => {
       if (!selectedCompanyId) return
 
-      setIsLoadingMaterials(true)
-      try {
-        let nextMaterial = selectedMaterial
+      let nextMaterial = selectedMaterial
 
+      // Only force a default if the current selection is completely empty
+      if (!nextMaterial) {
         if (materials.length > 0) {
-          const existsInDb = materials.some(
-            (m) => m.toLowerCase() === (selectedMaterial || '').toLowerCase(),
-          )
-
-          if (!existsInDb) {
-            const validStandard = MATERIALS_OPTIONS.find((opt) =>
-              materials.some((m) => m.toLowerCase() === opt.toLowerCase()),
-            )
-
-            nextMaterial = validStandard || materials[0]
-          } else {
-            const normalized = materials.find(
-              (m) => m.toLowerCase() === selectedMaterial.toLowerCase(),
-            )
-            if (normalized) nextMaterial = normalized
-          }
+          nextMaterial = materials[0]
         } else {
-          if (!nextMaterial) nextMaterial = MATERIALS_OPTIONS[0]
+          nextMaterial = MATERIALS_OPTIONS[0]
         }
+      }
 
-        if (nextMaterial !== selectedMaterial) {
-          setSelectedMaterial(nextMaterial)
-        }
-      } finally {
-        setIsLoadingMaterials(false)
+      // We removed the logic that forced switching if `!existsInDb`.
+      // This allows the user to stay on a material even if it has no records yet.
+
+      if (nextMaterial !== selectedMaterial) {
+        setSelectedMaterial(nextMaterial)
       }
     }
 
     logic()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId, materials])
+  }, [selectedCompanyId, materials.length])
+  // We only depend on length changes or company changes to re-evaluate default,
+  // not every material list change to prevent jitter.
 
   // Load data when user is authenticated
   useEffect(() => {
