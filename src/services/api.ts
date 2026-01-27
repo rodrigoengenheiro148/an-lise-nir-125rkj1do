@@ -177,23 +177,79 @@ export const api = {
   saveRecords: async (records: AnalysisRecord[]) => {
     if (records.length === 0) return
 
-    const validRecords = records.filter((r) => r.company_id)
+    // Implementation updated to handle merging to avoid overwriting existing metrics
+    // when importing data for specific metrics (e.g. only Impurity).
 
-    const dbRecords = validRecords.map((r) =>
-      transformRecordToDB(r, r.company_id!),
-    )
+    // Process in smaller chunks to handle URL length limits when fetching
+    const CHUNK_SIZE = 50
 
-    const CHUNK_SIZE = 200
-    for (let i = 0; i < dbRecords.length; i += CHUNK_SIZE) {
-      const chunk = dbRecords.slice(i, i + CHUNK_SIZE)
+    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+      const chunk = records.slice(i, i + CHUNK_SIZE)
+      const validChunk = chunk.filter((r) => r.company_id)
 
-      const { error } = await supabase.rpc('bulk_upsert_analysis_records', {
-        records: chunk,
+      if (validChunk.length === 0) continue
+
+      // 1. Fetch existing records to check for collisions/merges
+      // We look up by (company_id) AND (date)
+      const companyIds = Array.from(
+        new Set(validChunk.map((r) => r.company_id!)),
+      )
+      const dates = Array.from(
+        new Set(validChunk.map((r) => r.date).filter(Boolean)),
+      )
+
+      let query = supabase
+        .from('analysis_records')
+        .select('*')
+        .in('company_id', companyIds)
+
+      // Optimization: Only filter by dates if we have them.
+      // If we don't filter by dates, we fetch all company records (might be heavy but safe)
+      if (dates.length > 0) {
+        query = query.in('date', dates as string[])
+      }
+
+      const { data: existingRecords, error: fetchError } = await query
+      if (fetchError) throw fetchError
+
+      // Index existing records for O(1) lookup
+      const existingMap = new Map<string, any>()
+      existingRecords?.forEach((rec) => {
+        const key = `${rec.company_id}|${rec.date}|${rec.material}|${rec.sub_material || ''}`
+        existingMap.set(key, rec)
       })
 
-      if (error) {
-        console.error('Error saving records:', error)
-        throw error
+      // 2. Prepare Payload (Merge if exists)
+      const upsertPayload = validChunk.map((newRec) => {
+        const key = `${newRec.company_id}|${newRec.date}|${newRec.material}|${newRec.submaterial || ''}`
+        const existing = existingMap.get(key)
+
+        // Convert the new record to DB format (only non-null fields)
+        const newDbRow = transformRecordToDB(newRec, newRec.company_id!)
+
+        if (existing) {
+          // MERGE: Keep existing fields, overwrite with new non-null fields
+          // This ensures missing metrics in newRec don't wipe existing metrics
+          return {
+            ...existing, // Start with existing DB row
+            ...newDbRow, // Apply updates
+            updated_at: new Date().toISOString(),
+          }
+        } else {
+          // NEW RECORD
+          return newDbRow
+        }
+      })
+
+      // 3. Perform Upsert
+      // We use standard upsert which uses 'id' (if present from existing) to update
+      const { error: upsertError } = await supabase
+        .from('analysis_records')
+        .upsert(upsertPayload)
+
+      if (upsertError) {
+        console.error('Error saving chunk:', upsertError)
+        throw upsertError
       }
     }
   },

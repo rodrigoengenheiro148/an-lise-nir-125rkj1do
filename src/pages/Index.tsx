@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { ImportDialog } from '@/components/dashboard/ImportDialog'
+import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,7 @@ export default function Index() {
     setSelectedCompanyId,
     setSelectedMaterial,
     isLoading,
+    refreshData,
   } = useDashboardStore()
 
   const [isImportOpen, setIsImportOpen] = useState(false)
@@ -103,8 +105,15 @@ export default function Index() {
               className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-lg shadow-emerald-900/20"
             >
               <Upload className="h-4 w-4" />
-              Importar Dados
+              Importar
             </Button>
+
+            <ManagementMenu
+              companies={companies}
+              selectedCompanyId={selectedCompanyId}
+              onDataChange={refreshData}
+              defaultMaterial={selectedMaterial}
+            />
 
             <Link to="/analysis" className="w-full md:w-auto">
               <Button
@@ -112,7 +121,7 @@ export default function Index() {
                 className="w-full border-zinc-700 bg-zinc-900/50 text-zinc-300 hover:bg-zinc-800 hover:text-white gap-2"
               >
                 <BarChart2 className="h-4 w-4" />
-                Análise Avançada
+                Análise
               </Button>
             </Link>
           </div>
@@ -142,6 +151,7 @@ export default function Index() {
         defaultMaterial={selectedMaterial}
         onImportSuccess={() => {
           // Data refresh is handled by Realtime subscription in Store
+          refreshData()
         }}
       />
     </div>

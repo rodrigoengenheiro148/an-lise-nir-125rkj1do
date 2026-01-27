@@ -25,6 +25,7 @@ import {
   Loader2,
   Database,
   AlertTriangle,
+  LayoutDashboard,
 } from 'lucide-react'
 import { ImportDialog } from './ImportDialog'
 import { CompanyEntity } from '@/types/dashboard'
@@ -59,7 +60,7 @@ export const ManagementMenu = ({
       return
     }
 
-    // Strict client-side password check before even calling backend
+    // Strict client-side password check
     if (password !== '16071997') {
       toast.error('Senha incorreta. A exclusão não foi realizada.')
       return
@@ -103,17 +104,20 @@ export const ManagementMenu = ({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="gap-2 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800"
+            className="w-full md:w-auto gap-2 border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800"
           >
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Gerenciamento</span>
+            <span className="hidden sm:inline">Admin</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
           className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[220px]"
         >
-          <DropdownMenuLabel>Opções</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Painel de Controle
+          </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-zinc-800" />
 
           <DropdownMenuItem
@@ -140,7 +144,7 @@ export const ManagementMenu = ({
             onClick={() => handleDeleteClick('all')}
           >
             <AlertTriangle className="h-4 w-4" />
-            Limpar TUDO (Reset Geral)
+            Apagar Todos os Dados
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -163,7 +167,7 @@ export const ManagementMenu = ({
             <DialogTitle className="flex items-center gap-2 text-red-500">
               <Database className="h-5 w-5" />
               {deleteMode === 'all'
-                ? 'Resetar TODO o Sistema'
+                ? 'Apagar Todos os Dados'
                 : 'Confirmar Exclusão (Empresa)'}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 space-y-2">
@@ -231,11 +235,7 @@ export const ManagementMenu = ({
               ) : (
                 <Trash2 className="h-4 w-4" />
               )}
-              {isDeleting
-                ? 'Excluindo...'
-                : deleteMode === 'all'
-                  ? 'Confirmar RESET GERAL'
-                  : 'Confirmar Exclusão'}
+              {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
             </Button>
           </DialogFooter>
         </DialogContent>
