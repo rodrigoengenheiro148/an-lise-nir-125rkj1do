@@ -303,6 +303,7 @@ export const MetricScatterChart = ({
                 style={{ filter: `url(#glow-${safeFilterId})` }}
                 strokeWidth={0}
                 isAnimationActive={false} // Smoother updates for realtime
+                fillOpacity={0.6} // Use opacity to make overlapping points visible
               >
                 {points.map((entry, index) => (
                   <Cell

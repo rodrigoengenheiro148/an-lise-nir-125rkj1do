@@ -121,7 +121,12 @@ export const MetricEvolutionChart = ({
               name="Laboratório (Ref)"
               stroke="hsl(var(--primary))"
               strokeWidth={2}
-              dot={{ r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 }}
+              dot={{
+                r: 3,
+                fill: 'hsl(var(--primary))',
+                strokeWidth: 0,
+                fillOpacity: 0.7,
+              }}
               activeDot={{ r: 5 }}
               connectNulls
             />
@@ -131,7 +136,12 @@ export const MetricEvolutionChart = ({
               name="Análise"
               stroke={color}
               strokeWidth={2}
-              dot={{ r: 3, fill: color, strokeWidth: 0 }}
+              dot={{
+                r: 3,
+                fill: color,
+                strokeWidth: 0,
+                fillOpacity: 0.7,
+              }}
               activeDot={{ r: 5 }}
               connectNulls
             />

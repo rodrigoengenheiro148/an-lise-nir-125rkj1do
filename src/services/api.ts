@@ -141,10 +141,18 @@ export const api = {
       from += step
     }
 
-    return allRows.map((row) => {
+    // Deduplicate records by ID to ensure data integrity from pagination shifts
+    const uniqueRecordsMap = new Map<string, AnalysisRecord>()
+
+    allRows.forEach((row) => {
       const comp = (row.companies as any) || { name: 'Unknown' }
-      return transformRecordFromDB(row, comp)
+      const record = transformRecordFromDB(row, comp)
+      if (record.id) {
+        uniqueRecordsMap.set(record.id, record)
+      }
     })
+
+    return Array.from(uniqueRecordsMap.values())
   },
 
   createRecord: async (
