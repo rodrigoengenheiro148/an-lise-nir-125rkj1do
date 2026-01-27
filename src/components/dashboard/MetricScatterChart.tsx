@@ -166,7 +166,7 @@ export const MetricScatterChart = ({
           <h4 className="text-lg font-bold text-zinc-200 uppercase tracking-wide text-center">
             {chartTitle}
           </h4>
-          <div className="flex justify-center gap-6 text-xs font-mono text-zinc-400 bg-zinc-900/50 py-1 rounded border border-zinc-800">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[10px] sm:text-xs font-mono text-zinc-400 bg-zinc-900/50 py-1 rounded border border-zinc-800 px-2">
             <span>R²: {stats.r2.toFixed(3)}</span>
             <span>Slope: {stats.slope.toFixed(3)}</span>
             <span>Bias: {stats.bias.toFixed(3)}</span>
@@ -180,7 +180,7 @@ export const MetricScatterChart = ({
           'flex-1',
           compact
             ? 'min-h-0'
-            : 'min-h-[400px] bg-black rounded-lg border border-zinc-800 p-4 shadow-sm',
+            : 'min-h-[300px] sm:min-h-[400px] bg-black rounded-lg border border-zinc-800 p-2 sm:p-4 shadow-sm',
         )}
       >
         <ChartContainer config={chartConfig} className="h-full w-full">
@@ -188,9 +188,9 @@ export const MetricScatterChart = ({
             <ComposedChart
               margin={{
                 top: 20,
-                right: 30,
+                right: 20,
                 bottom: 20,
-                left: 10,
+                left: 0,
               }}
             >
               <defs>
@@ -221,14 +221,14 @@ export const MetricScatterChart = ({
                 name="LAB"
                 tickLine={{ stroke: '#52525b' }}
                 axisLine={{ stroke: '#52525b' }}
-                tick={{ fill: '#71717a', fontSize: 11 }}
+                tick={{ fill: '#71717a', fontSize: 10 }}
                 domain={['auto', 'auto']}
                 label={{
                   value: 'LAB',
                   position: 'insideBottom',
                   offset: -10,
                   fill: '#a1a1aa',
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: 600,
                 }}
               />
@@ -238,14 +238,14 @@ export const MetricScatterChart = ({
                 name="NIR"
                 tickLine={{ stroke: '#52525b' }}
                 axisLine={{ stroke: '#52525b' }}
-                tick={{ fill: '#71717a', fontSize: 11 }}
+                tick={{ fill: '#71717a', fontSize: 10 }}
                 domain={['auto', 'auto']}
                 label={{
                   value: 'NIR',
                   angle: -90,
                   position: 'insideLeft',
                   fill: '#a1a1aa',
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: 600,
                   offset: 0,
                 }}

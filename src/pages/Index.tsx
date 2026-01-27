@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import {
-  AnalysisRecord,
   METRICS,
   CompanyEntity,
   getMaterialDisplayName,
   MATERIALS_OPTIONS,
 } from '@/types/dashboard'
-import { api } from '@/services/api'
 import { CompanySelector } from '@/components/dashboard/CompanySelector'
 import { MaterialSelector } from '@/components/dashboard/MaterialSelector'
 import { MetricCard } from '@/components/dashboard/MetricCard'
@@ -23,55 +21,47 @@ const Index = () => {
     selectedMaterial,
     setSelectedMaterial,
     companies: storeCompanies,
+    analysisRecords,
     isLoading: isStoreLoading,
     isLoadingMaterials,
     refreshData,
   } = useDashboardStore()
 
-  // Local state for filtered records to avoid storing massive data in context if not needed globally yet
-  const [filteredRecords, setFilteredRecords] = useState<AnalysisRecord[]>([])
-  const [isLoadingRecords, setIsLoadingRecords] = useState(false)
   const [isAddRecordOpen, setIsAddRecordOpen] = useState(false)
 
-  // Fetch filtered records when Company or Material changes
-  const fetchRecords = useCallback(async () => {
-    if (!selectedCompanyId) {
-      setFilteredRecords([])
-      return
-    }
+  // Derive filtered records from the global store which is updated in real-time
+  const filteredRecords = useMemo(() => {
+    if (!selectedCompanyId) return []
 
-    setIsLoadingRecords(true)
+    let records = analysisRecords.filter(
+      (r) => r.company_id === selectedCompanyId,
+    )
 
-    try {
-      const records = await api.getCompanyRecords(
-        selectedCompanyId,
-        selectedMaterial,
+    if (selectedMaterial) {
+      records = records.filter(
+        (r) => r.material?.toLowerCase() === selectedMaterial.toLowerCase(),
       )
-      setFilteredRecords(records)
-    } catch (error) {
-      console.error(error)
-      setFilteredRecords([])
-    } finally {
-      setIsLoadingRecords(false)
     }
-  }, [selectedCompanyId, selectedMaterial])
 
-  useEffect(() => {
-    fetchRecords()
-  }, [fetchRecords])
+    // Ensure sorting by date descending
+    return records.sort((a, b) => {
+      const dateA = new Date(a.date || 0).getTime()
+      const dateB = new Date(b.date || 0).getTime()
+      return dateB - dateA
+    })
+  }, [analysisRecords, selectedCompanyId, selectedMaterial])
 
   const handleCompanyAdded = (newCompany: any) => {
-    // Refresh store data to include new company
     refreshData()
     setSelectedCompanyId(newCompany.id)
   }
 
-  // Refresh data when changes occur
-  const handleDataChange = useCallback(async () => {
-    fetchRecords()
-    // Also trigger a refresh of store data to ensure material lists etc are up to date
+  // Refresh data triggers a global reload if needed, but realtime should handle most
+  const handleDataChange = async () => {
+    // With realtime, we might not need to manually fetch, but it's safe to keep for explicit actions
+    // like "Clear Database" or bulk import which might happen in another context
     refreshData()
-  }, [fetchRecords, refreshData])
+  }
 
   if (isStoreLoading && storeCompanies.length === 0) {
     return (
@@ -84,19 +74,18 @@ const Index = () => {
     )
   }
 
-  // Convert store companies to CompanyEntity type expected by selector
   const companiesForSelector: CompanyEntity[] = storeCompanies.map((c) => ({
     id: c.id,
     name: c.name,
-    created_at: new Date().toISOString(), // Placeholder as store types might differ slightly
+    created_at: new Date().toISOString(),
   }))
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20 selection:bg-blue-500/30">
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/20">
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="p-2 bg-blue-900/30 rounded-lg border border-blue-500/20 shrink-0">
               <TrendingUp className="h-6 w-6 text-blue-400" />
             </div>
             <div>
@@ -133,7 +122,7 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <ManagementMenu
                 selectedCompanyId={selectedCompanyId}
                 companies={companiesForSelector}
@@ -182,50 +171,41 @@ const Index = () => {
           </div>
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 flex flex-col justify-center">
             <span className="text-xs text-zinc-500 uppercase font-mono flex items-center gap-2">
-              <Cloud className="h-3 w-3 text-zinc-500" /> Status
+              <Cloud className="h-3 w-3 text-emerald-500" /> Status
             </span>
             <span className="text-sm font-medium text-zinc-300 mt-1">
-              Sincronizado (Supabase)
+              Conectado (Realtime)
             </span>
           </div>
         </div>
 
-        {isLoadingRecords ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-pulse flex flex-col items-center">
-              <Activity className="h-8 w-8 text-blue-500 mb-4 animate-spin" />
-              <span className="text-sm text-zinc-400">Carregando dados...</span>
-            </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
+              <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
+              Dispersão por Parâmetro (LAB vs ANL)
+              {selectedMaterial && (
+                <span className="text-sm font-normal text-zinc-500 ml-2 hidden sm:inline">
+                  - {getMaterialDisplayName(selectedMaterial)}
+                </span>
+              )}
+            </h2>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold flex items-center gap-2 text-zinc-200">
-                <span className="h-4 w-1 bg-blue-500 rounded-full"></span>
-                Dispersão por Parâmetro (LAB vs ANL)
-                {selectedMaterial && (
-                  <span className="text-sm font-normal text-zinc-500 ml-2">
-                    - {getMaterialDisplayName(selectedMaterial)}
-                  </span>
-                )}
-              </h2>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-              {METRICS.map((metric) => (
-                <MetricCard
-                  key={metric.key}
-                  title={metric.label}
-                  metricKey={metric.key}
-                  color={metric.color}
-                  unit={metric.unit}
-                  data={filteredRecords}
-                  selectedCompanyId={selectedCompanyId}
-                />
-              ))}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {METRICS.map((metric) => (
+              <MetricCard
+                key={metric.key}
+                title={metric.label}
+                metricKey={metric.key}
+                color={metric.color}
+                unit={metric.unit}
+                data={filteredRecords}
+                selectedCompanyId={selectedCompanyId}
+              />
+            ))}
           </div>
-        )}
+        </div>
       </main>
 
       <EditRecordDialog

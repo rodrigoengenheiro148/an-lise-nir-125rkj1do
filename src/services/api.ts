@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
 import { AnalysisRecord, CompanyEntity } from '@/types/dashboard'
-import { MOCK_COMPANIES, MOCK_RECORDS } from '@/lib/mockData'
 
 const KEY_MAPPING: Record<string, string> = {
   acidity: 'acidity',
@@ -16,7 +15,8 @@ const KEY_MAPPING: Record<string, string> = {
   sodium: 'sodium',
 }
 
-const transformRecordFromDB = (
+// Exported for use in Store for Realtime updates
+export const transformRecordFromDB = (
   row: any,
   company: { name: string; logo_url?: string | null },
 ): AnalysisRecord => {
@@ -124,7 +124,7 @@ export const api = {
       .limit(10000)
 
     if (material) {
-      // Use ilike for case-insensitive matching to ensure we catch all records regardless of casing
+      // Use ilike for case-insensitive matching
       query = query.ilike('material', material)
     }
 

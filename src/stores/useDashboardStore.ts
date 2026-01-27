@@ -4,11 +4,14 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useMemo,
 } from 'react'
 import { Company, Sample } from '@/lib/types'
 import { AnalysisRecord, MATERIALS_OPTIONS } from '@/types/dashboard'
-import { toast } from '@/hooks/use-toast'
-import { api } from '@/services/api'
+import { toast } from 'sonner'
+import { api, transformRecordFromDB } from '@/services/api'
+import { supabase } from '@/lib/supabase/client'
+import { RealtimeChannel } from '@supabase/supabase-js'
 
 interface DashboardState {
   companies: Company[]
@@ -40,7 +43,6 @@ const STORAGE_KEYS = {
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [companies, setCompanies] = useState<Company[]>([])
-  const [materials, setMaterials] = useState<string[]>([])
   const [samples, setSamples] = useState<Sample[]>([])
   const [analysisRecords, setAnalysisRecords] = useState<AnalysisRecord[]>([])
 
@@ -75,13 +77,17 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const fetchedCompanies = await api.getCompanies()
+      const [fetchedCompanies, fetchedRecords] = await Promise.all([
+        api.getCompanies(),
+        api.getRecords(),
+      ])
 
       const mappedCompanies = fetchedCompanies.map((c) => ({
         id: c.id,
         name: c.name,
       }))
       setCompanies(mappedCompanies)
+      setAnalysisRecords(fetchedRecords)
 
       // If no company selected (and none persisted), select the first one
       if (mappedCompanies.length > 0 && !selectedCompanyId) {
@@ -89,64 +95,108 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Failed to load data', error)
-      toast({
-        title: 'Erro ao carregar dados',
-        description: 'Não foi possível conectar ao servidor.',
-        variant: 'destructive',
-      })
+      toast.error('Não foi possível conectar ao servidor.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Fetch materials when company changes
+  // Realtime subscription
   useEffect(() => {
-    const fetchMaterials = async () => {
+    const channel: RealtimeChannel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'analysis_records',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newRecord = payload.new as any
+            const company = companies.find((c) => c.id === newRecord.company_id)
+            if (company) {
+              const transformed = transformRecordFromDB(newRecord, {
+                name: company.name,
+              })
+              setAnalysisRecords((prev) => [transformed, ...prev])
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedRecord = payload.new as any
+            const company = companies.find(
+              (c) => c.id === updatedRecord.company_id,
+            )
+            if (company) {
+              const transformed = transformRecordFromDB(updatedRecord, {
+                name: company.name,
+              })
+              setAnalysisRecords((prev) =>
+                prev.map((r) => (r.id === transformed.id ? transformed : r)),
+              )
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id
+            setAnalysisRecords((prev) => prev.filter((r) => r.id !== deletedId))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [companies])
+
+  // Derive materials from analysisRecords for the selected company
+  const materials = useMemo(() => {
+    if (!selectedCompanyId) return []
+
+    const companyRecords = analysisRecords.filter(
+      (r) => r.company_id === selectedCompanyId,
+    )
+    const distinctMaterials = Array.from(
+      new Set(companyRecords.map((r) => r.material).filter(Boolean)),
+    ).sort() as string[]
+
+    return distinctMaterials
+  }, [analysisRecords, selectedCompanyId])
+
+  // Handle Material Selection Logic
+  useEffect(() => {
+    const logic = async () => {
       if (!selectedCompanyId) {
-        setMaterials([])
         setSelectedMaterial('')
         return
       }
 
       setIsLoadingMaterials(true)
       try {
-        const mats = await api.getCompanyMaterials(selectedCompanyId)
-        setMaterials(mats)
-
-        // Robust Selection Logic:
-        // 1. Try to find the currently selected material in the fetched materials (case-insensitive)
-        // 2. Or, try to find it in the static options
-        // 3. Default to the first static option if all else fails
-
+        // Robust Selection Logic based on current derived materials
         let nextMaterial = selectedMaterial
 
-        // If we have a selection, check if it's still valid or if we should switch
         if (selectedMaterial) {
-          const existsInDb = mats.some(
+          const existsInDb = materials.some(
             (m) => m.toLowerCase() === selectedMaterial.toLowerCase(),
           )
-          if (!existsInDb && mats.length > 0) {
-            // If current selection is NOT in DB, but DB has other materials, maybe switch?
-            // However, user might want to add new data for 'selectedMaterial'.
-            // So we don't force switch unless it's completely invalid.
-            // Actually, keeping the selection is fine as long as it is in MATERIALS_OPTIONS
+          if (!existsInDb && materials.length > 0) {
+            // keep selection or not?
           }
         }
 
-        // If no selection, or if we want to ensure a valid default
         if (!nextMaterial) {
-          if (mats.length > 0) {
-            // Prefer a material that exists in DB and is also in OPTIONS (to normalize casing)
+          if (materials.length > 0) {
             const validMat = MATERIALS_OPTIONS.find((opt) =>
-              mats.some((dbMat) => dbMat.toLowerCase() === opt.toLowerCase()),
+              materials.some(
+                (dbMat) => dbMat.toLowerCase() === opt.toLowerCase(),
+              ),
             )
-            nextMaterial = validMat || mats[0] // fallback to raw DB value if no match
+            nextMaterial = validMat || materials[0]
           } else {
             nextMaterial = MATERIALS_OPTIONS[0]
           }
         }
 
-        // Ensure normalization to lowercase if it matches an option
         const normalized = MATERIALS_OPTIONS.find(
           (opt) => opt.toLowerCase() === nextMaterial.toLowerCase(),
         )
@@ -155,18 +205,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setSelectedMaterial(nextMaterial)
-      } catch (error) {
-        console.error('Error fetching materials:', error)
-        setMaterials([])
-        setSelectedMaterial(MATERIALS_OPTIONS[0])
       } finally {
         setIsLoadingMaterials(false)
       }
     }
 
-    fetchMaterials()
+    logic()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId])
+  }, [selectedCompanyId, materials]) // Re-run when materials change (e.g. from realtime)
 
   // Initial load
   useEffect(() => {
@@ -178,10 +224,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const addSamples = (newSamples: Sample[]) => {
-    toast({
-      title: 'Funcionalidade em atualização',
-      description: 'Por favor, utilize a importação direta via banco de dados.',
-    })
+    toast.info('Utilize a importação via banco de dados.')
+  }
+
+  const setMaterials = (mats: string[]) => {
+    // No-op as materials are derived
   }
 
   return React.createElement(
