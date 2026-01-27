@@ -6,6 +6,8 @@ import {
   Filter,
   BarChart2,
   Upload,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,6 +36,7 @@ export default function Index() {
     setSelectedMaterial,
     isLoading,
     refreshData,
+    error,
   } = useDashboardStore()
 
   const [isImportOpen, setIsImportOpen] = useState(false)
@@ -145,6 +148,31 @@ export default function Index() {
             </Link>
           </div>
         </header>
+
+        {error && (
+          <div className="w-full bg-red-950/20 border border-red-900/50 p-4 rounded-lg flex items-center justify-between gap-4 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <div className="flex flex-col">
+                <span className="font-semibold text-red-200">
+                  Erro de Conexão
+                </span>
+                <span className="text-sm text-red-300/80">{error}</span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshData}
+              className="border-red-900 text-red-300 hover:bg-red-950 hover:text-white gap-2"
+            >
+              <RefreshCw
+                className={cn('h-4 w-4', isLoading && 'animate-spin')}
+              />
+              Tentar Novamente
+            </Button>
+          </div>
+        )}
 
         {/* Industrial High-Density Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 auto-rows-fr">

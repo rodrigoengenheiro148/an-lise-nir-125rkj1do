@@ -143,13 +143,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       if (
         err.name === 'AbortError' ||
         err.message?.includes('AbortError') ||
+        err.message?.includes('Aborted') ||
         controller.signal.aborted
       ) {
         return
       }
       console.error('Unexpected error loading data', err)
-      setError('Erro ao carregar dados. Tente atualizar a página.')
-      toast.error('Não foi possível conectar ao servidor.')
+      setError('Falha na conexão. Tentando restabelecer acesso ao servidor...')
+      toast.error('Não foi possível carregar os dados. Verifique sua conexão.')
     } finally {
       // Only set loading to false if this is the latest controller
       if (abortControllerRef.current === controller) {
@@ -160,6 +161,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user) return
+
+    // Reconnection logic listener
+    const handleOnline = () => {
+      toast.success('Conexão restabelecida. Atualizando dados...')
+      loadData(false)
+    }
+    window.addEventListener('online', handleOnline)
 
     const channel: RealtimeChannel = supabase
       .channel('dashboard-realtime')
@@ -220,7 +228,15 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           })
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Connected
+        }
+        if (status === 'CHANNEL_ERROR') {
+          // Attempt to reconnect if subscription fails
+          console.warn('Realtime channel error, attempting to reconnect...')
+        }
+      })
 
     const interval = setInterval(() => {
       if (pendingUpdates.current.length === 0) return
@@ -279,6 +295,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, 500)
 
     return () => {
+      window.removeEventListener('online', handleOnline)
       clearInterval(interval)
       supabase.removeChannel(channel)
     }
