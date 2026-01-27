@@ -207,6 +207,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 c.id === updatedCompany.id ? updatedCompany : c,
               ),
             )
+            // Update records that belong to this company
             setAnalysisRecords((prev) =>
               prev.map((r) => {
                 if (r.company_id === updatedCompany.id) {
@@ -274,26 +275,34 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
               (c) => c.id === newRecord.company_id,
             )
 
-            const transformed = transformRecordFromDB(newRecord, {
-              name: company?.name || 'Carregando...',
-              logo_url: company?.logo_url,
-            })
-            nextRecords.unshift(transformed)
+            try {
+              const transformed = transformRecordFromDB(newRecord, {
+                name: company?.name || 'Carregando...',
+                logo_url: company?.logo_url,
+              })
+              nextRecords.unshift(transformed)
+            } catch (e) {
+              console.warn('Skipping malformed realtime insert record', e)
+            }
           } else if (update.type === 'UPDATE') {
             const updatedRecord = update.payload
             const company = currentCompanies.find(
               (c) => c.id === updatedRecord.company_id,
             )
-            const transformed = transformRecordFromDB(updatedRecord, {
-              name: company?.name || 'Carregando...',
-              logo_url: company?.logo_url,
-            })
+            try {
+              const transformed = transformRecordFromDB(updatedRecord, {
+                name: company?.name || 'Carregando...',
+                logo_url: company?.logo_url,
+              })
 
-            const idx = nextRecords.findIndex((r) => r.id === transformed.id)
-            if (idx !== -1) {
-              nextRecords[idx] = transformed
-            } else {
-              nextRecords.unshift(transformed)
+              const idx = nextRecords.findIndex((r) => r.id === transformed.id)
+              if (idx !== -1) {
+                nextRecords[idx] = transformed
+              } else {
+                nextRecords.unshift(transformed)
+              }
+            } catch (e) {
+              console.warn('Skipping malformed realtime update record', e)
             }
           } else if (update.type === 'DELETE') {
             const deletedId = update.payload.id

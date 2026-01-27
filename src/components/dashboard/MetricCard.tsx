@@ -51,7 +51,7 @@ export const MetricCard = ({
 
   // Calculate averages for residue (and potential future use)
   const { avgLab, avgAnl, avgResidual } = useMemo(() => {
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
       return { avgLab: null, avgAnl: null, avgResidual: null }
     }
 
@@ -61,9 +61,11 @@ export const MetricCard = ({
     let countAnl = 0
 
     data.forEach((r) => {
+      // Safe access
       const lab = r[`${metricKey}_lab`]
       const anl = r[`${metricKey}_anl`]
 
+      // Check for valid numbers (non-null/undefined/empty string)
       if (lab !== undefined && lab !== null && lab !== '') {
         const val = Number(lab)
         if (!isNaN(val)) {

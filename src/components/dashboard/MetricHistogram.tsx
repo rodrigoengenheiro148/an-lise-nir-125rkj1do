@@ -28,9 +28,13 @@ export const MetricHistogram = ({
   color = 'hsl(var(--primary))',
 }: MetricHistogramProps) => {
   const histogramData = useMemo(() => {
+    if (!data) return []
+
     const values = data
       .map((r) => r[`${metricKey}_lab`])
-      .filter((v): v is number => typeof v === 'number')
+      .filter(
+        (v): v is number => typeof v === 'number' && !isNaN(v) && v !== null,
+      )
 
     if (values.length === 0) return []
 

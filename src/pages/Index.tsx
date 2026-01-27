@@ -23,7 +23,13 @@ import { ManagementMenu } from '@/components/dashboard/ManagementMenu'
 import useDashboardStore from '@/stores/useDashboardStore'
 import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
-import { isWithinInterval, startOfDay, endOfDay, parseISO } from 'date-fns'
+import {
+  isWithinInterval,
+  startOfDay,
+  endOfDay,
+  parseISO,
+  isValid,
+} from 'date-fns'
 
 export default function Index() {
   const {
@@ -43,7 +49,11 @@ export default function Index() {
 
   // Memoized filtered data to ensure visual stability and performance
   const filteredData = useMemo(() => {
+    if (!analysisRecords) return []
+
     return analysisRecords.filter((record) => {
+      if (!record) return false
+
       const matchCompany =
         !selectedCompanyId || record.company_id === selectedCompanyId
 
@@ -53,16 +63,25 @@ export default function Index() {
         (record.material &&
           record.material.toLowerCase() === selectedMaterial.toLowerCase())
 
-      // Date filter
+      // Date filter - ensure robust parsing
       let matchDate = true
       if (selectedDateRange.from && record.date) {
-        const recordDate = parseISO(record.date)
-        const from = startOfDay(selectedDateRange.from)
-        const to = selectedDateRange.to
-          ? endOfDay(selectedDateRange.to)
-          : endOfDay(selectedDateRange.from)
+        try {
+          const recordDate = parseISO(record.date)
+          if (isValid(recordDate)) {
+            const from = startOfDay(selectedDateRange.from)
+            const to = selectedDateRange.to
+              ? endOfDay(selectedDateRange.to)
+              : endOfDay(selectedDateRange.from)
 
-        matchDate = isWithinInterval(recordDate, { start: from, end: to })
+            matchDate = isWithinInterval(recordDate, { start: from, end: to })
+          } else {
+            // If date is invalid, should we exclude it? Probably yes if filtering by date.
+            matchDate = false
+          }
+        } catch (e) {
+          matchDate = false
+        }
       }
 
       return matchCompany && matchMaterial && matchDate
@@ -72,8 +91,11 @@ export default function Index() {
   // Determine which metrics have data to display based on filtered records
   // This satisfies the requirement to hide empty cards
   const visibleMetrics = useMemo(() => {
+    if (!filteredData || filteredData.length === 0) return []
+
     return METRICS.filter((metric) => {
       return filteredData.some((record) => {
+        // Safe access to dynamic properties using optional chaining implicitly via type system
         const lab = record[`${metric.key}_lab`]
         const anl = record[`${metric.key}_anl`]
         const nir = record[`${metric.key}_nir`]

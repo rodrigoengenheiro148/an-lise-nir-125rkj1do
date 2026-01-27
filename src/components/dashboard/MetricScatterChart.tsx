@@ -105,8 +105,20 @@ export const MetricScatterChart = ({
 
     const pts = data
       .map((item) => {
-        const lab = Number(item[`${metricKey}_lab`])
-        const anl = Number(item[`${metricKey}_anl`])
+        // Safe casting to Number.
+        // item[key] can be string, number, null, or undefined
+        const labRaw = item[`${metricKey}_lab`]
+        const anlRaw = item[`${metricKey}_anl`]
+
+        const lab =
+          labRaw !== undefined && labRaw !== null && labRaw !== ''
+            ? Number(labRaw)
+            : NaN
+        const anl =
+          anlRaw !== undefined && anlRaw !== null && anlRaw !== ''
+            ? Number(anlRaw)
+            : NaN
+
         return {
           x: lab,
           y: anl,

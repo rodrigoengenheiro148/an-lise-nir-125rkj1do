@@ -30,21 +30,30 @@ export const MetricEvolutionChart = ({
   height = '100%',
 }: MetricEvolutionChartProps) => {
   const chartData = useMemo(() => {
+    if (!data) return []
     return data
       .map((r) => {
-        const lab = r[`${metricKey}_lab`]
-        const anl = r[`${metricKey}_anl`]
+        const labRaw = r[`${metricKey}_lab`]
+        const anlRaw = r[`${metricKey}_anl`]
+
         // Fallback to created_at if date is missing
         const dateStr = r.date || r.created_at?.split('T')[0]
 
+        // Safe conversion
+        const lab = typeof labRaw === 'number' && !isNaN(labRaw) ? labRaw : null
+        const anl = typeof anlRaw === 'number' && !isNaN(anlRaw) ? anlRaw : null
+
         return {
           date: dateStr,
-          lab: typeof lab === 'number' ? lab : null,
-          anl: typeof anl === 'number' ? anl : null,
+          lab,
+          anl,
           timestamp: dateStr ? new Date(dateStr).getTime() : 0,
         }
       })
-      .filter((d) => (d.lab !== null || d.anl !== null) && d.date)
+      .filter(
+        (d) =>
+          (d.lab !== null || d.anl !== null) && d.date && !isNaN(d.timestamp),
+      )
       .sort((a, b) => a.timestamp - b.timestamp)
   }, [data, metricKey])
 
@@ -89,10 +98,14 @@ export const MetricEvolutionChart = ({
               minTickGap={30}
               tickFormatter={(value) => {
                 if (!value) return ''
-                const date = parseISO(value)
-                return isValid(date)
-                  ? format(date, 'dd/MM', { locale: ptBR })
-                  : value
+                try {
+                  const date = parseISO(value)
+                  return isValid(date)
+                    ? format(date, 'dd/MM', { locale: ptBR })
+                    : value
+                } catch {
+                  return value
+                }
               }}
               style={{ fontSize: '10px', fill: '#71717a' }}
             />
@@ -107,10 +120,14 @@ export const MetricEvolutionChart = ({
               content={<ChartTooltipContent indicator="dot" />}
               labelFormatter={(value) => {
                 if (!value) return ''
-                const date = parseISO(value)
-                return isValid(date)
-                  ? format(date, 'dd/MM/yyyy', { locale: ptBR })
-                  : value
+                try {
+                  const date = parseISO(value)
+                  return isValid(date)
+                    ? format(date, 'dd/MM/yyyy', { locale: ptBR })
+                    : value
+                } catch {
+                  return value
+                }
               }}
               cursor={{ stroke: '#52525b', strokeDasharray: '4 4' }}
             />

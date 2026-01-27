@@ -63,6 +63,14 @@ const EditableCell = ({
 
     // Only save if changed
     if (currentNum !== newNum) {
+      // Validate that the new value is a valid number if not null
+      if (newNum !== null && isNaN(newNum)) {
+        // Reset if invalid
+        setLocalValue(
+          value !== undefined && value !== null ? String(value) : '',
+        )
+        return
+      }
       onSave(newNum)
     }
   }

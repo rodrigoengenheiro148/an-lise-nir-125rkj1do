@@ -30,10 +30,16 @@ export const ResidualChart = ({
   const safeFilterId = filterId.replace(/:/g, '')
 
   const chartData = useMemo(() => {
+    if (!data) return []
     return data
       .map((r) => {
-        const lab = Number(r[`${metricKey}_lab`])
-        const anl = Number(r[`${metricKey}_anl`])
+        const labRaw = r[`${metricKey}_lab`]
+        const anlRaw = r[`${metricKey}_anl`]
+
+        const lab =
+          labRaw !== undefined && labRaw !== null ? Number(labRaw) : NaN
+        const anl =
+          anlRaw !== undefined && anlRaw !== null ? Number(anlRaw) : NaN
 
         if (isNaN(lab) || isNaN(anl) || lab <= 0 || anl <= 0) return null
 

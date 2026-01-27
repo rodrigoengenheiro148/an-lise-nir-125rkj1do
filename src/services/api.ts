@@ -118,36 +118,61 @@ const KEY_MAPPING: Record<string, string> = {
   impurity: 'impurity',
 }
 
+// Safely extract company data whether it comes as an object (single) or array (one-to-many join result)
+const extractCompanyData = (
+  joinedData: any,
+): { name: string; logo_url?: string | null } => {
+  if (!joinedData) return { name: 'Unknown' }
+  if (Array.isArray(joinedData)) {
+    return joinedData.length > 0 ? joinedData[0] : { name: 'Unknown' }
+  }
+  return joinedData
+}
+
 export const transformRecordFromDB = (
   row: any,
-  company: { name: string; logo_url?: string | null },
+  company: { name: string; logo_url?: string | null } | null,
 ): AnalysisRecord => {
   // Normalize material name to match options if possible
   let material = row.material
-  if (material) {
+  if (material && typeof material === 'string') {
     const lower = material.toLowerCase()
     const match = MATERIALS_OPTIONS.find((m) => m.toLowerCase() === lower)
     if (match) {
       material = match
     }
+  } else {
+    material = undefined
   }
+
+  // Handle both possible column names for submaterial safely
+  const submaterial = row.sub_material || row.submaterial || undefined
 
   const record: AnalysisRecord = {
     id: row.id,
-    company: company.name,
+    company: company?.name || 'Unknown',
     company_id: row.company_id,
-    company_logo: company.logo_url || undefined,
+    company_logo: company?.logo_url || undefined,
     date: row.date,
     created_at: row.created_at,
     material: material,
-    submaterial: row.sub_material || row.submaterial || undefined,
+    submaterial: submaterial,
   }
 
   // Map all metric columns from DB (snake_case) to App (camelCase)
+  // Ensure we safely handle nulls and convert to number or undefined
   Object.entries(KEY_MAPPING).forEach(([appKey, dbPrefix]) => {
-    record[`${appKey}_lab`] = row[`${dbPrefix}_lab`] ?? undefined
-    record[`${appKey}_nir`] = row[`${dbPrefix}_nir`] ?? undefined
-    record[`${appKey}_anl`] = row[`${dbPrefix}_anl`] ?? undefined
+    const lab = row[`${dbPrefix}_lab`]
+    const nir = row[`${dbPrefix}_nir`]
+    const anl = row[`${dbPrefix}_anl`]
+
+    // Check strict null/undefined. We preserve 0 values.
+    record[`${appKey}_lab`] =
+      lab !== null && lab !== undefined && lab !== '' ? Number(lab) : undefined
+    record[`${appKey}_nir`] =
+      nir !== null && nir !== undefined && nir !== '' ? Number(nir) : undefined
+    record[`${appKey}_anl`] =
+      anl !== null && anl !== undefined && anl !== '' ? Number(anl) : undefined
   })
 
   return record
@@ -273,10 +298,17 @@ export const api = {
         const uniqueRecordsMap = new Map<string, AnalysisRecord>()
 
         allRows.forEach((row) => {
-          const comp = (row.companies as any) || { name: 'Unknown' }
-          const record = transformRecordFromDB(row, comp)
-          if (record.id) {
-            uniqueRecordsMap.set(record.id, record)
+          // Safely extract company info, handling potential array response from join
+          const comp = extractCompanyData(row.companies)
+
+          try {
+            const record = transformRecordFromDB(row, comp)
+            if (record.id) {
+              uniqueRecordsMap.set(record.id, record)
+            }
+          } catch (e) {
+            console.warn('Failed to transform record:', row.id, e)
+            // Skip malformed records instead of crashing
           }
         })
 
