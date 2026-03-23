@@ -24,7 +24,11 @@ import { GlobalParetoChart } from '@/components/dashboard/GlobalParetoChart'
 import { ControlCharts } from '@/components/dashboard/ControlCharts'
 import { PasswordProtectionDialog } from '@/components/dashboard/PasswordProtectionDialog'
 import useDashboardStore from '@/stores/useDashboardStore'
-import { METRICS, MATERIALS_OPTIONS } from '@/types/dashboard'
+import {
+  METRICS,
+  MATERIALS_OPTIONS,
+  getMaterialDisplayName,
+} from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 import {
   isWithinInterval,
@@ -201,7 +205,7 @@ export default function Index() {
                 <SelectContent>
                   {MATERIALS_OPTIONS.map((m) => (
                     <SelectItem key={m} value={m} className="min-h-[44px]">
-                      {m}
+                      {getMaterialDisplayName(m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
