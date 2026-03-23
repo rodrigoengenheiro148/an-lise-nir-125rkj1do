@@ -122,7 +122,7 @@ export const METRICS: {
   },
   {
     key: 'etherExtract',
-    label: 'Ext. Etéreo',
+    label: 'Gordura (Ext. Etéreo)',
     unit: '%',
     color: '#ec4899',
     aliases: [
@@ -154,7 +154,7 @@ export const METRICS: {
   },
   {
     key: 'mineralMatter',
-    label: 'Material Mineral', // Updated from 'Cinzas'
+    label: 'Material Mineral',
     unit: '%',
     color: '#6366f1',
     aliases: [

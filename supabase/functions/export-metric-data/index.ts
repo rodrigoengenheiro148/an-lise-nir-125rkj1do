@@ -27,7 +27,7 @@ const LABEL_MAPPING: Record<string, string> = {
   phosphorus: 'Fósforo',
   mineralMatter: 'Cinzas',
   peroxide: 'Peróxido',
-  etherExtract: 'Extrato Etéreo',
+  etherExtract: 'Gordura (Ext. Etéreo)',
   proteinDigestibility: 'Dig. Proteica',
   calcium: 'Cálcio',
   sodium: 'Sódio',
