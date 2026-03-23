@@ -122,16 +122,10 @@ export const METRICS: {
   },
   {
     key: 'etherExtract',
-    label: 'Gordura (Ext. Etéreo)',
+    label: 'Ext. Etéreo',
     unit: '%',
     color: '#ec4899',
-    aliases: [
-      'extrato etereo',
-      'ext. etereo',
-      'ether extract',
-      'ee',
-      'gordura',
-    ],
+    aliases: ['extrato etereo', 'ext. etereo', 'ether extract', 'ee'],
   },
   {
     key: 'proteinDigestibility',

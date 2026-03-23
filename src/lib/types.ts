@@ -50,7 +50,7 @@ export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
   FOSFORO: 'Fósforo',
   MATERIA_MINERAL: 'Matéria Mineral',
   PEROXIDO: 'Peróxido',
-  EXTRATO_ETEREO: 'Gordura (Ext. Etéreo)',
+  EXTRATO_ETEREO: 'Ext. Etéreo',
   DIG_PROTEICA: 'Dig. Proteica',
   CALCIO: 'Cálcio',
   FCO: 'FCO',

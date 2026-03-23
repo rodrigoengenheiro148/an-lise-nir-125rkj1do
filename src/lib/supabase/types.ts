@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: '14.1'
   }
   public: {
     Tables: {
@@ -165,11 +165,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "analysis_records_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: 'analysis_records_company_id_fkey'
+            columns: ['company_id']
             isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
+            referencedRelation: 'companies'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -216,33 +216,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -251,23 +251,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -276,23 +276,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -301,36 +301,36 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
+    | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
@@ -338,7 +338,6 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains actual PostgreSQL column types, constraints, RLS policies,
@@ -473,13 +472,13 @@ export const Constants = {
 //           rec_company_id := (record->>'company_id')::UUID;
 //           rec_date := (record->>'date')::DATE;
 //           rec_material := record->>'material';
-//           
+//
 //           -- Handle both possible keys for submaterial from JSON and normalize
 //           rec_submaterial := record->>'sub_material';
 //           IF rec_submaterial IS NULL THEN
 //               rec_submaterial := record->>'submaterial';
 //           END IF;
-//           
+//
 //           IF rec_id IS NOT NULL THEN
 //               INSERT INTO analysis_records (
 //                   id, company_id, date, material, sub_material, submaterial, created_at, updated_at,
@@ -520,55 +519,55 @@ export const Constants = {
 //                   sub_material = EXCLUDED.sub_material,
 //                   submaterial = EXCLUDED.submaterial,
 //                   updated_at = NOW(),
-//                   
+//
 //                   acidity_lab = COALESCE(EXCLUDED.acidity_lab, analysis_records.acidity_lab),
 //                   acidity_nir = COALESCE(EXCLUDED.acidity_nir, analysis_records.acidity_nir),
 //                   acidity_anl = COALESCE(EXCLUDED.acidity_anl, analysis_records.acidity_anl),
-//                   
+//
 //                   moisture_lab = COALESCE(EXCLUDED.moisture_lab, analysis_records.moisture_lab),
 //                   moisture_nir = COALESCE(EXCLUDED.moisture_nir, analysis_records.moisture_nir),
 //                   moisture_anl = COALESCE(EXCLUDED.moisture_anl, analysis_records.moisture_anl),
-//                   
+//
 //                   fco_lab = COALESCE(EXCLUDED.fco_lab, analysis_records.fco_lab),
 //                   fco_nir = COALESCE(EXCLUDED.fco_nir, analysis_records.fco_nir),
 //                   fco_anl = COALESCE(EXCLUDED.fco_anl, analysis_records.fco_anl),
-//                   
+//
 //                   protein_lab = COALESCE(EXCLUDED.protein_lab, analysis_records.protein_lab),
 //                   protein_nir = COALESCE(EXCLUDED.protein_nir, analysis_records.protein_nir),
 //                   protein_anl = COALESCE(EXCLUDED.protein_anl, analysis_records.protein_anl),
-//                   
+//
 //                   phosphorus_lab = COALESCE(EXCLUDED.phosphorus_lab, analysis_records.phosphorus_lab),
 //                   phosphorus_nir = COALESCE(EXCLUDED.phosphorus_nir, analysis_records.phosphorus_nir),
 //                   phosphorus_anl = COALESCE(EXCLUDED.phosphorus_anl, analysis_records.phosphorus_anl),
-//                   
+//
 //                   mineral_matter_lab = COALESCE(EXCLUDED.mineral_matter_lab, analysis_records.mineral_matter_lab),
 //                   mineral_matter_nir = COALESCE(EXCLUDED.mineral_matter_nir, analysis_records.mineral_matter_nir),
 //                   mineral_matter_anl = COALESCE(EXCLUDED.mineral_matter_anl, analysis_records.mineral_matter_anl),
-//                   
+//
 //                   peroxide_lab = COALESCE(EXCLUDED.peroxide_lab, analysis_records.peroxide_lab),
 //                   peroxide_nir = COALESCE(EXCLUDED.peroxide_nir, analysis_records.peroxide_nir),
 //                   peroxide_anl = COALESCE(EXCLUDED.peroxide_anl, analysis_records.peroxide_anl),
-//                   
+//
 //                   ether_extract_lab = COALESCE(EXCLUDED.ether_extract_lab, analysis_records.ether_extract_lab),
 //                   ether_extract_nir = COALESCE(EXCLUDED.ether_extract_nir, analysis_records.ether_extract_nir),
 //                   ether_extract_anl = COALESCE(EXCLUDED.ether_extract_anl, analysis_records.ether_extract_anl),
-//                   
+//
 //                   protein_digestibility_lab = COALESCE(EXCLUDED.protein_digestibility_lab, analysis_records.protein_digestibility_lab),
 //                   protein_digestibility_nir = COALESCE(EXCLUDED.protein_digestibility_nir, analysis_records.protein_digestibility_nir),
 //                   protein_digestibility_anl = COALESCE(EXCLUDED.protein_digestibility_anl, analysis_records.protein_digestibility_anl),
-//                   
+//
 //                   calcium_lab = COALESCE(EXCLUDED.calcium_lab, analysis_records.calcium_lab),
 //                   calcium_nir = COALESCE(EXCLUDED.calcium_nir, analysis_records.calcium_nir),
 //                   calcium_anl = COALESCE(EXCLUDED.calcium_anl, analysis_records.calcium_anl),
-//                   
+//
 //                   sodium_lab = COALESCE(EXCLUDED.sodium_lab, analysis_records.sodium_lab),
 //                   sodium_nir = COALESCE(EXCLUDED.sodium_nir, analysis_records.sodium_nir),
 //                   sodium_anl = COALESCE(EXCLUDED.sodium_anl, analysis_records.sodium_anl),
-//                   
+//
 //                   iodine_lab = COALESCE(EXCLUDED.iodine_lab, analysis_records.iodine_lab),
 //                   iodine_nir = COALESCE(EXCLUDED.iodine_nir, analysis_records.iodine_nir),
 //                   iodine_anl = COALESCE(EXCLUDED.iodine_anl, analysis_records.iodine_anl),
-//                   
+//
 //                   impurity_lab = COALESCE(EXCLUDED.impurity_lab, analysis_records.impurity_lab),
 //                   impurity_nir = COALESCE(EXCLUDED.impurity_nir, analysis_records.impurity_nir),
 //                   impurity_anl = COALESCE(EXCLUDED.impurity_anl, analysis_records.impurity_anl);
@@ -609,7 +608,7 @@ export const Constants = {
 //       END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_new_user()
 //   CREATE OR REPLACE FUNCTION public.handle_new_user()
 //    RETURNS trigger
@@ -619,13 +618,13 @@ export const Constants = {
 //   BEGIN
 //     INSERT INTO public.companies (name, owner_id)
 //     VALUES (
-//       COALESCE(NEW.raw_user_meta_data->>'company_name', 'Minha Empresa'), 
+//       COALESCE(NEW.raw_user_meta_data->>'company_name', 'Minha Empresa'),
 //       NEW.id
 //     );
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 
 // --- INDEXES ---
 // Table: analysis_records
@@ -633,4 +632,3 @@ export const Constants = {
 //   CREATE INDEX idx_analysis_records_date ON public.analysis_records USING btree (date)
 // Table: companies
 //   CREATE UNIQUE INDEX companies_name_key ON public.companies USING btree (name)
-
