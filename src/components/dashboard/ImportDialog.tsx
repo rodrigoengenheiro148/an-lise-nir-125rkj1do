@@ -25,7 +25,7 @@ import {
   getMaterialDisplayName,
 } from '@/types/dashboard'
 import { toast } from 'sonner'
-import { api, isAbortError } from '@/services/api'
+import { api } from '@/services/api'
 import {
   Select,
   SelectContent,
@@ -219,7 +219,10 @@ export const ImportDialog = ({
                     <SelectValue placeholder="Selecione o Modo..." />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[300px]">
-                    <SelectItem value="bulk_strict" className="min-h-[44px]">
+                    <SelectItem
+                      value="bulk_strict"
+                      className="min-h-[44px] focus:bg-zinc-800 focus:text-zinc-100 data-[state=checked]:bg-zinc-800 data-[state=checked]:text-zinc-100"
+                    >
                       <span className="font-bold text-emerald-500">
                         Template Completo (Bulk Import)
                       </span>
