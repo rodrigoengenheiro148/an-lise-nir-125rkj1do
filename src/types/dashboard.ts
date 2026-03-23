@@ -49,6 +49,7 @@ export const STATIC_SUBMATERIALS = [
   'Cinzas',
   'Peróxido',
   'Ext. Etéreo',
+  'Gordura',
   'Cálcio',
   'Dig. Proteica',
   'Sódio',
@@ -65,6 +66,7 @@ export type MetricKey =
   | 'mineralMatter'
   | 'peroxide'
   | 'etherExtract'
+  | 'fat'
   | 'proteinDigestibility'
   | 'calcium'
   | 'sodium'
@@ -128,6 +130,13 @@ export const METRICS: {
     aliases: ['extrato etereo', 'ext. etereo', 'ether extract', 'ee'],
   },
   {
+    key: 'fat',
+    label: 'Gordura',
+    unit: '%',
+    color: '#fb923c',
+    aliases: ['gordura', 'fat'],
+  },
+  {
     key: 'proteinDigestibility',
     label: 'Dig. Proteica',
     unit: '%',
@@ -187,6 +196,7 @@ export const BULK_IMPORT_ORDER: MetricKey[] = [
   'acidity',
   'calcium',
   'etherExtract',
+  'fat',
   'fco',
   'mineralMatter',
   'moisture',

@@ -123,6 +123,7 @@ const KEY_MAPPING: Record<string, string> = {
   mineralMatter: 'mineral_matter',
   peroxide: 'peroxide',
   etherExtract: 'ether_extract',
+  fat: 'fat',
   proteinDigestibility: 'protein_digestibility',
   calcium: 'calcium',
   sodium: 'sodium',

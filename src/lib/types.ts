@@ -6,6 +6,7 @@ export type AnalysisType =
   | 'MATERIA_MINERAL'
   | 'PEROXIDO'
   | 'EXTRATO_ETEREO'
+  | 'GORDURA'
   | 'DIG_PROTEICA'
   | 'CALCIO'
   | 'FCO'
@@ -35,6 +36,7 @@ export const ANALYSIS_TYPES: AnalysisType[] = [
   'MATERIA_MINERAL',
   'PEROXIDO',
   'EXTRATO_ETEREO',
+  'GORDURA',
   'DIG_PROTEICA',
   'CALCIO',
   'FCO',
@@ -51,6 +53,7 @@ export const ANALYSIS_LABELS: Record<AnalysisType, string> = {
   MATERIA_MINERAL: 'Matéria Mineral',
   PEROXIDO: 'Peróxido',
   EXTRATO_ETEREO: 'Ext. Etéreo',
+  GORDURA: 'Gordura',
   DIG_PROTEICA: 'Dig. Proteica',
   CALCIO: 'Cálcio',
   FCO: 'FCO',
