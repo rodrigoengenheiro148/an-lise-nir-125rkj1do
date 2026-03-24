@@ -35,5 +35,11 @@
     "tsconfig.json",
     "tsconfig.node.json",
     "vite.config.ts"
-  ]
+  ],
+  "deployment": {
+    "lastProdBuildRef": "b3fd4a1",
+    "publishedAt": "2026-03-24T00:43:54.360Z",
+    "lastPublishedRef": "b3fd4a1",
+    "lastDevBuildRef": "edc786b"
+  }
 }

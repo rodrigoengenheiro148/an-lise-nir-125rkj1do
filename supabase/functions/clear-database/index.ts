@@ -45,42 +45,62 @@ Deno.serve(async (req) => {
       const dbPrefix = KEY_MAPPING[metricKey]
       if (!dbPrefix) throw new Error('Invalid metric key')
 
-      let query = supabaseClient.from('analysis_records').update({
+      const updatePayload = {
         [`${dbPrefix}_lab`]: null,
         [`${dbPrefix}_nir`]: null,
         [`${dbPrefix}_anl`]: null,
-      })
-
-      if (companyId && companyId !== 'all') {
-        query = query.eq('company_id', companyId)
-      } else {
-        query = query.neq('id', '00000000-0000-0000-0000-000000000000')
       }
 
-      if (material && material !== 'all') {
-        query = query.ilike('material', material)
-      }
-
-      const { error } = await query
-      if (error) throw error
-
-    } else {
-      // Standard deletion of rows
-      let query = supabaseClient.from('analysis_records').delete()
-
+      // Explicit branching to ensure the query builder applies filters safely and correctly
       if (companyId && companyId !== 'all') {
-        query = query.eq('company_id', companyId)
-        
         if (material && material !== 'all') {
-          query = query.ilike('material', material)
+          const { error } = await supabaseClient
+            .from('analysis_records')
+            .update(updatePayload)
+            .eq('company_id', companyId)
+            .eq('material', material)
+          if (error) throw error
+        } else {
+          const { error } = await supabaseClient
+            .from('analysis_records')
+            .update(updatePayload)
+            .eq('company_id', companyId)
+          if (error) throw error
+        }
+      } else {
+        const { error } = await supabaseClient
+          .from('analysis_records')
+          .update(updatePayload)
+          .neq('id', '00000000-0000-0000-0000-000000000000')
+        if (error) throw error
+      }
+    } else {
+      // Standard deletion of rows - explicit branching for safety
+      if (companyId && companyId !== 'all') {
+        if (material && material !== 'all') {
+          // EXPLICIT ISOLATED DELETE: Only delete the exact specified material for the company
+          const { error } = await supabaseClient
+            .from('analysis_records')
+            .delete()
+            .eq('company_id', companyId)
+            .eq('material', material)
+          if (error) throw error
+        } else {
+          // Delete entire company
+          const { error } = await supabaseClient
+            .from('analysis_records')
+            .delete()
+            .eq('company_id', companyId)
+          if (error) throw error
         }
       } else {
         // Delete ALL records
-        query = query.neq('id', '00000000-0000-0000-0000-000000000000')
+        const { error } = await supabaseClient
+          .from('analysis_records')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000')
+        if (error) throw error
       }
-
-      const { error } = await query
-      if (error) throw error
     }
 
     return new Response(JSON.stringify({ success: true }), {
