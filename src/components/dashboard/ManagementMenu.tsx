@@ -37,6 +37,7 @@ import {
   CompanyEntity,
   MATERIALS_OPTIONS,
   getMaterialDisplayName,
+  METRICS,
 } from '@/types/dashboard'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
@@ -65,10 +66,12 @@ export const ManagementMenu = ({
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteMode, setDeleteMode] = useState<'company' | 'all' | 'material'>(
-    'company',
-  )
+  const [deleteMode, setDeleteMode] = useState<
+    'company' | 'all' | 'material' | 'metric'
+  >('company')
   const [selectedMaterialToDelete, setSelectedMaterialToDelete] =
+    useState<string>('')
+  const [selectedMetricToDelete, setSelectedMetricToDelete] =
     useState<string>('')
   const [password, setPassword] = useState('')
 
@@ -84,8 +87,9 @@ export const ManagementMenu = ({
   }
 
   const handleDeleteClick = (
-    mode: 'company' | 'all' | 'material',
+    mode: 'company' | 'all' | 'material' | 'metric',
     material?: string,
+    metricKey?: string,
   ) => {
     setDeleteMode(mode)
     setPassword('')
@@ -93,13 +97,19 @@ export const ManagementMenu = ({
       setSelectedMaterialToDelete(
         material || defaultMaterial || materials[0] || MATERIALS_OPTIONS[0],
       )
+      setSelectedMetricToDelete('')
+    } else if (mode === 'metric') {
+      setSelectedMetricToDelete(metricKey || '')
+      setSelectedMaterialToDelete('')
     }
     setIsDeleteDialogOpen(true)
   }
 
   const handleVerifyAndClear = async () => {
     if (
-      (deleteMode === 'company' || deleteMode === 'material') &&
+      (deleteMode === 'company' ||
+        deleteMode === 'material' ||
+        deleteMode === 'metric') &&
       !selectedCompanyId
     ) {
       toast.error('Selecione uma empresa para limpar os dados.')
@@ -107,7 +117,12 @@ export const ManagementMenu = ({
     }
 
     if (deleteMode === 'material' && !selectedMaterialToDelete) {
-      toast.error('Selecione um material para excluir.')
+      toast.error('Selecione um produto para excluir.')
+      return
+    }
+
+    if (deleteMode === 'metric' && !selectedMetricToDelete) {
+      toast.error('Selecione um parâmetro para excluir.')
       return
     }
 
@@ -122,14 +137,28 @@ export const ManagementMenu = ({
       const companyToDelete = deleteMode === 'all' ? null : selectedCompanyId
       const materialToDelete =
         deleteMode === 'material' ? selectedMaterialToDelete : undefined
+      const metricToDelete =
+        deleteMode === 'metric' ? selectedMetricToDelete : undefined
 
-      await api.clearDatabase(companyToDelete, password, materialToDelete)
+      await api.clearDatabase(
+        companyToDelete,
+        password,
+        materialToDelete,
+        metricToDelete,
+      )
 
       if (deleteMode === 'all') {
         toast.success('Todos os dados do sistema foram excluídos com sucesso!')
       } else if (deleteMode === 'material') {
         toast.success(
           `Dados de ${getMaterialDisplayName(selectedMaterialToDelete)} da empresa ${selectedCompany?.name} removidos com sucesso!`,
+        )
+      } else if (deleteMode === 'metric') {
+        const metricName = METRICS.find(
+          (m) => m.key === selectedMetricToDelete,
+        )?.label
+        toast.success(
+          `Dados do parâmetro ${metricName} da empresa ${selectedCompany?.name} removidos com sucesso!`,
         )
       } else {
         toast.success(
@@ -197,7 +226,7 @@ export const ManagementMenu = ({
               disabled={!selectedCompanyId || materials.length === 0}
             >
               <Trash2 className="h-4 w-4" />
-              Limpar Dados (Por Material)
+              Limpar Dados (Por Produto/Matéria-Prima)
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px] max-h-[300px] overflow-y-auto">
               {materials.map((m) => (
@@ -208,6 +237,28 @@ export const ManagementMenu = ({
                 >
                   <Trash2 className="h-3 w-3 text-red-400/70" />
                   {getMaterialDisplayName(m)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger
+              className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
+              disabled={!selectedCompanyId}
+            >
+              <Trash2 className="h-4 w-4" />
+              Limpar Dados (Por Parâmetro/Análise)
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px] max-h-[300px] overflow-y-auto">
+              {METRICS.map((m) => (
+                <DropdownMenuItem
+                  key={m.key}
+                  className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-zinc-300 gap-2"
+                  onClick={() => handleDeleteClick('metric', undefined, m.key)}
+                >
+                  <Trash2 className="h-3 w-3 text-red-400/70" />
+                  {m.label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuSubContent>
@@ -267,8 +318,10 @@ export const ManagementMenu = ({
               {deleteMode === 'all'
                 ? 'Apagar Todos os Dados'
                 : deleteMode === 'material'
-                  ? 'Apagar Material Específico'
-                  : 'Confirmar Exclusão (Empresa)'}
+                  ? 'Apagar Produto Específico'
+                  : deleteMode === 'metric'
+                    ? 'Apagar Parâmetro Específico'
+                    : 'Confirmar Exclusão (Empresa)'}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 space-y-2">
               <span className="flex items-start gap-2 bg-red-950/30 p-3 rounded-md border border-red-900/50 mt-2">
@@ -281,9 +334,24 @@ export const ManagementMenu = ({
                     </span>
                   ) : deleteMode === 'material' ? (
                     <>
-                      Todos os registros de{' '}
+                      Todos os registros do produto{' '}
                       <span className="font-bold text-white">
                         {getMaterialDisplayName(selectedMaterialToDelete)}
+                      </span>{' '}
+                      da empresa{' '}
+                      <span className="font-bold text-white">
+                        {selectedCompany?.name}
+                      </span>{' '}
+                      serão excluídos permanentemente.
+                    </>
+                  ) : deleteMode === 'metric' ? (
+                    <>
+                      Todos os valores do parâmetro de análise{' '}
+                      <span className="font-bold text-white">
+                        {
+                          METRICS.find((m) => m.key === selectedMetricToDelete)
+                            ?.label
+                        }
                       </span>{' '}
                       da empresa{' '}
                       <span className="font-bold text-white">
@@ -309,10 +377,21 @@ export const ManagementMenu = ({
             {deleteMode === 'material' && (
               <div className="space-y-2 bg-zinc-900/40 p-3 rounded-md border border-zinc-800/50">
                 <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                  Material a ser excluído
+                  Produto a ser excluído
                 </Label>
                 <div className="text-base font-semibold text-white">
                   {getMaterialDisplayName(selectedMaterialToDelete)}
+                </div>
+              </div>
+            )}
+
+            {deleteMode === 'metric' && (
+              <div className="space-y-2 bg-zinc-900/40 p-3 rounded-md border border-zinc-800/50">
+                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                  Parâmetro a ser excluído
+                </Label>
+                <div className="text-base font-semibold text-white">
+                  {METRICS.find((m) => m.key === selectedMetricToDelete)?.label}
                 </div>
               </div>
             )}
@@ -352,7 +431,8 @@ export const ManagementMenu = ({
               disabled={
                 isDeleting ||
                 !password ||
-                (deleteMode === 'material' && !selectedMaterialToDelete)
+                (deleteMode === 'material' && !selectedMaterialToDelete) ||
+                (deleteMode === 'metric' && !selectedMetricToDelete)
               }
               className="bg-red-600 hover:bg-red-700 text-white gap-2 h-11 sm:h-10"
             >

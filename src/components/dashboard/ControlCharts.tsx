@@ -55,7 +55,7 @@ export const ControlCharts = () => {
   } = useDashboardStore()
 
   // Local state for filters
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('all')
   const [selectedMetric, setSelectedMetric] = useState<string>('protein')
   const [subgroupSize, setSubgroupSize] = useState<string>('5')
 
@@ -69,7 +69,7 @@ export const ControlCharts = () => {
     if (globalMaterial) {
       setSelectedMaterial(globalMaterial)
     } else if (MATERIALS_OPTIONS.length > 0 && !selectedMaterial) {
-      setSelectedMaterial(MATERIALS_OPTIONS[0])
+      setSelectedMaterial('all')
     }
   }, [globalMaterial])
 
@@ -78,9 +78,10 @@ export const ControlCharts = () => {
     if (!analysisRecords) return []
     return analysisRecords.filter(
       (r) =>
-        r.material &&
-        selectedMaterial &&
-        r.material.toLowerCase() === selectedMaterial.toLowerCase(),
+        selectedMaterial === 'all' ||
+        (r.material &&
+          selectedMaterial &&
+          r.material.toLowerCase() === selectedMaterial.toLowerCase()),
     )
   }, [analysisRecords, selectedMaterial])
 
@@ -158,9 +159,12 @@ export const ControlCharts = () => {
               onValueChange={setSelectedMaterial}
             >
               <SelectTrigger className="w-[200px] bg-zinc-900 border-zinc-700">
-                <SelectValue placeholder="Selecione Material" />
+                <SelectValue placeholder="Selecione Produto" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all" className="font-bold text-blue-400">
+                  Todos os Produtos
+                </SelectItem>
                 {MATERIALS_OPTIONS.map((m) => (
                   <SelectItem key={m} value={m}>
                     {getMaterialDisplayName(m)}
@@ -198,7 +202,9 @@ export const ControlCharts = () => {
             <CardDescription className="text-zinc-400">
               Monitoramento de estabilidade (X-Barra e Amplitude) para{' '}
               <span className="text-zinc-100 font-medium">
-                {getMaterialDisplayName(selectedMaterial)}
+                {selectedMaterial === 'all'
+                  ? 'Todos os Produtos'
+                  : getMaterialDisplayName(selectedMaterial)}
               </span>
             </CardDescription>
           </div>
@@ -210,9 +216,12 @@ export const ControlCharts = () => {
                 onValueChange={setSelectedMaterial}
               >
                 <SelectTrigger className="h-8 w-[160px] bg-transparent border-0 text-xs focus:ring-0">
-                  <SelectValue placeholder="Material" />
+                  <SelectValue placeholder="Produto" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all" className="font-bold text-blue-400">
+                    Todos os Produtos
+                  </SelectItem>
                   {MATERIALS_OPTIONS.map((m) => (
                     <SelectItem key={m} value={m}>
                       {getMaterialDisplayName(m)}

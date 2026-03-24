@@ -455,12 +455,13 @@ export const api = {
     companyId: string | null | undefined,
     password: string,
     material?: string,
+    metricKey?: string,
   ): Promise<void> => {
     return retryOperation(async () => {
       const { data, error } = await supabase.functions.invoke(
         'clear-database',
         {
-          body: { companyId, password, material },
+          body: { companyId, password, material, metricKey },
         },
       )
 

@@ -2,13 +2,30 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
+const KEY_MAPPING: Record<string, string> = {
+  acidity: 'acidity',
+  moisture: 'moisture',
+  fco: 'fco',
+  protein: 'protein',
+  phosphorus: 'phosphorus',
+  mineralMatter: 'mineral_matter',
+  peroxide: 'peroxide',
+  etherExtract: 'ether_extract',
+  fat: 'fat',
+  proteinDigestibility: 'protein_digestibility',
+  calcium: 'calcium',
+  sodium: 'sodium',
+  iodine: 'iodine',
+  impurity: 'impurity',
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { companyId, password, material } = await req.json()
+    const { companyId, password, material, metricKey } = await req.json()
 
     // Server-side validation of the password
     if (password !== '16071997') {
@@ -23,25 +40,47 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    let query = supabaseClient.from('analysis_records').delete()
+    if (metricKey) {
+      // Clear a specific parameter (metric) for the company
+      const dbPrefix = KEY_MAPPING[metricKey]
+      if (!dbPrefix) throw new Error('Invalid metric key')
 
-    if (companyId && companyId !== 'all') {
-      // Delete specific company records
-      query = query.eq('company_id', companyId)
-      
-      // If a specific material is provided, filter by it
-      if (material) {
+      let query = supabaseClient.from('analysis_records').update({
+        [`${dbPrefix}_lab`]: null,
+        [`${dbPrefix}_nir`]: null,
+        [`${dbPrefix}_anl`]: null,
+      })
+
+      if (companyId && companyId !== 'all') {
+        query = query.eq('company_id', companyId)
+      } else {
+        query = query.neq('id', '00000000-0000-0000-0000-000000000000')
+      }
+
+      if (material && material !== 'all') {
         query = query.ilike('material', material)
       }
+
+      const { error } = await query
+      if (error) throw error
     } else {
-      // Delete ALL records if companyId is not provided or explicitly 'all'
-      // We use a filter that matches everything (id not equals nil UUID) to satisfy delete requirements
-      query = query.neq('id', '00000000-0000-0000-0000-000000000000')
+      // Standard deletion of rows
+      let query = supabaseClient.from('analysis_records').delete()
+
+      if (companyId && companyId !== 'all') {
+        query = query.eq('company_id', companyId)
+
+        if (material && material !== 'all') {
+          query = query.ilike('material', material)
+        }
+      } else {
+        // Delete ALL records
+        query = query.neq('id', '00000000-0000-0000-0000-000000000000')
+      }
+
+      const { error } = await query
+      if (error) throw error
     }
-
-    const { error } = await query
-
-    if (error) throw error
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

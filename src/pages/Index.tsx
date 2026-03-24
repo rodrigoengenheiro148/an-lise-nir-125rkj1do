@@ -69,6 +69,7 @@ export default function Index() {
       // Robust case-insensitive string comparison for material filter
       const matchMaterial =
         !selectedMaterial ||
+        selectedMaterial === 'all' ||
         (record.material &&
           record.material.toLowerCase() === selectedMaterial.toLowerCase())
 
@@ -200,9 +201,15 @@ export default function Index() {
                 onValueChange={setSelectedMaterial}
               >
                 <SelectTrigger className="h-10 md:h-9 bg-transparent border-0 focus:ring-0 w-full md:w-[240px] text-sm">
-                  <SelectValue placeholder="Selecione o Material" />
+                  <SelectValue placeholder="Selecione o Produto" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem
+                    value="all"
+                    className="min-h-[44px] font-bold text-blue-400"
+                  >
+                    Todos os Produtos
+                  </SelectItem>
                   {MATERIALS_OPTIONS.map((m) => (
                     <SelectItem key={m} value={m} className="min-h-[44px]">
                       {getMaterialDisplayName(m)}
@@ -225,7 +232,9 @@ export default function Index() {
                 companies={companies}
                 selectedCompanyId={selectedCompanyId}
                 onDataChange={refreshData}
-                defaultMaterial={selectedMaterial}
+                defaultMaterial={
+                  selectedMaterial !== 'all' ? selectedMaterial : undefined
+                }
               />
             </div>
           </div>
@@ -326,7 +335,9 @@ export default function Index() {
       <ImportDialog
         open={isImportOpen}
         onOpenChange={setIsImportOpen}
-        defaultMaterial={selectedMaterial}
+        defaultMaterial={
+          selectedMaterial !== 'all' ? selectedMaterial : undefined
+        }
         onImportSuccess={() => {
           refreshData()
         }}

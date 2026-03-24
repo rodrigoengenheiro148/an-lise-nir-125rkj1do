@@ -62,7 +62,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     () => localStorage.getItem(STORAGE_KEYS.COMPANY_ID) || '',
   )
   const [selectedMaterial, setSelectedMaterialState] = useState<string>(
-    () => localStorage.getItem(STORAGE_KEYS.MATERIAL) || '',
+    () => localStorage.getItem(STORAGE_KEYS.MATERIAL) || 'all',
   )
 
   const [selectedDateRange, setDateRange] = useState<{
@@ -359,11 +359,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       let nextMaterial = selectedMaterial
 
       if (!nextMaterial) {
-        if (materials.length > 0) {
-          nextMaterial = materials[0]
-        } else {
-          nextMaterial = MATERIALS_OPTIONS[0]
-        }
+        nextMaterial = 'all'
       }
       if (nextMaterial !== selectedMaterial) {
         setSelectedMaterial(nextMaterial)
