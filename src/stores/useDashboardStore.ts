@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner'
 import { api, transformRecordFromDB, isAbortError } from '@/services/api'
 import { supabase } from '@/lib/supabase/client'
-import { RealtimeChannel } from '@supabase/supabase-js'
 import { useAuth } from '@/components/AuthProvider'
 
 interface DashboardState {
@@ -76,10 +75,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
-  // Use a ref to track the active AbortController
   const abortControllerRef = useRef<AbortController | null>(null)
-
-  // Use a ref to track component mount status to avoid updates on unmounted component
   const isMounted = useRef(true)
 
   const companiesRef = useRef<CompanyEntity[]>([])
@@ -91,13 +87,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     { type: 'INSERT' | 'UPDATE' | 'DELETE'; payload: any }[]
   >([])
 
-  // Track mounting status
   useEffect(() => {
     isMounted.current = true
     return () => {
       isMounted.current = false
       if (abortControllerRef.current) {
-        // Explicit reason prevents "signal is aborted without reason" error
         abortControllerRef.current.abort('Component unmounted')
       }
     }
@@ -118,7 +112,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const loadData = async (forceLoadingState = false) => {
-    // Cancel previous request if exists to prevent race conditions
     if (abortControllerRef.current) {
       abortControllerRef.current.abort('Cancelled by new request')
     }
@@ -133,10 +126,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Pass the signal to API calls to support cancellation
       const companiesData = await api.getCompanies(controller.signal)
 
-      // Check abort state AND mount state immediately after await
       if (controller.signal.aborted || !isMounted.current) return
 
       setCompanies(companiesData)
@@ -144,11 +135,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
       const recordsData = await api.getRecords(controller.signal)
 
-      // Check again after second await
       if (controller.signal.aborted || !isMounted.current) return
 
       setAnalysisRecords(recordsData)
-
       setError(null)
 
       if (companiesData.length > 0) {
@@ -163,14 +152,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setSelectedCompanyId('')
       }
     } catch (err: any) {
-      // Gracefully handle abort errors or if the specific controller was aborted
-      // This specifically fixes the "Index page crash" or "HTTP N/A" errors
       if (
         isAbortError(err) ||
         controller.signal.aborted ||
         !isMounted.current
       ) {
-        // Silently return to avoid showing cancellation errors to the user
         return
       }
 
@@ -178,7 +164,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       setError('Falha na conexão. Tentando restabelecer acesso ao servidor...')
       toast.error('Não foi possível carregar os dados. Verifique sua conexão.')
     } finally {
-      // Only set loading to false if this is the latest controller AND component is still mounted
       if (abortControllerRef.current === controller && isMounted.current) {
         setIsLoading(false)
       }
@@ -186,14 +171,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    // Reconnection logic listener
     const handleOnline = () => {
       toast.success('Conexão restabelecida. Atualizando dados...')
       loadData(false)
     }
     window.addEventListener('online', handleOnline)
 
-    const channel: RealtimeChannel = supabase
+    const channel = supabase
       .channel('dashboard-realtime')
       .on(
         'postgres_changes',
@@ -207,7 +191,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
           if (payload.eventType === 'INSERT') {
             const newCompany = payload.new as CompanyEntity
             setCompanies((prev) => {
-              // Ensure we don't add duplicate companies which causes duplicate key errors
               if (prev.some((c) => c.id === newCompany.id)) return prev
               return [...prev, newCompany].sort((a, b) =>
                 a.name.localeCompare(b.name),
@@ -220,7 +203,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 c.id === updatedCompany.id ? updatedCompany : c,
               ),
             )
-            // Update records that belong to this company
             setAnalysisRecords((prev) =>
               prev.map((r) => {
                 if (r.company_id === updatedCompany.id) {
@@ -258,11 +240,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         },
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          // Connected
-        }
         if (status === 'CHANNEL_ERROR') {
-          // Attempt to reconnect if subscription fails
           console.warn('Realtime channel error, attempting to reconnect...')
         }
       })
@@ -281,7 +259,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         updates.forEach((update) => {
           if (update.type === 'INSERT') {
             const newRecord = update.payload
-
             if (nextRecords.some((r) => r.id === newRecord.id)) return
 
             const company = currentCompanies.find(
@@ -337,20 +314,23 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(interval)
       supabase.removeChannel(channel)
     }
-  }, [user?.id]) // Optimized dependency to user ID to avoid reference instability
+  }, [user?.id])
 
   const materials = useMemo(() => {
-    if (!selectedCompanyId) return []
-
-    const companyRecords = analysisRecords.filter(
-      (r) => r.company_id === selectedCompanyId,
-    )
+    // Unify all static materials with dynamic ones from the database
     const distinctMaterials = Array.from(
-      new Set(companyRecords.map((r) => r.material).filter(Boolean)),
-    ).sort() as string[]
+      new Set(analysisRecords.map((r) => r.material).filter(Boolean)),
+    ).map((m) => String(m).toLowerCase())
 
-    return distinctMaterials
-  }, [analysisRecords, selectedCompanyId])
+    const allMaterials = Array.from(
+      new Set([
+        ...MATERIALS_OPTIONS.map((m) => m.toLowerCase()),
+        ...distinctMaterials,
+      ]),
+    ).sort()
+
+    return allMaterials
+  }, [analysisRecords])
 
   useEffect(() => {
     const logic = async () => {
@@ -367,20 +347,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
     logic()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId, materials.length])
+  }, [selectedCompanyId])
 
   useEffect(() => {
-    // Always load data regardless of auth state to support public access
     loadData()
-
-    // Cleanup function to abort pending requests on unmount or user change
     return () => {
       if (abortControllerRef.current) {
-        // Explicit reason prevents "signal is aborted without reason" error
         abortControllerRef.current.abort('Component unmounted')
       }
     }
-  }, [user?.id]) // Reload when user changes (e.g. login/logout) to refresh permissions
+  }, [user?.id])
 
   const refreshData = () => {
     loadData(false)

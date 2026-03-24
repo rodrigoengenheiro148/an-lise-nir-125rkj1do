@@ -38,7 +38,10 @@ export const getMaterialDisplayName = (material: string) => {
   const lower = material.toLowerCase()
   return (
     MATERIAL_DISPLAY_NAMES[lower] ||
-    material.charAt(0).toUpperCase() + material.slice(1)
+    material
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
   )
 }
 
@@ -159,7 +162,7 @@ export const METRICS: {
   },
   {
     key: 'mineralMatter',
-    label: 'Material Mineral',
+    label: 'Cinzas (Mat. Mineral)',
     unit: '%',
     color: '#6366f1',
     aliases: [

@@ -36,6 +36,7 @@ export const parseImportData = (
   targetMetric?: string, // The key of the selected metric, 'auto', or 'bulk_strict'
   defaultMaterial?: string,
   defaultCompanyId?: string,
+  materialsList: string[] = MATERIALS_OPTIONS,
 ): ParseResult => {
   const rows = content
     .split(/\r?\n/)
@@ -419,10 +420,10 @@ export const parseImportData = (
       }
     }
 
-    // Normalize Material to known options if possible
+    // Normalize Material to known options if possible using the dynamic list
     if (record.material) {
       const normalizedMat = normalize(record.material)
-      const matchedMat = MATERIALS_OPTIONS.find(
+      const matchedMat = materialsList.find(
         (opt) => normalize(opt) === normalizedMat,
       )
       if (matchedMat) {

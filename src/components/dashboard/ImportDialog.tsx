@@ -21,7 +21,6 @@ import {
 import {
   CompanyEntity,
   METRICS,
-  MATERIALS_OPTIONS,
   getMaterialDisplayName,
 } from '@/types/dashboard'
 import { toast } from 'sonner'
@@ -56,8 +55,11 @@ export const ImportDialog = ({
   defaultMaterial,
 }: ImportDialogProps) => {
   const { user } = useAuth()
-  const { selectedCompanyId: storeCompanyId, companies: storeCompanies } =
-    useDashboardStore()
+  const {
+    selectedCompanyId: storeCompanyId,
+    companies: storeCompanies,
+    materials,
+  } = useDashboardStore()
 
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = open !== undefined && onOpenChange !== undefined
@@ -97,13 +99,13 @@ export const ImportDialog = ({
       setFile(null)
       setIsProcessing(false)
       setSelectedMetric('')
-      if (defaultMaterial && MATERIALS_OPTIONS.includes(defaultMaterial)) {
+      if (defaultMaterial && materials.includes(defaultMaterial)) {
         setSelectedImportMaterial(defaultMaterial)
       } else {
         setSelectedImportMaterial('')
       }
     }
-  }, [isOpen, defaultMaterial])
+  }, [isOpen, defaultMaterial, materials])
 
   useEffect(() => {
     setParseResult(null)
@@ -159,6 +161,7 @@ export const ImportDialog = ({
         selectedMetric,
         selectedImportMaterial,
         selectedCompanyId, // Pass the ID explicitly for robust mapping
+        materials, // Pass dynamic unified materials list
       )
       setParseResult(result)
       setIsProcessing(false)
@@ -280,7 +283,7 @@ export const ImportDialog = ({
                         Detectar do arquivo (Padrão)
                       </span>
                     </SelectItem>
-                    {MATERIALS_OPTIONS.map((m) => (
+                    {materials.map((m) => (
                       <SelectItem key={m} value={m} className="min-h-[44px]">
                         {getMaterialDisplayName(m)}
                       </SelectItem>

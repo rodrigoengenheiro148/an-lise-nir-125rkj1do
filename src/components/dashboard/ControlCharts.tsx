@@ -39,11 +39,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import useDashboardStore from '@/stores/useDashboardStore'
-import {
-  METRICS,
-  MATERIALS_OPTIONS,
-  getMaterialDisplayName,
-} from '@/types/dashboard'
+import { METRICS, getMaterialDisplayName } from '@/types/dashboard'
 import { calculateControlChartStats } from '@/lib/control-chart-utils'
 import { cn } from '@/lib/utils'
 
@@ -51,7 +47,7 @@ export const ControlCharts = () => {
   const {
     analysisRecords,
     selectedMaterial: globalMaterial,
-    companies,
+    materials,
   } = useDashboardStore()
 
   // Local state for filters
@@ -68,10 +64,10 @@ export const ControlCharts = () => {
   useEffect(() => {
     if (globalMaterial) {
       setSelectedMaterial(globalMaterial)
-    } else if (MATERIALS_OPTIONS.length > 0 && !selectedMaterial) {
+    } else if (materials.length > 0 && !selectedMaterial) {
       setSelectedMaterial('all')
     }
-  }, [globalMaterial])
+  }, [globalMaterial, materials.length])
 
   // Get filtered records for the selected material
   const filteredRecords = useMemo(() => {
@@ -165,7 +161,7 @@ export const ControlCharts = () => {
                 <SelectItem value="all" className="font-bold text-blue-400">
                   Todos os Produtos
                 </SelectItem>
-                {MATERIALS_OPTIONS.map((m) => (
+                {materials.map((m) => (
                   <SelectItem key={m} value={m}>
                     {getMaterialDisplayName(m)}
                   </SelectItem>
@@ -222,7 +218,7 @@ export const ControlCharts = () => {
                   <SelectItem value="all" className="font-bold text-blue-400">
                     Todos os Produtos
                   </SelectItem>
-                  {MATERIALS_OPTIONS.map((m) => (
+                  {materials.map((m) => (
                     <SelectItem key={m} value={m}>
                       {getMaterialDisplayName(m)}
                     </SelectItem>

@@ -35,7 +35,6 @@ import { ImportDialog } from './ImportDialog'
 import { ExportDialog } from './ExportDialog'
 import {
   CompanyEntity,
-  MATERIALS_OPTIONS,
   getMaterialDisplayName,
   METRICS,
 } from '@/types/dashboard'
@@ -58,7 +57,7 @@ export const ManagementMenu = ({
   onDataChange,
   defaultMaterial,
 }: ManagementMenuProps) => {
-  const { isAdminUnlocked } = useDashboardStore()
+  const { isAdminUnlocked, materials } = useDashboardStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
 
@@ -95,7 +94,9 @@ export const ManagementMenu = ({
     setPassword('')
     if (mode === 'material') {
       setSelectedMaterialToDelete(
-        material || defaultMaterial || MATERIALS_OPTIONS[0],
+        material ||
+          defaultMaterial ||
+          (materials.length > 0 ? materials[0] : ''),
       )
       setSelectedMetricToDelete('')
     } else if (mode === 'metric') {
@@ -223,13 +224,13 @@ export const ManagementMenu = ({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger
               className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
-              disabled={!selectedCompanyId || MATERIALS_OPTIONS.length === 0}
+              disabled={!selectedCompanyId || materials.length === 0}
             >
               <Trash2 className="h-4 w-4" />
               Limpar Dados (Por Produto/Matéria-Prima)
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px] max-h-[300px] overflow-y-auto">
-              {MATERIALS_OPTIONS.map((m) => (
+              {materials.map((m) => (
                 <DropdownMenuItem
                   key={m}
                   className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-zinc-300 gap-2"
