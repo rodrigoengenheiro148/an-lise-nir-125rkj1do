@@ -63,13 +63,14 @@ Deno.serve(async (req) => {
 
       const { error } = await query
       if (error) throw error
+
     } else {
       // Standard deletion of rows
       let query = supabaseClient.from('analysis_records').delete()
 
       if (companyId && companyId !== 'all') {
         query = query.eq('company_id', companyId)
-
+        
         if (material && material !== 'all') {
           query = query.ilike('material', material)
         }
