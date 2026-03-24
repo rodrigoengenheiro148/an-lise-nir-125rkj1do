@@ -69,6 +69,7 @@ export type MetricKey =
   | 'protein'
   | 'phosphorus'
   | 'mineralMatter'
+  | 'ashes'
   | 'peroxide'
   | 'etherExtract'
   | 'fat'
@@ -162,17 +163,23 @@ export const METRICS: {
   },
   {
     key: 'mineralMatter',
-    label: 'Cinzas (Mat. Mineral)',
+    label: 'Matéria Mineral',
     unit: '%',
     color: '#6366f1',
     aliases: [
       'materia mineral',
       'mat. mineral',
-      'cinzas',
       'mineral matter',
       'mm',
       'material mineral',
     ],
+  },
+  {
+    key: 'ashes',
+    label: 'Cinzas',
+    unit: '%',
+    color: '#a855f7',
+    aliases: ['cinzas', 'ashes'],
   },
   {
     key: 'phosphorus',
@@ -204,6 +211,7 @@ export const BULK_IMPORT_ORDER: MetricKey[] = [
   'fat',
   'fco',
   'mineralMatter',
+  'ashes',
   'moisture',
   'peroxide',
   'phosphorus',

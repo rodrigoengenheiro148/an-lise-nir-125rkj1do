@@ -9,6 +9,7 @@ const KEY_MAPPING: Record<string, string> = {
   protein: 'protein',
   phosphorus: 'phosphorus',
   mineralMatter: 'mineral_matter',
+  ashes: 'ashes',
   peroxide: 'peroxide',
   etherExtract: 'ether_extract',
   fat: 'fat',
