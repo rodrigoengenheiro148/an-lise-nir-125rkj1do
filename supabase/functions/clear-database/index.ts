@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     if (companyId && companyId !== 'all') {
       // Delete specific company records
       query = query.eq('company_id', companyId)
-      
+
       // If a specific material is provided, filter by it
       if (material) {
         query = query.ilike('material', material)

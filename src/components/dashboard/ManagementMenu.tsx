@@ -7,6 +7,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
   Dialog,
@@ -18,13 +21,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Settings,
   Upload,
@@ -61,7 +57,7 @@ export const ManagementMenu = ({
   onDataChange,
   defaultMaterial,
 }: ManagementMenuProps) => {
-  const { isAdminUnlocked } = useDashboardStore()
+  const { isAdminUnlocked, materials } = useDashboardStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
 
@@ -83,18 +79,20 @@ export const ManagementMenu = ({
       e.preventDefault()
       setIsPasswordOpen(true)
     } else {
-      // Logic handled by DropdownMenuTrigger normally,
-      // but if we are manually controlling or intercepting, we might need this.
-      // However, preventing default on the trigger click stops the menu from opening.
-      // If unlocked, we don't prevent default, so menu opens.
+      // Logic handled by DropdownMenuTrigger normally
     }
   }
 
-  const handleDeleteClick = (mode: 'company' | 'all' | 'material') => {
+  const handleDeleteClick = (
+    mode: 'company' | 'all' | 'material',
+    material?: string,
+  ) => {
     setDeleteMode(mode)
     setPassword('')
     if (mode === 'material') {
-      setSelectedMaterialToDelete(defaultMaterial || MATERIALS_OPTIONS[0])
+      setSelectedMaterialToDelete(
+        material || defaultMaterial || materials[0] || MATERIALS_OPTIONS[0],
+      )
     }
     setIsDeleteDialogOpen(true)
   }
@@ -193,14 +191,27 @@ export const ManagementMenu = ({
 
           <DropdownMenuSeparator className="bg-zinc-800" />
 
-          <DropdownMenuItem
-            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
-            onClick={() => handleDeleteClick('material')}
-            disabled={!selectedCompanyId}
-          >
-            <Trash2 className="h-4 w-4" />
-            Limpar Dados (Por Material)
-          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger
+              className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
+              disabled={!selectedCompanyId || materials.length === 0}
+            >
+              <Trash2 className="h-4 w-4" />
+              Limpar Dados (Por Material)
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="bg-zinc-950 border-zinc-800 text-zinc-100 min-w-[200px] max-h-[300px] overflow-y-auto">
+              {materials.map((m) => (
+                <DropdownMenuItem
+                  key={m}
+                  className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-zinc-300 gap-2"
+                  onClick={() => handleDeleteClick('material', m)}
+                >
+                  <Trash2 className="h-3 w-3 text-red-400/70" />
+                  {getMaterialDisplayName(m)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
 
           <DropdownMenuItem
             className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
@@ -296,23 +307,13 @@ export const ManagementMenu = ({
 
           <div className="py-2 space-y-4">
             {deleteMode === 'material' && (
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Material a ser excluído</Label>
-                <Select
-                  value={selectedMaterialToDelete}
-                  onValueChange={setSelectedMaterialToDelete}
-                >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-100 h-11">
-                    <SelectValue placeholder="Selecione um material..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
-                    {MATERIALS_OPTIONS.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {getMaterialDisplayName(m)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2 bg-zinc-900/40 p-3 rounded-md border border-zinc-800/50">
+                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                  Material a ser excluído
+                </Label>
+                <div className="text-base font-semibold text-white">
+                  {getMaterialDisplayName(selectedMaterialToDelete)}
+                </div>
               </div>
             )}
 

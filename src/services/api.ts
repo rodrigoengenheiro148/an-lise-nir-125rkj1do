@@ -296,6 +296,7 @@ export const api = {
             .from('analysis_records')
             .select('*, companies(name, logo_url)')
             .order('created_at', { ascending: false })
+            .order('id', { ascending: true }) // Deterministic sort to prevent pagination skipping rows
             .range(from, from + step - 1)
 
           if (signal) {
