@@ -453,12 +453,13 @@ export const api = {
   clearDatabase: async (
     companyId: string | null | undefined,
     password: string,
+    material?: string,
   ): Promise<void> => {
     return retryOperation(async () => {
       const { data, error } = await supabase.functions.invoke(
         'clear-database',
         {
-          body: { companyId, password },
+          body: { companyId, password, material },
         },
       )
 

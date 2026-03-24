@@ -19,6 +19,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Settings,
   Upload,
   Trash2,
@@ -30,7 +37,11 @@ import {
 } from 'lucide-react'
 import { ImportDialog } from './ImportDialog'
 import { ExportDialog } from './ExportDialog'
-import { CompanyEntity } from '@/types/dashboard'
+import {
+  CompanyEntity,
+  MATERIALS_OPTIONS,
+  getMaterialDisplayName,
+} from '@/types/dashboard'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -58,7 +69,11 @@ export const ManagementMenu = ({
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteMode, setDeleteMode] = useState<'single' | 'all'>('single')
+  const [deleteMode, setDeleteMode] = useState<'company' | 'all' | 'material'>(
+    'company',
+  )
+  const [selectedMaterialToDelete, setSelectedMaterialToDelete] =
+    useState<string>('')
   const [password, setPassword] = useState('')
 
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId)
@@ -75,9 +90,26 @@ export const ManagementMenu = ({
     }
   }
 
+  const handleDeleteClick = (mode: 'company' | 'all' | 'material') => {
+    setDeleteMode(mode)
+    setPassword('')
+    if (mode === 'material') {
+      setSelectedMaterialToDelete(defaultMaterial || MATERIALS_OPTIONS[0])
+    }
+    setIsDeleteDialogOpen(true)
+  }
+
   const handleVerifyAndClear = async () => {
-    if (deleteMode === 'single' && !selectedCompanyId) {
+    if (
+      (deleteMode === 'company' || deleteMode === 'material') &&
+      !selectedCompanyId
+    ) {
       toast.error('Selecione uma empresa para limpar os dados.')
+      return
+    }
+
+    if (deleteMode === 'material' && !selectedMaterialToDelete) {
+      toast.error('Selecione um material para excluir.')
       return
     }
 
@@ -89,12 +121,18 @@ export const ManagementMenu = ({
 
     setIsDeleting(true)
     try {
-      // Pass null to delete ALL, or selectedCompanyId for specific company
       const companyToDelete = deleteMode === 'all' ? null : selectedCompanyId
-      await api.clearDatabase(companyToDelete, password)
+      const materialToDelete =
+        deleteMode === 'material' ? selectedMaterialToDelete : undefined
+
+      await api.clearDatabase(companyToDelete, password, materialToDelete)
 
       if (deleteMode === 'all') {
-        toast.success('Todas os dados do sistema foram excluídos com sucesso!')
+        toast.success('Todos os dados do sistema foram excluídos com sucesso!')
+      } else if (deleteMode === 'material') {
+        toast.success(
+          `Dados de ${getMaterialDisplayName(selectedMaterialToDelete)} da empresa ${selectedCompany?.name} removidos com sucesso!`,
+        )
       } else {
         toast.success(
           `Base de dados da empresa ${selectedCompany?.name} limpa com sucesso!`,
@@ -111,12 +149,6 @@ export const ManagementMenu = ({
     } finally {
       setIsDeleting(false)
     }
-  }
-
-  const handleDeleteClick = (mode: 'single' | 'all') => {
-    setDeleteMode(mode)
-    setPassword('')
-    setIsDeleteDialogOpen(true)
   }
 
   return (
@@ -163,11 +195,20 @@ export const ManagementMenu = ({
 
           <DropdownMenuItem
             className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
-            onClick={() => handleDeleteClick('single')}
+            onClick={() => handleDeleteClick('material')}
             disabled={!selectedCompanyId}
           >
             <Trash2 className="h-4 w-4" />
-            Limpar Dados (Empresa)
+            Limpar Dados (Por Material)
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="cursor-pointer focus:bg-red-950 focus:text-red-400 text-red-400 gap-2 min-h-[44px]"
+            onClick={() => handleDeleteClick('company')}
+            disabled={!selectedCompanyId}
+          >
+            <Trash2 className="h-4 w-4" />
+            Limpar Dados (Empresa Inteira)
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -214,7 +255,9 @@ export const ManagementMenu = ({
               <Database className="h-5 w-5" />
               {deleteMode === 'all'
                 ? 'Apagar Todos os Dados'
-                : 'Confirmar Exclusão (Empresa)'}
+                : deleteMode === 'material'
+                  ? 'Apagar Material Específico'
+                  : 'Confirmar Exclusão (Empresa)'}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 space-y-2">
               <span className="flex items-start gap-2 bg-red-950/30 p-3 rounded-md border border-red-900/50 mt-2">
@@ -225,6 +268,18 @@ export const ManagementMenu = ({
                     <span className="uppercase font-bold text-red-400">
                       TODOS OS REGISTROS DE TODAS AS EMPRESAS SERÃO EXCLUÍDOS.
                     </span>
+                  ) : deleteMode === 'material' ? (
+                    <>
+                      Todos os registros de{' '}
+                      <span className="font-bold text-white">
+                        {getMaterialDisplayName(selectedMaterialToDelete)}
+                      </span>{' '}
+                      da empresa{' '}
+                      <span className="font-bold text-white">
+                        {selectedCompany?.name}
+                      </span>{' '}
+                      serão excluídos permanentemente.
+                    </>
                   ) : (
                     <>
                       Todos os registros da empresa{' '}
@@ -236,30 +291,50 @@ export const ManagementMenu = ({
                   )}
                 </span>
               </span>
-              <span className="block mt-4 text-zinc-300">
-                Digite a senha de segurança para confirmar a operação:
-              </span>
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-2">
-            <Label htmlFor="password-confirm" className="sr-only">
-              Senha de Segurança
-            </Label>
-            <Input
-              id="password-confirm"
-              type="password"
-              placeholder="Digite a senha..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={cn(
-                'bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-offset-0 h-11',
-                password.length > 0 && password !== '16071997'
-                  ? 'focus-visible:ring-red-500 border-red-500/50'
-                  : 'focus-visible:ring-emerald-500',
-              )}
-              autoComplete="off"
-            />
+          <div className="py-2 space-y-4">
+            {deleteMode === 'material' && (
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Material a ser excluído</Label>
+                <Select
+                  value={selectedMaterialToDelete}
+                  onValueChange={setSelectedMaterialToDelete}
+                >
+                  <SelectTrigger className="bg-zinc-900 border-zinc-700 text-zinc-100 h-11">
+                    <SelectValue placeholder="Selecione um material..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 max-h-[200px]">
+                    {MATERIALS_OPTIONS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {getMaterialDisplayName(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="password-confirm" className="text-zinc-300">
+                Senha de Segurança para confirmar
+              </Label>
+              <Input
+                id="password-confirm"
+                type="password"
+                placeholder="Digite a senha..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={cn(
+                  'bg-zinc-900 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-offset-0 h-11',
+                  password.length > 0 && password !== '16071997'
+                    ? 'focus-visible:ring-red-500 border-red-500/50'
+                    : 'focus-visible:ring-emerald-500',
+                )}
+                autoComplete="off"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -273,7 +348,11 @@ export const ManagementMenu = ({
             </Button>
             <Button
               onClick={handleVerifyAndClear}
-              disabled={isDeleting || !password}
+              disabled={
+                isDeleting ||
+                !password ||
+                (deleteMode === 'material' && !selectedMaterialToDelete)
+              }
               className="bg-red-600 hover:bg-red-700 text-white gap-2 h-11 sm:h-10"
             >
               {isDeleting ? (
