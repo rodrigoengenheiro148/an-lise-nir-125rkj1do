@@ -16,6 +16,7 @@ export const MATERIALS_OPTIONS = [
   'farinha de carne e osso',
   'farinha de visceras',
   'gordura',
+  'cinzas',
 ]
 
 export const MATERIAL_DISPLAY_NAMES: Record<string, string> = {
@@ -29,6 +30,7 @@ export const MATERIAL_DISPLAY_NAMES: Record<string, string> = {
   'farinha de vísceras': 'Farinha de Vísceras',
   'farinha de visceras': 'Farinha de Vísceras',
   gordura: 'Gordura',
+  cinzas: 'Cinzas',
 }
 
 export const getMaterialDisplayName = (material: string) => {
