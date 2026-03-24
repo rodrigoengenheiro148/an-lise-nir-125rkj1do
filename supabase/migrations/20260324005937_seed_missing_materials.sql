@@ -1,4 +1,4 @@
-DO $
+DO $$
 DECLARE
     r_company RECORD;
     t_material TEXT;
@@ -20,4 +20,4 @@ BEGIN
             END IF;
         END LOOP;
     END LOOP;
-END $;
+END $$;
